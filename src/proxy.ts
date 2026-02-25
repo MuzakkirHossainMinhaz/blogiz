@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export async function middleware(req: any) {
+export async function proxy(req: any) {
   // Get the token from the request
   const token = await getToken({ req });
   const isAuthenticated = !!token;

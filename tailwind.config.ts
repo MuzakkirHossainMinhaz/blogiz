@@ -1,6 +1,10 @@
 import type { Config } from "tailwindcss";
 
-const config: Config = {
+const config: Config & {
+  daisyui: {
+    themes: any[];
+  };
+} = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -38,7 +42,7 @@ const config: Config = {
         sans: ["var(--font-roboto)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        "soft": "0 2px 15px -3px rgba(139, 92, 246, 0.1), 0 10px 20px -2px rgba(139, 92, 246, 0.05)",
+        soft: "0 2px 15px -3px rgba(139, 92, 246, 0.1), 0 10px 20px -2px rgba(139, 92, 246, 0.05)",
         "soft-lg": "0 10px 40px -10px rgba(139, 92, 246, 0.2)",
       },
     },
@@ -48,7 +52,6 @@ const config: Config = {
     themes: [
       {
         light: {
-          ...require("daisyui/src/theming/themes")["light"],
           primary: "#8b5cf6",
           "primary-focus": "#7c3aed",
           "primary-content": "#ffffff",

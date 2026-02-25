@@ -7,9 +7,10 @@ import { hasPermission } from "@/lib/permissions";
 // GET /api/admin/banners/[id] - Get single banner
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
 
     if (!session || !session.user) {
@@ -29,7 +30,7 @@ export async function GET(
 
     await connectDB();
 
-    const banner = await Banner.findById(params.id)
+    const banner = await Banner.findById(id)
       .populate("createdBy", "name email profile.fullName")
       .lean();
 
@@ -53,9 +54,10 @@ export async function GET(
 // PUT /api/admin/banners/[id] - Update banner
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
 
     if (!session || !session.user) {
@@ -94,7 +96,7 @@ export async function PUT(
     } = body;
 
     // Check if banner exists
-    const existingBanner = await Banner.findById(params.id);
+    const existingBanner = await Banner.findById(id);
     if (!existingBanner) {
       return NextResponse.json(
         { error: "Banner not found" },
@@ -104,7 +106,7 @@ export async function PUT(
 
     // Update banner
     const updatedBanner = await Banner.findByIdAndUpdate(
-      params.id,
+      id,
       {
         ...(title !== undefined && { title }),
         ...(subtitle !== undefined && { subtitle }),
@@ -151,9 +153,10 @@ export async function PUT(
 // DELETE /api/admin/banners/[id] - Delete banner
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
 
     if (!session || !session.user) {
@@ -173,7 +176,7 @@ export async function DELETE(
 
     await connectDB();
 
-    const banner = await Banner.findById(params.id);
+    const banner = await Banner.findById(id);
     if (!banner) {
       return NextResponse.json(
         { error: "Banner not found" },
@@ -181,7 +184,7 @@ export async function DELETE(
       );
     }
 
-    await Banner.findByIdAndDelete(params.id);
+    await Banner.findByIdAndDelete(id);
 
     return NextResponse.json(
       { message: "Banner deleted successfully" }

@@ -5,6 +5,7 @@ A state-of-the-art blog platform with comprehensive AI integration, role-based p
 ## ✨ Key Features
 
 ### 🤖 **AI-Powered Content Creation**
+
 - **Smart Writing Assistant**: AI-powered blog title generation, outlines, and content continuation
 - **Automatic SEO Optimization**: AI-generated meta descriptions, keywords, and summaries
 - **Intelligent Tagging**: Automatic tag generation based on content analysis
@@ -12,42 +13,49 @@ A state-of-the-art blog platform with comprehensive AI integration, role-based p
 - **Sentiment Analysis**: Understand the emotional tone of your content
 
 ### 🎨 **AI Image Generation**
+
 - **Blog Cover Generation**: Create stunning blog covers from titles using Stable Diffusion
 - **Multiple Styles**: Realistic, artistic, and digital image styles
 - **Author Avatars**: AI-generated profile pictures for authors
 - **Custom Illustrations**: Generate relevant images for blog content
 
 ### 🛡️ **Intelligent Content Moderation**
+
 - **Real-time Toxicity Detection**: TensorFlow-powered comment moderation
 - **Auto-Approval System**: Clean content automatically approved
 - **Quality Feedback**: Actionable suggestions for content improvement
 - **Spam Prevention**: Advanced filtering and detection systems
 
 ### 🔍 **Smart Search & Discovery**
+
 - **Semantic Search**: AI-powered search that understands meaning, not just keywords
 - **Personalized Recommendations**: Content suggestions based on user behavior
 - **Content Similarity**: Find related articles automatically
 - **Trending Topics**: Discover what's popular in the community
 
 ### 👥 **Multi-User System**
+
 - **Role-Based Access Control**: Superadmin, Admin, Author, and User roles
 - **User Registration**: Choose between Reader and Author accounts
 - **Approval Workflows**: Authors require admin approval to publish
 - **Profile Management**: Comprehensive user profiles with social links
 
 ### 📊 **Advanced Analytics**
+
 - **Content Performance**: Track views, likes, comments, and engagement
 - **User Behavior Analytics**: Understand how users interact with content
 - **AI Insights**: Get AI-powered recommendations for improvement
 - **Dashboard Analytics**: Comprehensive dashboards for all user types
 
 ### 💬 **Engagement Features**
+
 - **Nested Comments**: Threaded discussions with replies
 - **Like System**: Engage with blogs and comments
 - **View Tracking**: Detailed analytics with anti-spam protection
 - **Activity Feeds**: Track user interactions and engagement
 
 ### 🎨 **Dynamic Banner Management**
+
 - **Admin-Controlled Carousels**: Fully manageable banner system from admin dashboard
 - **Multiple Banner Types**: Hero, featured, announcement, and promotion banners
 - **Targeted Display**: Show different banners to different user roles (users, authors, admins)
@@ -60,18 +68,21 @@ A state-of-the-art blog platform with comprehensive AI integration, role-based p
 ## 🛠️ Technology Stack
 
 ### **Frontend**
+
 - **Next.js 13**: App Router with server components
 - **TypeScript**: Full type safety throughout
 - **Tailwind CSS**: Modern, responsive design
 - **React Hooks**: Modern React patterns
 
 ### **Backend**
+
 - **Next.js API Routes**: Serverless API endpoints
 - **MongoDB**: NoSQL database with Mongoose ODM
 - **NextAuth v5**: Secure authentication system
 - **Zod**: Runtime type validation
 
 ### **AI & Machine Learning**
+
 - **HuggingFace**: Free AI models for text and image generation
   - `distilgpt2`: Text generation and writing assistance
   - `stable-diffusion`: Image generation
@@ -83,6 +94,7 @@ A state-of-the-art blog platform with comprehensive AI integration, role-based p
   - Content similarity matching
 
 ### **Infrastructure**
+
 - **Vercel**: Deployment platform (or any Next.js hosting)
 - **MongoDB Atlas**: Cloud database (or local MongoDB)
 - **Environment Variables**: Secure configuration management
@@ -90,25 +102,29 @@ A state-of-the-art blog platform with comprehensive AI integration, role-based p
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - MongoDB (local or MongoDB Atlas)
 - HuggingFace API key (free)
 
 ### Installation
 
 1. **Clone the repository**
+
 ```bash
 git clone <repository-url>
 cd blogiz
 ```
 
 2. **Install dependencies**
+
 ```bash
 npm install
 ```
 
 3. **Set up environment variables**
-Create a `.env.local` file:
+   Create a `.env.local` file:
+
 ```env
 # Database
 MONGODB_URI="mongodb://localhost:27017/blogiz"
@@ -129,16 +145,18 @@ SMTP_PASS="your-app-password"
 ```
 
 4. **Run the development server**
+
 ```bash
 npm run dev
 ```
 
 5. **Open your browser**
-Navigate to [http://localhost:3000](http://localhost:3000)
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 📋 Initial Setup
 
 ### 1. Create Superadmin Account
+
 ```bash
 # Run the seed endpoint to create superadmin
 curl -X POST http://localhost:3000/api/seed \
@@ -147,10 +165,12 @@ curl -X POST http://localhost:3000/api/seed \
 ```
 
 **Default Superadmin Credentials:**
+
 - Email: `superadmin@blogiz.com`
 - Password: `superadmin123`
 
 ### 2. Configure HuggingFace API
+
 1. Visit [HuggingFace](https://huggingface.co/)
 2. Create a free account
 3. Go to Settings → Access Tokens
@@ -158,6 +178,7 @@ curl -X POST http://localhost:3000/api/seed \
 5. Add the token to your `.env.local` file
 
 ### 3. Test the System
+
 - Register as a new user
 - Try upgrading to Author role
 - Create a blog with AI assistance
@@ -204,24 +225,28 @@ src/
 ### User Roles & Permissions
 
 #### **Superadmin**
+
 - Complete system control
 - User role management
 - Platform configuration
 - Full content oversight
 
 #### **Admin**
+
 - Content moderation
 - User management (except superadmin)
 - Blog approval/rejection
 - Comment moderation
 
 #### **Author**
+
 - Create and manage blogs
 - Comment on posts
 - View analytics
 - Request role upgrades
 
 #### **User**
+
 - Read published blogs
 - Comment on posts
 - Like content
@@ -230,6 +255,7 @@ src/
 ### AI Features
 
 #### **Writing Assistant**
+
 ```typescript
 // Generate blog titles
 POST /api/ai/writing-assistant
@@ -249,6 +275,7 @@ PUT /api/ai/writing-assistant/continue-writing
 ```
 
 #### **Image Generation**
+
 ```typescript
 // Generate blog cover
 POST /api/ai/generate-image
@@ -262,6 +289,7 @@ GET /api/ai/generate-image/blog-cover?title=AI&category=technology
 ```
 
 #### **Content Analysis**
+
 ```typescript
 // Analyze content
 POST /api/ai/analyze-content
@@ -276,10 +304,12 @@ POST /api/ai/analyze-content
 ### API Endpoints
 
 #### **Authentication**
+
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/[...nextauth]` - NextAuth handlers
 
 #### **Blogs**
+
 - `GET /api/blogs` - Get published blogs
 - `POST /api/blogs` - Create blog (with AI)
 - `GET /api/blogs/[id]` - Get single blog
@@ -287,6 +317,7 @@ POST /api/ai/analyze-content
 - `DELETE /api/blogs/[id]` - Delete blog
 
 #### **Comments**
+
 - `GET /api/comments` - Get blog comments
 - `POST /api/comments` - Create comment (with moderation)
 - `PUT /api/comments/[id]` - Update comment
@@ -294,6 +325,7 @@ POST /api/ai/analyze-content
 - `POST /api/comments/[id]/like` - Like/unlike comment
 
 #### **AI Features**
+
 - `POST /api/ai/writing-assistant` - Writing assistance
 - `POST /api/ai/generate-image` - Image generation
 - `POST /api/ai/analyze-content` - Content analysis
@@ -302,6 +334,7 @@ POST /api/ai/analyze-content
 - `GET /api/ai/dashboard` - AI analytics
 
 #### **Admin**
+
 - `GET /api/admin/users` - User management
 - `GET /api/admin/role-upgrades` - Role upgrade requests
 - `POST /api/admin/blogs/[id]/approve` - Approve blog
@@ -314,6 +347,7 @@ POST /api/ai/analyze-content
 - `PUT /api/admin/banners/reorder` - Reorder banners
 
 #### **Public Banners**
+
 - `GET /api/banners` - Get active banners for display
 - `GET /api/banners?type=hero&carousel=true` - Get hero carousel
 - `GET /api/banners?type=featured` - Get featured banners
@@ -321,6 +355,7 @@ POST /api/ai/analyze-content
 ## 🔧 Development
 
 ### Available Scripts
+
 ```bash
 npm run dev          # Start development server
 npm run build        # Build for production
@@ -330,21 +365,26 @@ npm run type-check   # Run TypeScript checks
 ```
 
 ### Environment Variables
+
 All environment variables are validated using Zod schemas. See `src/lib/env-config.ts` for the complete list.
 
 ### Database Models
+
 All models are fully typed with TypeScript interfaces and include proper validation, indexing, and relationships.
 
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
+
 1. Push your code to GitHub
 2. Connect your repository to Vercel
 3. Add environment variables in Vercel dashboard
 4. Deploy automatically
 
 ### Other Platforms
+
 The app works on any Next.js-compatible hosting platform:
+
 - Netlify
 - AWS Amplify
 - DigitalOcean App Platform
@@ -365,6 +405,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🆘 Support
 
 For support and questions:
+
 - Create an issue in the repository
 - Check the [GUIDE.md](./GUIDE.md) for detailed testing instructions
 - Review the API documentation in the codebase

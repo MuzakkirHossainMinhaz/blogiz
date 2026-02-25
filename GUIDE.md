@@ -19,7 +19,9 @@ Complete step-by-step guide to test all features of the AI-powered multi-user bl
 ## 🔧 Prerequisites & Setup
 
 ### Before You Start
+
 Ensure you have completed the setup from README.md:
+
 - ✅ Node.js 18+ installed
 - ✅ MongoDB running (local or Atlas)
 - ✅ Environment variables configured
@@ -27,6 +29,7 @@ Ensure you have completed the setup from README.md:
 - ✅ HuggingFace API key configured
 
 ### Step 1: Create Superadmin Account
+
 ```bash
 curl -X POST http://localhost:3000/api/seed \
   -H "Content-Type: application/json" \
@@ -34,6 +37,7 @@ curl -X POST http://localhost:3000/api/seed \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "Superadmin user created successfully",
@@ -50,7 +54,9 @@ curl -X POST http://localhost:3000/api/seed \
 ```
 
 ### Step 2: Verify Database Connection
+
 Check your MongoDB to ensure:
+
 - ✅ `users` collection exists with superadmin user
 - ✅ Database connection is working
 - ✅ Environment variables are correctly loaded
@@ -58,11 +64,13 @@ Check your MongoDB to ensure:
 ## 🧪 Basic Functionality Testing
 
 ### Test 1: Server Health Check
+
 ```bash
 curl http://localhost:3000/api/health
 ```
 
 ### Test 2: Environment Validation
+
 Visit `http://localhost:3000` in your browser and check the console for environment configuration logs.
 
 ## 👥 User Management Testing
@@ -70,6 +78,7 @@ Visit `http://localhost:3000` in your browser and check the console for environm
 ### Test 1: User Registration
 
 #### Register as Regular User
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -83,6 +92,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "User created successfully",
@@ -101,6 +111,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ```
 
 #### Register as Author (Requires Approval)
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -114,6 +125,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "Registration successful! Your account is pending approval from an admin.",
@@ -125,6 +137,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ```
 
 ### Test 2: Duplicate Email Prevention
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -140,6 +153,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 **Expected Response:** `409 Conflict` with error about existing email.
 
 ### Test 3: Input Validation
+
 ```bash
 # Test invalid email
 curl -X POST http://localhost:3000/api/auth/register \
@@ -158,6 +172,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ## 📝 Blog System Testing
 
 ### Test 1: Get Published Blogs (Public Access)
+
 ```bash
 curl "http://localhost:3000/api/blogs?page=1&limit=10"
 ```
@@ -167,12 +182,14 @@ curl "http://localhost:3000/api/blogs?page=1&limit=10"
 ### Test 2: Create Blog (Authentication Required)
 
 First, login as the superadmin to get session:
+
 ```bash
 # This would typically be done via the frontend login
 # For testing, we'll use the superadmin session
 ```
 
 Create a blog with AI features:
+
 ```bash
 curl -X POST http://localhost:3000/api/blogs \
   -H "Content-Type: application/json" \
@@ -187,6 +204,7 @@ curl -X POST http://localhost:3000/api/blogs \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "Blog created successfully",
@@ -212,12 +230,14 @@ curl -X POST http://localhost:3000/api/blogs \
 ```
 
 ### Test 3: Create Blog as Unapproved Author
+
 ```bash
 # Use the author account created earlier
 # The blog should be created with "pending" status
 ```
 
 ### Test 4: Get Single Blog
+
 ```bash
 curl "http://localhost:3000/api/blogs/BLOG_ID_HERE"
 ```
@@ -225,6 +245,7 @@ curl "http://localhost:3000/api/blogs/BLOG_ID_HERE"
 **Expected Response:** Blog details with author information populated.
 
 ### Test 5: Update Blog (Owner Only)
+
 ```bash
 curl -X PUT http://localhost:3000/api/blogs/BLOG_ID_HERE \
   -H "Content-Type: application/json" \
@@ -236,6 +257,7 @@ curl -X PUT http://localhost:3000/api/blogs/BLOG_ID_HERE \
 ```
 
 ### Test 6: Delete Blog (Owner Only)
+
 ```bash
 curl -X DELETE http://localhost:3000/api/blogs/BLOG_ID_HERE \
   -H "Cookie: next-auth.session-token=YOUR_SESSION_TOKEN"
@@ -244,11 +266,13 @@ curl -X DELETE http://localhost:3000/api/blogs/BLOG_ID_HERE \
 ## 💬 Comment System Testing
 
 ### Test 1: Get Comments for Blog
+
 ```bash
 curl "http://localhost:3000/api/comments?blogId=BLOG_ID_HERE"
 ```
 
 ### Test 2: Create Comment with AI Moderation
+
 ```bash
 curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
@@ -260,6 +284,7 @@ curl -X POST http://localhost:3000/api/comments \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "Comment posted successfully",
@@ -276,6 +301,7 @@ curl -X POST http://localhost:3000/api/comments \
 ```
 
 ### Test 3: Test Toxic Comment Detection
+
 ```bash
 curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
@@ -289,6 +315,7 @@ curl -X POST http://localhost:3000/api/comments \
 **Expected Response:** Comment created but `isApproved: false` with moderation issues.
 
 ### Test 4: Create Reply (Nested Comment)
+
 ```bash
 curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
@@ -301,6 +328,7 @@ curl -X POST http://localhost:3000/api/comments \
 ```
 
 ### Test 5: Like/Unlike Comment
+
 ```bash
 # Like comment
 curl -X POST http://localhost:3000/api/comments/COMMENT_ID/like \
@@ -316,6 +344,7 @@ curl -X POST http://localhost:3000/api/comments/COMMENT_ID/like \
 ### Test 1: AI Writing Assistant
 
 #### Generate Blog Titles
+
 ```bash
 curl -X POST http://localhost:3000/api/ai/writing-assistant \
   -H "Content-Type: application/json" \
@@ -329,12 +358,14 @@ curl -X POST http://localhost:3000/api/ai/writing-assistant \
 **Expected Response:** Array of 5 AI-generated blog titles.
 
 #### Generate Blog Outline
+
 ```bash
 curl "http://localhost:3000/api/ai/writing-assistant/generate-outline?topic=machine%20learning" \
   -H "Cookie: next-auth.session-token=YOUR_SESSION_TOKEN"
 ```
 
 #### Continue Writing
+
 ```bash
 curl -X PUT http://localhost:3000/api/ai/writing-assistant/continue-writing \
   -H "Content-Type: application/json" \
@@ -347,6 +378,7 @@ curl -X PUT http://localhost:3000/api/ai/writing-assistant/continue-writing \
 ### Test 2: AI Image Generation
 
 #### Generate Blog Cover
+
 ```bash
 curl -X POST http://localhost:3000/api/ai/generate-image \
   -H "Content-Type: application/json" \
@@ -360,12 +392,14 @@ curl -X POST http://localhost:3000/api/ai/generate-image \
 **Expected Response:** Base64 encoded image data.
 
 #### Generate Cover from Title
+
 ```bash
 curl "http://localhost:3000/api/ai/generate-image/blog-cover?title=AI%20Revolution&category=technology" \
   -H "Cookie: next-auth.session-token=YOUR_SESSION_TOKEN"
 ```
 
 ### Test 3: Content Analysis
+
 ```bash
 curl -X POST http://localhost:3000/api/ai/analyze-content \
   -H "Content-Type: application/json" \
@@ -380,6 +414,7 @@ curl -X POST http://localhost:3000/api/ai/analyze-content \
 ```
 
 ### Test 4: Content Moderation
+
 ```bash
 curl -X POST http://localhost:3000/api/ai/moderate-content \
   -H "Content-Type: application/json" \
@@ -391,6 +426,7 @@ curl -X POST http://localhost:3000/api/ai/moderate-content \
 ```
 
 ### Test 5: Semantic Search
+
 ```bash
 curl -X POST http://localhost:3000/api/ai/search \
   -H "Content-Type: application/json" \
@@ -401,6 +437,7 @@ curl -X POST http://localhost:3000/api/ai/search \
 ```
 
 ### Test 6: Content Similarity
+
 ```bash
 curl -X PUT http://localhost:3000/api/ai/search/similar \
   -H "Content-Type: application/json" \
@@ -414,12 +451,14 @@ curl -X PUT http://localhost:3000/api/ai/search/similar \
 ## 👑 Admin Features Testing
 
 ### Test 1: Get All Users (Admin Only)
+
 ```bash
 curl "http://localhost:3000/api/admin/users?page=1&limit=10" \
   -H "Cookie: next-auth.session-token=ADMIN_SESSION_TOKEN"
 ```
 
 ### Test 2: Approve Author Request
+
 ```bash
 # First, get pending requests
 curl "http://localhost:3000/api/admin/role-upgrades?status=pending" \
@@ -435,12 +474,14 @@ curl -X PUT http://localhost:3000/api/admin/role-upgrades/REQUEST_ID_HERE \
 ```
 
 ### Test 3: Approve Blog
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/blogs/BLOG_ID_HERE/approve \
   -H "Cookie: next-auth.session-token=ADMIN_SESSION_TOKEN"
 ```
 
 ### Test 4: Reject Blog with Reason
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/blogs/BLOG_ID_HERE/reject \
   -H "Content-Type: application/json" \
@@ -451,6 +492,7 @@ curl -X POST http://localhost:3000/api/admin/blogs/BLOG_ID_HERE/reject \
 ```
 
 ### Test 5: Approve Comment
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/comments/COMMENT_ID_HERE/approve \
   -H "Cookie: next-auth.session-token=ADMIN_SESSION_TOKEN"
@@ -459,6 +501,7 @@ curl -X POST http://localhost:3000/api/admin/comments/COMMENT_ID_HERE/approve \
 ## 📊 Dashboard & Analytics Testing
 
 ### Test 1: User Dashboard
+
 ```bash
 curl "http://localhost:3000/api/user/dashboard" \
   -H "Cookie: next-auth.session-token=USER_SESSION_TOKEN"
@@ -467,19 +510,21 @@ curl "http://localhost:3000/api/user/dashboard" \
 **Expected Response:** User statistics, reading history, comments, likes.
 
 ### Test 2: Author Dashboard
-```bash
+
+````bash
 curl "http://localhost:3000/api/user/dashboard" \
 ### Test 3: AI Dashboard
 ```bash
 curl "http://localhost:3000/api/ai/dashboard" \
   -H "Cookie: next-auth.session-token=USER_SESSION_TOKEN"
-```
+````
 
 **Expected Response:** AI insights, content analytics, recommendations.
 
 ## 🎨 Banner Management Testing
 
 ### Test 1: Get All Banners (Admin Only)
+
 ```bash
 curl "http://localhost:3000/api/admin/banners?page=1&limit=10" \
   -H "Cookie: next-auth.session-token=ADMIN_SESSION_TOKEN"
@@ -488,6 +533,7 @@ curl "http://localhost:3000/api/admin/banners?page=1&limit=10" \
 **Expected Response:** List of banners with pagination and metadata.
 
 ### Test 2: Create New Banner (Admin Only)
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/banners \
   -H "Content-Type: application/json" \
@@ -517,6 +563,7 @@ curl -X POST http://localhost:3000/api/admin/banners \
 **Expected Response:** Created banner with all details and populated creator information.
 
 ### Test 3: Upload Banner Image (Admin Only)
+
 ```bash
 # Create a test image file first (banner-test.jpg)
 curl -X POST http://localhost:3000/api/admin/banners/upload \
@@ -527,6 +574,7 @@ curl -X POST http://localhost:3000/api/admin/banners/upload \
 **Expected Response:** Image upload success with URL and file details.
 
 ### Test 4: Update Banner (Admin Only)
+
 ```bash
 curl -X PUT http://localhost:3000/api/admin/banners/BANNER_ID_HERE \
   -H "Content-Type: application/json" \
@@ -541,6 +589,7 @@ curl -X PUT http://localhost:3000/api/admin/banners/BANNER_ID_HERE \
 **Expected Response:** Updated banner information.
 
 ### Test 5: Reorder Banners (Admin Only)
+
 ```bash
 curl -X PUT http://localhost:3000/api/admin/banners/reorder \
   -H "Content-Type: application/json" \
@@ -557,6 +606,7 @@ curl -X PUT http://localhost:3000/api/admin/banners/reorder \
 **Expected Response:** Banners reordered successfully.
 
 ### Test 6: Get Public Banners (No Auth Required)
+
 ```bash
 # Get hero carousel banners
 curl "http://localhost:3000/api/banners?type=hero&carousel=true&limit=5"
@@ -571,6 +621,7 @@ curl "http://localhost:3000/api/banners?type=announcement&limit=2"
 **Expected Response:** Active banners filtered by type with carousel settings.
 
 ### Test 7: Test Banner Display by User Role
+
 ```bash
 # Test as regular user (should show user-targeted banners)
 curl "http://localhost:3000/api/banners" \
@@ -588,6 +639,7 @@ curl "http://localhost:3000/api/banners" \
 **Expected Response:** Different banner sets based on user role.
 
 ### Test 8: Test Date-Based Banner Scheduling
+
 ```bash
 # Create banner with date range
 curl -X POST http://localhost:3000/api/admin/banners \
@@ -607,6 +659,7 @@ curl -X POST http://localhost:3000/api/admin/banners \
 **Expected Response:** Banner created with date scheduling.
 
 ### Test 9: Delete Banner (Admin Only)
+
 ```bash
 curl -X DELETE http://localhost:3000/api/admin/banners/BANNER_ID_HERE \
   -H "Cookie: next-auth.session-token=ADMIN_SESSION_TOKEN"
@@ -615,12 +668,14 @@ curl -X DELETE http://localhost:3000/api/admin/banners/BANNER_ID_HERE \
 **Expected Response:** Banner deleted successfully.
 
 ### Test 10: Banner Carousel Functionality
+
 ```bash
 # Test carousel settings
 curl "http://localhost:3000/api/banners?type=hero&carousel=true"
 ```
 
-**Expected Response:** 
+**Expected Response:**
+
 ```json
 {
   "banners": [...],
@@ -640,6 +695,7 @@ curl "http://localhost:3000/api/banners?type=hero&carousel=true"
 ## 🔄 Role Upgrade Testing
 
 ### Test 1: Request Role Upgrade
+
 ```bash
 curl -X POST http://localhost:3000/api/user/role-upgrade \
   -H "Content-Type: application/json" \
@@ -651,6 +707,7 @@ curl -X POST http://localhost:3000/api/user/role-upgrade \
 ```
 
 ### Test 2: Check Request Status
+
 ```bash
 curl "http://localhost:3000/api/user/role-upgrade" \
   -H "Cookie: next-auth.session-token=USER_SESSION_TOKEN"
@@ -659,6 +716,7 @@ curl "http://localhost:3000/api/user/role-upgrade" \
 ## 🔍 Advanced Features Testing
 
 ### Test 1: Blog View Tracking
+
 ```bash
 curl -X POST http://localhost:3000/api/blogs/BLOG_ID_HERE/view \
   -H "Content-Type: application/json" \
@@ -666,6 +724,7 @@ curl -X POST http://localhost:3000/api/blogs/BLOG_ID_HERE/view \
 ```
 
 ### Test 2: Blog Like System
+
 ```bash
 # Like blog (Note: You'll need to implement this endpoint if not exists)
 curl -X POST http://localhost:3000/api/blogs/BLOG_ID_HERE/like \
@@ -673,6 +732,7 @@ curl -X POST http://localhost:3000/api/blogs/BLOG_ID_HERE/like \
 ```
 
 ### Test 3: User Profile Management
+
 ```bash
 # Get user profile
 curl "http://localhost:3000/api/users/USER_ID_HERE"
@@ -694,10 +754,13 @@ curl -X PUT http://localhost:3000/api/users/USER_ID_HERE \
 ## 🚀 Performance & Security Testing
 
 ### Test 1: Rate Limiting
+
 Make multiple rapid requests to the same endpoint to test rate limiting.
 
 ### Test 2: Input Validation
+
 Try various malicious inputs:
+
 ```bash
 # XSS attempt
 curl -X POST http://localhost:3000/api/comments \
@@ -710,12 +773,15 @@ curl -X POST http://localhost:3000/api/comments \
 ```
 
 ### Test 3: SQL Injection Protection
+
 ```bash
 curl "http://localhost:3000/api/blogs?search='; DROP TABLE users; --"
 ```
 
 ### Test 4: Authentication Bypass
+
 Try accessing protected endpoints without authentication:
+
 ```bash
 curl "http://localhost:3000/api/admin/users"
 ```
@@ -725,12 +791,14 @@ curl "http://localhost:3000/api/admin/users"
 ## 📱 Mobile & Browser Testing
 
 ### Test Different Browsers
+
 - Chrome/Chromium
 - Firefox
 - Safari
 - Edge
 
 ### Test Responsive Design
+
 - Desktop (1920x1080)
 - Tablet (768x1024)
 - Mobile (375x667)
@@ -740,25 +808,33 @@ curl "http://localhost:3000/api/admin/users"
 ### Common Issues & Solutions
 
 #### Issue 1: "HuggingFace API key not found"
+
 **Solution:** Ensure `HUGGINGFACE_API_KEY` is set in `.env.local`
 
 #### Issue 2: "MongoDB connection failed"
+
 **Solution:** Check MongoDB URI and ensure MongoDB is running
 
 #### Issue 3: "NextAuth secret not found"
+
 **Solution:** Set `NEXTAUTH_SECRET` in environment variables
 
 #### Issue 4: AI features return empty results
+
 **Solution:** Check HuggingFace API key and internet connection
 
 #### Issue 5: Comments not auto-approving
+
 **Solution:** Check user permissions and TensorFlow.js initialization
 
 #### Issue 6: Role upgrade not working
+
 **Solution:** Ensure user is logged in and has proper session
 
 ### Debug Mode
+
 Enable debug logging by setting:
+
 ```env
 NODE_ENV=development
 ```
@@ -766,17 +842,20 @@ NODE_ENV=development
 Check browser console and server logs for detailed error information.
 
 ### Database Verification
+
 Connect to your MongoDB and verify:
+
 ```javascript
 // Check collections
-db.users.find().pretty()
-db.blogs.find().pretty()
-db.comments.find().pretty()
+db.users.find().pretty();
+db.blogs.find().pretty();
+db.comments.find().pretty();
 ```
 
 ## ✅ Testing Checklist
 
 ### Core Functionality
+
 - [ ] User registration (user and author roles)
 - [ ] Login/logout functionality
 - [ ] Blog CRUD operations
@@ -784,6 +863,7 @@ db.comments.find().pretty()
 - [ ] Role-based permissions
 
 ### AI Features
+
 - [ ] AI writing assistance
 - [ ] AI image generation
 - [ ] Content analysis and SEO
@@ -791,6 +871,7 @@ db.comments.find().pretty()
 - [ ] Semantic search
 
 ### Admin Features
+
 - [ ] User management
 - [ ] Content approval
 - [ ] Role upgrade management
@@ -798,12 +879,14 @@ db.comments.find().pretty()
 - [ ] Banner management and carousel functionality
 
 ### Security
+
 - [ ] Authentication enforcement
 - [ ] Input validation
 - [ ] XSS protection
 - [ ] SQL injection protection
 
 ### Performance
+
 - [ ] Response times under 2 seconds
 - [ ] Database queries optimized
 - [ ] AI features responsive

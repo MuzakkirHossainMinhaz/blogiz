@@ -5,17 +5,17 @@ import BlogView from "@/models/BlogView";
 import { getClientIP, getUserAgent } from "@/lib/request-utils";
 import { auth } from "@/lib/auth";
 
-// POST /api/blogs/[blogId]/view - Track blog view
+// POST /api/blogs/[id]/view - Track blog view
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ blogId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
-    const { blogId } = await params;
+    const { id } = await params;
 
     // Check if blog exists and is published
-    const blog = await Blog.findById(blogId);
+    const blog = await Blog.findById(id);
     if (!blog) {
       return NextResponse.json(
         { error: "Blog not found" },
@@ -35,8 +35,8 @@ export async function POST(
     const userId = session?.user ? (session.user as any).id : null;
 
     // Get request info
-    const ipAddress = getClientIP(request);
-    const userAgent = getUserAgent(request);
+    const ipAddress = await getClientIP();
+    const userAgent = await getUserAgent();
     
     // Get session ID from headers or generate one
     const sessionId = request.headers.get("x-session-id") || 
@@ -50,7 +50,7 @@ export async function POST(
     if (userId) {
       // For logged-in users, check their recent views
       const recentView = await BlogView.findOne({
-        blogId,
+        blogId: id,
         userId,
         viewedAt: { $gte: oneHourAgo },
       });
@@ -61,7 +61,7 @@ export async function POST(
     } else {
       // For anonymous users, check by IP and session
       const recentView = await BlogView.findOne({
-        blogId,
+        blogId: id,
         ipAddress,
         sessionId,
         viewedAt: { $gte: oneHourAgo },
@@ -75,7 +75,7 @@ export async function POST(
     if (shouldTrackView) {
       // Create view record
       await BlogView.create({
-        blogId,
+        blogId: id,
         userId,
         ipAddress,
         userAgent,
@@ -84,7 +84,7 @@ export async function POST(
       });
 
       // Optionally update blog view count (if you add this field to Blog model)
-      // await Blog.findByIdAndUpdate(blogId, { $inc: { totalViews: 1 } });
+      // await Blog.findByIdAndUpdate(id, { $inc: { totalViews: 1 } });
     }
 
     return NextResponse.json({
