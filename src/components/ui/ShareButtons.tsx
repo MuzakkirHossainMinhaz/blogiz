@@ -1,15 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { 
-  FiShare2, 
-  FiTwitter, 
-  FiFacebook, 
-  FiLinkedin, 
-  FiLink,
-  FiCheck
-} from "react-icons/fi";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { FiCheck, FiFacebook, FiLink, FiLinkedin, FiShare2, FiTwitter } from "react-icons/fi";
 
 interface ShareButtonsProps {
   title: string;
@@ -19,18 +12,12 @@ interface ShareButtonsProps {
   variant?: "default" | "compact";
 }
 
-export function ShareButtons({ 
-  title, 
-  url, 
-  className, 
-  size = "md",
-  variant = "default" 
-}: ShareButtonsProps) {
+export function ShareButtons({ title, url, className, size = "md", variant = "default" }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
 
   const sizeClasses = {
     sm: "p-2 text-sm",
-    md: "p-2.5 text-base", 
+    md: "p-2.5 text-base",
     lg: "p-3 text-lg",
   };
 
@@ -57,7 +44,7 @@ export function ShareButtons({
   };
 
   const handleShare = (platform: keyof typeof shareUrls) => {
-    window.open(shareUrls[platform], '_blank', 'width=600,height=400,scrollbars=yes,resizable=yes');
+    window.open(shareUrls[platform], "_blank", "width=600,height=400,scrollbars=yes,resizable=yes");
   };
 
   if (variant === "compact") {
@@ -78,9 +65,9 @@ export function ShareButtons({
             <FiLink className={cn(iconSizes[size])} />
           )}
         </button>
-        
+
         <button
-          onClick={() => handleShare('twitter')}
+          onClick={() => handleShare("twitter")}
           className={cn(
             "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
             "bg-sky-500 text-white hover:bg-sky-600 border border-sky-500",
@@ -90,9 +77,9 @@ export function ShareButtons({
         >
           <FiTwitter className={cn(iconSizes[size])} />
         </button>
-        
+
         <button
-          onClick={() => handleShare('facebook')}
+          onClick={() => handleShare("facebook")}
           className={cn(
             "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
             "bg-blue-600 text-white hover:bg-blue-700 border border-blue-600",
@@ -102,9 +89,9 @@ export function ShareButtons({
         >
           <FiFacebook className={cn(iconSizes[size])} />
         </button>
-        
+
         <button
-          onClick={() => handleShare('linkedin')}
+          onClick={() => handleShare("linkedin")}
           className={cn(
             "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
             "bg-blue-700 text-white hover:bg-blue-800 border border-blue-700",
@@ -124,7 +111,7 @@ export function ShareButtons({
         <FiShare2 className={cn(iconSizes[size], "text-neutral-600")} />
         <span className="font-medium text-neutral-900">Share this article</span>
       </div>
-      
+
       <div className="flex flex-wrap gap-3">
         <button
           onClick={handleCopyLink}
@@ -146,9 +133,9 @@ export function ShareButtons({
             </>
           )}
         </button>
-        
+
         <button
-          onClick={() => handleShare('twitter')}
+          onClick={() => handleShare("twitter")}
           className={cn(
             "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
             "bg-sky-500 text-white hover:bg-sky-600 border border-sky-500 hover:border-sky-600",
@@ -158,9 +145,9 @@ export function ShareButtons({
           <FiTwitter className={cn(iconSizes[size])} />
           <span>Twitter</span>
         </button>
-        
+
         <button
-          onClick={() => handleShare('facebook')}
+          onClick={() => handleShare("facebook")}
           className={cn(
             "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
             "bg-blue-600 text-white hover:bg-blue-700 border border-blue-600 hover:border-blue-700",
@@ -170,9 +157,9 @@ export function ShareButtons({
           <FiFacebook className={cn(iconSizes[size])} />
           <span>Facebook</span>
         </button>
-        
+
         <button
-          onClick={() => handleShare('linkedin')}
+          onClick={() => handleShare("linkedin")}
           className={cn(
             "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
             "bg-blue-700 text-white hover:bg-blue-800 border border-blue-700 hover:border-blue-800",

@@ -1,51 +1,58 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
-import { FiUser, FiEdit3, FiMail, FiLock, FiCheck } from "react-icons/fi";
+import { Container } from "@/components/ui/Container";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { FiEdit3, FiLock, FiMail, FiUser, FiUsers } from "react-icons/fi";
+import { z } from "zod";
+
+const registerSchema = z
+  .object({
+    name: z.string().min(1, "Username is required"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Confirm password is required"),
+    fullName: z.string().min(1, "Full name is required"),
+    role: z.enum(["user", "author"]),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    fullName: "",
-    role: "user" as "user" | "author",
-  });
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      role: "user",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const selectedRole = watch("role");
+
+  const onSubmit = async (data: RegisterFormData) => {
+    setIsLoading(true);
     setError("");
     setSuccess("");
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      setLoading(false);
-      return;
-    }
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -54,206 +61,170 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
-          role: formData.role,
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          fullName: data.fullName,
+          role: data.role,
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (response.ok) {
-        setSuccess(data.message);
+        setSuccess(result.message);
         setTimeout(() => {
-          router.push("/auth/secure/login");
+          router.push("/auth/login");
         }, 2000);
       } else {
-        setError(data.error || "Registration failed");
+        setError(result.error || "Registration failed");
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <Container>
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Join Blogiz
-              </h1>
-              <p className="text-gray-600">
-                Create your account and start sharing your thoughts
-              </p>
+    <Container className="max-w-2xl w-full">
+      <div className="space-y-6">
+        {/* Logo */}
+        <div className="text-center">
+          <Link href="/" className="inline-block">
+            <Image src="/logo.png" alt="Blogiz" width={64} height={64} className="mx-auto h-16 w-auto" priority />
+          </Link>
+        </div>
+
+        {/* Registration Card */}
+        <div className="bg-white py-8 px-8 shadow-xl rounded-2xl">
+          <h1 className="text-2xl font-bold text-neutral-900 text-center mb-2">Create Account</h1>
+          <p className="text-sm text-neutral-500 text-center mb-8">Join Blogiz today</p>
+
+          {/* Success Message */}
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 text-sm text-center">{success}</p>
             </div>
+          )}
 
-            {/* Success Message */}
-            {success && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center">
-                  <FiCheck className="w-5 h-5 text-green-600 mr-2" />
-                  <p className="text-green-800">{success}</p>
-                </div>
-              </div>
-            )}
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm text-center">{error}</p>
+            </div>
+          )}
 
-            {/* Error Message */}
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800">{error}</p>
-              </div>
-            )}
+          {/* Registration Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Name */}
+            <Input
+              {...register("name")}
+              type="text"
+              label="Username"
+              placeholder="Choose a username"
+              icon={<FiUser className="w-5 h-5" />}
+              error={errors.name?.message}
+              disabled={isLoading}
+              required
+            />
 
-            {/* Registration Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Username
-                </label>
-                <div className="relative">
-                  <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Choose a username"
-                  />
-                </div>
-              </div>
-
+            {/* Full Name & Email - 2 columns on md+ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <FiEdit3 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-              </div>
+              <Input
+                {...register("fullName")}
+                type="text"
+                label="Full Name"
+                placeholder="Enter your full name"
+                icon={<FiEdit3 className="w-5 h-5" />}
+                error={errors.fullName?.message}
+                disabled={isLoading}
+                required
+              />
 
               {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="your@email.com"
-                  />
-                </div>
-              </div>
+              <Input
+                {...register("email")}
+                type="email"
+                label="Email Address"
+                placeholder="your@email.com"
+                icon={<FiMail className="w-5 h-5" />}
+                error={errors.email?.message}
+                disabled={isLoading}
+                required
+              />
+            </div>
 
-              {/* Role Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Account Type
-                </label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="user">Reader - Can read and comment on blogs</option>
-                  <option value="author">Author - Can write and manage blogs</option>
-                </select>
-                {formData.role === "author" && (
-                  <p className="mt-2 text-sm text-amber-600">
-                    <strong>Note:</strong> Author accounts require admin approval before you can publish blogs.
-                  </p>
-                )}
-              </div>
+            {/* Role Selection */}
+            <Select
+              {...register("role")}
+              label="Account Type"
+              error={errors.role?.message}
+              disabled={isLoading}
+              icon={<FiUsers className="w-5 h-5" />}
+              options={[
+                { value: "user", label: "Reader - Can read and comment on blogs" },
+                { value: "author", label: "Author - Can write and manage blogs" },
+              ]}
+            />
+            {selectedRole === "author" && (
+              <p className="text-sm text-amber-600 -mt-2">
+                <strong>Note:</strong> Author accounts require admin approval before you can publish blogs.
+              </p>
+            )}
 
+            {/* Password Fields - 2 columns on md+ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Create a password"
-                  />
-                </div>
-              </div>
+              <Input
+                {...register("password")}
+                type="password"
+                label="Password"
+                placeholder="Create a password"
+                icon={<FiLock className="w-5 h-5" />}
+                error={errors.password?.message}
+                disabled={isLoading}
+                showTogglePassword
+                required
+              />
 
               {/* Confirm Password */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Confirm your password"
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 rounded-lg transition-all duration-200 disabled:opacity-50"
-              >
-                {loading ? "Creating Account..." : "Create Account"}
-              </Button>
-            </form>
-
-            {/* Login Link */}
-            <div className="mt-8 text-center">
-              <p className="text-gray-600">
-                Already have an account?{" "}
-                <Link
-                  href="/auth/secure/login"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Sign in here
-                </Link>
-              </p>
+              <Input
+                {...register("confirmPassword")}
+                type="password"
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                icon={<FiLock className="w-5 h-5" />}
+                error={errors.confirmPassword?.message}
+                disabled={isLoading}
+                showTogglePassword
+                required
+              />
             </div>
-          </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={isLoading}
+              fullWidth
+              className="rounded-full cursor-pointer"
+            >
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </Button>
+          </form>
+
+          {/* Login Link */}
+          <p className="mt-6 text-center text-sm text-neutral-600">
+            Already have an account?{" "}
+            <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-500 transition-colors">
+              Sign in
+            </Link>
+          </p>
         </div>
-      </Container>
-    </div>
+      </div>
+    </Container>
   );
 }

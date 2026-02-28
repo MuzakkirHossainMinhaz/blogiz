@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IBlog extends Document {
   title: string;
@@ -94,11 +94,13 @@ const BlogSchema = new Schema<IBlog>(
       type: Number,
       default: 0,
     },
-    tags: [{
-      type: String,
-      trim: true,
-      lowercase: true,
-    }],
+    tags: [
+      {
+        type: String,
+        trim: true,
+        lowercase: true,
+      },
+    ],
     readingTime: {
       type: Number,
       default: 5, // 5 minutes default reading time
@@ -121,7 +123,6 @@ BlogSchema.index({ createdBy: 1 });
 BlogSchema.index({ isApproved: 1, status: 1 });
 BlogSchema.index({ tags: 1 });
 
-const Blog: Model<IBlog> =
-  mongoose.models.Blog || mongoose.model<IBlog>("Blog", BlogSchema);
+const Blog: Model<IBlog> = mongoose.models.Blog || mongoose.model<IBlog>("Blog", BlogSchema);
 
 export default Blog;

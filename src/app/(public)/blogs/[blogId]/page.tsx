@@ -1,8 +1,8 @@
+import { BlogDetailClient } from "@/components/blog/BlogDetailClient";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
-import { BlogDetailClient } from "@/components/blog/BlogDetailClient";
-import { fetchBlogById, fetchBlogs } from "@/lib/api";
-import { Blog } from "@/types";
+import { getBlogById } from "@/lib/db";
+import { notFound } from "next/navigation";
 
 interface BlogDetailPageProps {
   params: Promise<{
@@ -10,16 +10,13 @@ interface BlogDetailPageProps {
   }>;
 }
 
-export async function generateStaticParams() {
-  const blogs = await fetchBlogs();
-  return blogs.slice(0, 3).map((blog: Blog) => ({
-    blogId: blog._id,
-  }));
-}
-
 export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
   const { blogId } = await params;
-  const blog = await fetchBlogById(blogId);
+  const blog = await getBlogById(blogId);
+
+  if (!blog) {
+    notFound();
+  }
 
   return (
     <main className="bg-white">

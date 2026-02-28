@@ -1,28 +1,27 @@
 // Performance optimization utilities
 
+import { useState } from "react";
+
 // Image optimization helper
 export function getOptimizedImageUrl(src: string, width?: number, quality?: number): string {
-  if (!src) return '/placeholder-blog.jpg';
-  
+  if (!src) return "/placeholder-blog.jpg";
+
   // If it's already an external URL, return as-is
-  if (src.startsWith('http')) return src;
-  
+  if (src.startsWith("http")) return src;
+
   // For local images, we could add CDN parameters here
   const params = new URLSearchParams();
-  if (width) params.set('w', width.toString());
-  if (quality) params.set('q', quality.toString());
-  
+  if (width) params.set("w", width.toString());
+  if (quality) params.set("q", quality.toString());
+
   const paramString = params.toString();
   return paramString ? `${src}?${paramString}` : src;
 }
 
 // Debounce utility for search and other input events
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -30,24 +29,21 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 // Throttle utility for scroll events
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
+export function throttle<T extends (...args: any[]) => any>(func: T, limit: number): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 }
 
 // Lazy load images with Intersection Observer
 export function useLazyLoad() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -57,14 +53,14 @@ export function useLazyLoad() {
           const src = img.dataset.src;
           if (src) {
             img.src = src;
-            img.removeAttribute('data-src');
+            img.removeAttribute("data-src");
             observer.unobserve(img);
           }
         }
       });
     },
     {
-      rootMargin: '50px 0px',
+      rootMargin: "50px 0px",
       threshold: 0.01,
     }
   );
@@ -74,11 +70,11 @@ export function useLazyLoad() {
 
 // Preload critical resources
 export function preloadResources(resources: Array<{ href: string; as: string }>) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   resources.forEach(({ href, as }) => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
+    const link = document.createElement("link");
+    link.rel = "preload";
     link.href = href;
     link.as = as;
     document.head.appendChild(link);
@@ -104,9 +100,9 @@ export class PerformanceMonitor {
   }
 
   static logMemoryUsage() {
-    if ('memory' in performance) {
+    if ("memory" in performance) {
       const memory = (performance as any).memory;
-      console.log('💾 Memory Usage:', {
+      console.log("💾 Memory Usage:", {
         used: `${(memory.usedJSHeapSize / 1048576).toFixed(2)} MB`,
         total: `${(memory.totalJSHeapSize / 1048576).toFixed(2)} MB`,
         limit: `${(memory.jsHeapSizeLimit / 1048576).toFixed(2)} MB`,
@@ -122,27 +118,20 @@ export function smoothScrollTo(element: HTMLElement, offset = 0) {
 
   window.scrollTo({
     top: offsetPosition,
-    behavior: 'smooth'
+    behavior: "smooth",
   });
 }
 
 // Virtual scrolling helper for large lists
-export function useVirtualScrolling<T>(
-  items: T[],
-  itemHeight: number,
-  containerHeight: number
-) {
+export function useVirtualScrolling<T>(items: T[], itemHeight: number, containerHeight: number) {
   const [scrollTop, setScrollTop] = useState(0);
-  
+
   const visibleStart = Math.floor(scrollTop / itemHeight);
-  const visibleEnd = Math.min(
-    visibleStart + Math.ceil(containerHeight / itemHeight) + 1,
-    items.length - 1
-  );
-  
+  const visibleEnd = Math.min(visibleStart + Math.ceil(containerHeight / itemHeight) + 1, items.length - 1);
+
   const visibleItems = items.slice(visibleStart, visibleEnd + 1);
   const offsetY = visibleStart * itemHeight;
-  
+
   return {
     visibleItems,
     offsetY,
@@ -157,7 +146,8 @@ export function useVirtualScrolling<T>(
 class SimpleCache {
   private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 
-  set(key: string, data: any, ttl = 300000) { // 5 minutes default TTL
+  set(key: string, data: any, ttl = 300000) {
+    // 5 minutes default TTL
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -168,12 +158,12 @@ class SimpleCache {
   get(key: string): any | null {
     const item = this.cache.get(key);
     if (!item) return null;
-    
+
     if (Date.now() - item.timestamp > item.ttl) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return item.data;
   }
 
@@ -197,16 +187,16 @@ export interface OptimizedImageProps {
   className?: string;
   priority?: boolean;
   quality?: number;
-  placeholder?: 'blur' | 'empty';
+  placeholder?: "blur" | "empty";
   blurDataURL?: string;
 }
 
 // Bundle size monitoring
 export function logBundleSize() {
-  if (typeof window !== 'undefined' && 'performance' in window) {
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+  if (typeof window !== "undefined" && "performance" in window) {
+    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
     const transferSize = navigation.transferSize;
-    
+
     if (transferSize > 0) {
       console.log(`📦 Bundle size: ${(transferSize / 1024).toFixed(2)} KB`);
     }
@@ -227,14 +217,15 @@ export function getCriticalCSS() {
 
 // Service Worker registration for offline support
 export function registerServiceWorker() {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
+  if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
         .then((registration) => {
-          console.log('✅ Service Worker registered:', registration);
+          console.log("✅ Service Worker registered:", registration);
         })
         .catch((error) => {
-          console.log('❌ Service Worker registration failed:', error);
+          console.log("❌ Service Worker registration failed:", error);
         });
     });
   }
@@ -243,7 +234,7 @@ export function registerServiceWorker() {
 // Web Vitals monitoring
 export function reportWebVitals(metric: any) {
   // Send to analytics service
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     // Example: gtag('event', metric.name, { value: metric.value });
     console.log(`📊 ${metric.name}:`, metric.value);
   }

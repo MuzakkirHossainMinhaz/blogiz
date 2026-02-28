@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import Blog from "@/models/Blog";
 import { auth } from "@/lib/auth";
 import { huggingFaceAI } from "@/lib/huggingface";
+import { connectDB } from "@/lib/mongodb";
+import Blog from "@/models/Blog";
+import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/blogs - Get all published blogs
 export async function GET(request: NextRequest) {
@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
     const total = await Blog.countDocuments(query);
 
     return NextResponse.json({
+      success: true,
+      message: "Blogs fetched successfully",
       blogs,
       pagination: {
         page,
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching blogs:", error);
     return NextResponse.json(
-      { error: "Failed to fetch blogs", message: error.message },
+      { success: false, message: error.message, error: "Failed to fetch blogs" },
       { status: 500 }
     );
   }
@@ -63,10 +65,7 @@ export async function POST(request: NextRequest) {
     const session = await auth();
 
     if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please login" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized - Please login" }, { status: 401 });
     }
 
     await connectDB();
@@ -86,10 +85,7 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!title || !description || !content || !author_name) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Get user info
@@ -119,10 +115,10 @@ export async function POST(request: NextRequest) {
 
         // Generate SEO metadata
         const seoData = await huggingFaceAI.generateSEOMetadata(title, content);
-        
+
         // Generate summary
         const summary = await huggingFaceAI.generateBlogSummary(content);
-        
+
         // Analyze sentiment
         const sentiment = await huggingFaceAI.analyzeSentiment(content);
 
@@ -160,10 +156,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { 
-        message: finalStatus === "pending" 
-          ? "Blog submitted for approval" 
-          : "Blog created successfully", 
+      {
+        message: finalStatus === "pending" ? "Blog submitted for approval" : "Blog created successfully",
         blog,
         aiAnalysis, // Include AI analysis in response
       },
@@ -171,9 +165,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error("Error creating blog:", error);
-    return NextResponse.json(
-      { error: "Failed to create blog", message: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create blog", message: error.message }, { status: 500 });
   }
 }

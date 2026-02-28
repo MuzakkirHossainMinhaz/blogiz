@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IBlogView extends Document {
   blogId: mongoose.Types.ObjectId;
@@ -52,7 +52,6 @@ BlogViewSchema.index({ viewedAt: -1 });
 // Compound index to prevent duplicate views from same user in short time
 BlogViewSchema.index({ blogId: 1, userId: 1, viewedAt: 1 });
 
-const BlogView: Model<IBlogView> =
-  mongoose.models.BlogView || mongoose.model<IBlogView>("BlogView", BlogViewSchema);
+const BlogView: Model<IBlogView> = mongoose.models.BlogView || mongoose.model<IBlogView>("BlogView", BlogViewSchema);
 
 export default BlogView;

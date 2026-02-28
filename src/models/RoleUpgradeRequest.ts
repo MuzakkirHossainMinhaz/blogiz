@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IRoleUpgradeRequest extends Document {
   userId: mongoose.Types.ObjectId;
@@ -67,6 +67,7 @@ RoleUpgradeRequestSchema.index({ requestedRole: 1, status: 1 });
 RoleUpgradeRequestSchema.index({ createdAt: -1 });
 
 const RoleUpgradeRequest: Model<IRoleUpgradeRequest> =
-  mongoose.models.RoleUpgradeRequest || mongoose.model<IRoleUpgradeRequest>("RoleUpgradeRequest", RoleUpgradeRequestSchema);
+  mongoose.models.RoleUpgradeRequest ||
+  mongoose.model<IRoleUpgradeRequest>("RoleUpgradeRequest", RoleUpgradeRequestSchema);
 
 export default RoleUpgradeRequest;

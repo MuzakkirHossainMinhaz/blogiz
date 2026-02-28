@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import BannerCarousel, { HeroBanner } from "./BannerCarousel";
 
 interface Banner {
@@ -29,11 +29,7 @@ interface BannerDisplayProps {
   className?: string;
 }
 
-export default function BannerDisplay({ 
-  type = "all", 
-  limit = 5,
-  className = "" 
-}: BannerDisplayProps) {
+export default function BannerDisplay({ type = "all", limit = 5, className = "" }: BannerDisplayProps) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [carouselSettings, setCarouselSettings] = useState<any>(null);
@@ -46,19 +42,19 @@ export default function BannerDisplay({
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      
+
       if (type !== "all") {
         params.append("type", type);
       }
-      
+
       if (type === "featured" || type === "hero") {
         params.append("carousel", "true");
       }
-      
+
       params.append("limit", limit.toString());
 
       const response = await fetch(`/api/banners?${params.toString()}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         setBanners(data.banners);
@@ -94,13 +90,7 @@ export default function BannerDisplay({
 
   // Multiple banners as carousel
   if (banners.length > 1) {
-    return (
-      <BannerCarousel 
-        banners={banners} 
-        carouselSettings={carouselSettings}
-        className={className}
-      />
-    );
+    return <BannerCarousel banners={banners} carouselSettings={carouselSettings} className={className} />;
   }
 
   // Single banner (non-hero)

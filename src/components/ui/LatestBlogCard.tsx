@@ -1,5 +1,5 @@
-import { Blog } from "@/types";
 import { BlogCardBase } from "@/components/blog/BlogCardBase";
+import { Blog } from "@/types";
 
 interface LatestBlogCardProps {
   blog: Blog;

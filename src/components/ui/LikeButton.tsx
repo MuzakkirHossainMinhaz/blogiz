@@ -1,8 +1,8 @@
 "use client";
 
 import { useLike } from "@/hooks/useLike";
-import { FiHeart } from "react-icons/fi";
 import { cn } from "@/lib/utils";
+import { FiHeart } from "react-icons/fi";
 
 interface LikeButtonProps {
   blogId: string;
@@ -42,9 +42,7 @@ export function LikeButton({
     outline: liked
       ? "bg-red-50 text-red-600 border-red-300 hover:bg-red-100"
       : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50 hover:text-red-600",
-    ghost: liked
-      ? "text-red-600 hover:bg-red-50"
-      : "text-neutral-600 hover:bg-neutral-50 hover:text-red-600",
+    ghost: liked ? "text-red-600 hover:bg-red-50" : "text-neutral-600 hover:bg-neutral-50 hover:text-red-600",
   };
 
   const baseClasses = {
@@ -71,30 +69,20 @@ export function LikeButton({
           className={cn(
             iconSizes[size],
             "transition-all duration-200",
-            liked
-              ? "fill-current animate-pulse-scale"
-              : "group-hover:scale-110"
+            liked ? "fill-current animate-pulse-scale" : "group-hover:scale-110"
           )}
         />
-        {showCount && (
-          <span className="font-medium">
-            {likeCount}
-          </span>
-        )}
+        {showCount && <span className="font-medium">{likeCount}</span>}
       </button>
-      
-      {error && (
-        <p className="text-xs text-red-600 mt-1 animate-fade-in">
-          {error}
-        </p>
-      )}
+
+      {error && <p className="text-xs text-red-600 mt-1 animate-fade-in">{error}</p>}
     </div>
   );
 }
 
 // Add custom animation for heart pulse
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
   style.textContent = `
     @keyframes pulse-scale {
       0%, 100% { transform: scale(1); }

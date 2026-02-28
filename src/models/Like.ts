@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface ILike extends Document {
   blogId: mongoose.Types.ObjectId;
@@ -30,7 +30,6 @@ const LikeSchema = new Schema<ILike>(
 // Compound index to ensure one like per IP per blog
 LikeSchema.index({ blogId: 1, ipAddress: 1 }, { unique: true });
 
-const Like: Model<ILike> =
-  mongoose.models.Like || mongoose.model<ILike>("Like", LikeSchema);
+const Like: Model<ILike> = mongoose.models.Like || mongoose.model<ILike>("Like", LikeSchema);
 
 export default Like;

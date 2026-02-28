@@ -1,8 +1,8 @@
+import User from "@/models/User";
+import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import { connectDB } from "./mongodb";
-import User from "@/models/User";
 
 const authOptions = {
   providers: [
@@ -25,10 +25,7 @@ const authOptions = {
           throw new Error("Invalid email or password");
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
           throw new Error("Invalid email or password");

@@ -11,7 +11,7 @@ export interface Permission {
     deleteAnyBlog: boolean;
     approveBlog: boolean;
     rejectBlog: boolean;
-    
+
     // Comment permissions
     createComment: boolean;
     editOwnComment: boolean;
@@ -20,7 +20,7 @@ export interface Permission {
     deleteAnyComment: boolean;
     approveComment: boolean;
     rejectComment: boolean;
-    
+
     // User permissions
     viewUsers: boolean;
     editOwnProfile: boolean;
@@ -28,7 +28,7 @@ export interface Permission {
     approveUser: boolean;
     deactivateUser: boolean;
     changeUserRole: boolean;
-    
+
     // Dashboard permissions
     viewDashboard: boolean;
     viewAdminDashboard: boolean;
@@ -47,7 +47,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyBlog: true,
       approveBlog: true,
       rejectBlog: true,
-      
+
       // Comment permissions
       createComment: true,
       editOwnComment: true,
@@ -56,7 +56,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyComment: true,
       approveComment: true,
       rejectComment: true,
-      
+
       // User permissions
       viewUsers: true,
       editOwnProfile: true,
@@ -64,14 +64,14 @@ export const rolePermissions: Record<UserRole, Permission> = {
       approveUser: true,
       deactivateUser: true,
       changeUserRole: true,
-      
+
       // Dashboard permissions
       viewDashboard: true,
       viewAdminDashboard: true,
       viewSuperAdminDashboard: true,
     },
   },
-  
+
   admin: {
     can: {
       // Blog permissions
@@ -82,7 +82,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyBlog: false,
       approveBlog: true,
       rejectBlog: true,
-      
+
       // Comment permissions
       createComment: true,
       editOwnComment: true,
@@ -91,7 +91,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyComment: false,
       approveComment: true,
       rejectComment: true,
-      
+
       // User permissions
       viewUsers: true,
       editOwnProfile: true,
@@ -99,14 +99,14 @@ export const rolePermissions: Record<UserRole, Permission> = {
       approveUser: true,
       deactivateUser: false,
       changeUserRole: false,
-      
+
       // Dashboard permissions
       viewDashboard: true,
       viewAdminDashboard: true,
       viewSuperAdminDashboard: false,
     },
   },
-  
+
   author: {
     can: {
       // Blog permissions
@@ -117,7 +117,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyBlog: false,
       approveBlog: false,
       rejectBlog: false,
-      
+
       // Comment permissions
       createComment: true,
       editOwnComment: true,
@@ -126,7 +126,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyComment: false,
       approveComment: false,
       rejectComment: false,
-      
+
       // User permissions
       viewUsers: false,
       editOwnProfile: true,
@@ -134,14 +134,14 @@ export const rolePermissions: Record<UserRole, Permission> = {
       approveUser: false,
       deactivateUser: false,
       changeUserRole: false,
-      
+
       // Dashboard permissions
       viewDashboard: true,
       viewAdminDashboard: false,
       viewSuperAdminDashboard: false,
     },
   },
-  
+
   user: {
     can: {
       // Blog permissions
@@ -152,7 +152,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyBlog: false,
       approveBlog: false,
       rejectBlog: false,
-      
+
       // Comment permissions
       createComment: true,
       editOwnComment: true,
@@ -161,7 +161,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deleteAnyComment: false,
       approveComment: false,
       rejectComment: false,
-      
+
       // User permissions
       viewUsers: false,
       editOwnProfile: true,
@@ -169,7 +169,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
       approveUser: false,
       deactivateUser: false,
       changeUserRole: false,
-      
+
       // Dashboard permissions
       viewDashboard: false,
       viewAdminDashboard: false,
@@ -179,10 +179,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
 };
 
 // Helper function to check if a user has a specific permission
-export function hasPermission(
-  userRole: UserRole,
-  permission: keyof Permission["can"]
-): boolean {
+export function hasPermission(userRole: UserRole, permission: keyof Permission["can"]): boolean {
   return rolePermissions[userRole]?.can[permission] || false;
 }
 
@@ -194,17 +191,17 @@ export function canPerformAction(
   currentUserId?: string
 ): boolean {
   const basePermission = hasPermission(userRole, action);
-  
+
   // If it's an "own" action, check if user owns the resource
   if (action.includes("Own") && resourceOwnerId && currentUserId) {
     return basePermission && resourceOwnerId === currentUserId;
   }
-  
+
   // If it's an "any" action, just check the base permission
   if (action.includes("Any")) {
     return basePermission;
   }
-  
+
   return basePermission;
 }
 

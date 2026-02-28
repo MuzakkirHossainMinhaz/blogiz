@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
-export interface IBanner extends Document {
+export interface IBanner {
   title: string;
   subtitle?: string;
   description?: string;
@@ -139,11 +139,10 @@ BannerSchema.index({ targetAudience: 1, isActive: 1 });
 BannerSchema.index({ startDate: 1, endDate: 1, isActive: 1 });
 
 // Pre-save middleware to validate dates
-BannerSchema.pre("save", function (next) {
-  if (this.startDate && this.endDate && this.startDate >= this.endDate) {
-    next(new Error("End date must be after start date"));
-  } else {
-    next();
+BannerSchema.pre("save", function () {
+  const banner = this as Document & IBanner;
+  if (banner.startDate && banner.endDate && banner.startDate >= banner.endDate) {
+    throw new Error("End date must be after start date");
   }
 });
 
@@ -154,22 +153,13 @@ BannerSchema.statics.getActiveBanners = function (audience: string = "all") {
     isActive: true,
     $and: [
       {
-        $or: [
-          { targetAudience: "all" },
-          { targetAudience: audience },
-        ],
+        $or: [{ targetAudience: "all" }, { targetAudience: audience }],
       },
       {
-        $or: [
-          { startDate: { $exists: false } },
-          { startDate: { $lte: now } },
-        ],
+        $or: [{ startDate: { $exists: false } }, { startDate: { $lte: now } }],
       },
       {
-        $or: [
-          { endDate: { $exists: false } },
-          { endDate: { $gte: now } },
-        ],
+        $or: [{ endDate: { $exists: false } }, { endDate: { $gte: now } }],
       },
     ],
   };
@@ -182,7 +172,7 @@ BannerSchema.statics.getCarouselBanners = function (audience: string = "all", li
   return (this as any).getActiveBanners(audience).limit(limit);
 };
 
-const Banner = (mongoose.models.Banner as IBannerModel) || 
-  mongoose.model<IBanner, IBannerModel>("Banner", BannerSchema);
+const Banner =
+  (mongoose.models.Banner as IBannerModel) || mongoose.model<IBanner, IBannerModel>("Banner", BannerSchema);
 
 export default Banner;

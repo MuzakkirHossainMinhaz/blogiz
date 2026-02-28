@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import mongoose from "mongoose";
+import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/health - Health check endpoint
 export async function GET(request: NextRequest) {
@@ -8,29 +8,28 @@ export async function GET(request: NextRequest) {
     // Check MongoDB connection
     await connectDB();
 
-    const dbStatus =
-      mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+    const dbStatus = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
 
     return NextResponse.json({
-      status: "ok",
+      success: true,
       timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
       database: {
         status: dbStatus,
         name: mongoose.connection.name || "unknown",
       },
-      environment: process.env.NODE_ENV || "development",
     });
   } catch (error: any) {
     console.error("Health check failed:", error);
     return NextResponse.json(
       {
-        status: "error",
+        success: false,
+        environment: process.env.NODE_ENV || "development",
         timestamp: new Date().toISOString(),
         database: {
           status: "disconnected",
           error: error.message,
         },
-        environment: process.env.NODE_ENV || "development",
       },
       { status: 500 }
     );

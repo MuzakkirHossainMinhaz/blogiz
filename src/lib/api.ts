@@ -2,25 +2,11 @@ import { Blog } from "@/types";
 
 /**
  * Generic fetch wrapper with error handling
+ * Uses relative URLs - works in both client and server components
  */
-async function fetchAPI<T>(
-  endpoint: string,
-  options?: RequestInit
-): Promise<T> {
+async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   try {
-    // Determine the base URL based on environment
-    let baseUrl = '';
-    
-    if (typeof window === 'undefined') {
-      // Server-side: use environment variables or fallback to localhost
-      baseUrl = process.env.BASE_URL || 
-                 process.env.NEXTAUTH_URL || 
-                 (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
-                 `http://localhost:${process.env.PORT || 3000}`;
-    }
-    // Client-side: use relative URL (empty string)
-    
-    const response = await fetch(`${baseUrl}/api${endpoint}`, {
+    const response = await fetch(`/api${endpoint}`, {
       headers: {
         "Content-Type": "application/json",
         ...options?.headers,

@@ -8,12 +8,7 @@ interface BadgeProps {
   className?: string;
 }
 
-export function Badge({
-  children,
-  variant = "primary",
-  size = "md",
-  className,
-}: BadgeProps) {
+export function Badge({ children, variant = "primary", size = "md", className }: BadgeProps) {
   const variants = {
     primary: "bg-primary-100 text-primary-700 border-primary-200",
     secondary: "bg-neutral-100 text-neutral-700 border-neutral-200",
@@ -33,7 +28,7 @@ export function Badge({
         "inline-flex items-center gap-1.5 rounded-full border font-medium",
         variants[variant],
         sizes[size],
-        className,
+        className
       )}
     >
       {children}

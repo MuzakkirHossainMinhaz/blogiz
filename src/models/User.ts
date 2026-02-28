@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IUser extends Document {
   email: string;
@@ -77,10 +77,12 @@ const UserSchema = new Schema<IUser>(
         type: String,
         default: "",
       },
-      expertise: [{
-        type: String,
-        trim: true,
-      }],
+      expertise: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
     },
     isActive: {
       type: Boolean,
@@ -104,7 +106,6 @@ const UserSchema = new Schema<IUser>(
 UserSchema.index({ role: 1 });
 UserSchema.index({ isActive: 1, isApproved: 1 });
 
-const User: Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
 export default User;

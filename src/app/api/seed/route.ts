@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
 
 // POST /api/seed - Create superadmin user (one-time setup)
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
+
+    const { email, password } = await request.json();
 
     // Check if superadmin already exists
     const existingSuperAdmin = await User.findOne({
@@ -14,17 +16,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSuperAdmin) {
-      return NextResponse.json(
-        { message: "Superadmin user already exists" },
-        { status: 200 }
-      );
+      return NextResponse.json({ success: true, message: "Superadmin user already exists" }, { status: 200 });
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(
-      process.env.ADMIN_PASSWORD || "superadmin123",
-      12
-    );
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create superadmin user
     const superadmin = await User.create({
@@ -46,6 +42,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
+        success: true,
         message: "Superadmin user created successfully",
         user: {
           email: superadmin.email,
@@ -59,7 +56,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error seeding database:", error);
     return NextResponse.json(
-      { error: "Failed to seed database", message: error.message },
+      { success: false, message: error.message, error: "Failed to seed database" },
       { status: 500 }
     );
   }
@@ -74,9 +71,9 @@ export async function GET(request: NextRequest) {
     const adminCount = await User.countDocuments({ role: "admin" });
     const authorCount = await User.countDocuments({ role: "author" });
     const userCount = await User.countDocuments({ role: "user" });
-    const pendingAuthors = await User.countDocuments({ 
-      role: "author", 
-      isApproved: false 
+    const pendingAuthors = await User.countDocuments({
+      role: "author",
+      isApproved: false,
     });
 
     return NextResponse.json({
@@ -96,7 +93,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error checking seed status:", error);
     return NextResponse.json(
-      { error: "Failed to check seed status", message: error.message },
+      { success: false, message: error.message, error: "Failed to check seed status" },
       { status: 500 }
     );
   }

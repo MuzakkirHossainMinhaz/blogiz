@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IComment extends Document {
   blogId: mongoose.Types.ObjectId;
@@ -48,10 +48,12 @@ const CommentSchema = new Schema<IComment>(
       type: Date,
       default: null,
     },
-    likes: [{
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    }],
+    likes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,
@@ -65,7 +67,6 @@ CommentSchema.index({ parentId: 1 });
 CommentSchema.index({ isApproved: 1 });
 CommentSchema.index({ blogId: 1, isApproved: 1, createdAt: -1 });
 
-const Comment: Model<IComment> =
-  mongoose.models.Comment || mongoose.model<IComment>("Comment", CommentSchema);
+const Comment: Model<IComment> = mongoose.models.Comment || mongoose.model<IComment>("Comment", CommentSchema);
 
 export default Comment;

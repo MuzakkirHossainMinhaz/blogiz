@@ -11,25 +11,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    {
-      children,
-      variant = "primary",
-      size = "md",
-      isLoading = false,
-      fullWidth = false,
-      className,
-      disabled,
-      ...props
-    },
-    ref,
+    { children, variant = "primary", size = "md", isLoading = false, fullWidth = false, className, disabled, ...props },
+    ref
   ) => {
     const variants = {
-      primary:
-        "bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800",
-      secondary:
-        "bg-accent-500 text-white hover:bg-accent-600 active:bg-accent-700",
-      outline:
-        "border-2 border-primary-600 text-primary-600 hover:bg-primary-50 active:bg-primary-100",
+      primary: "bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800",
+      secondary: "bg-accent-500 text-white hover:bg-accent-600 active:bg-accent-700",
+      outline: "border-2 border-primary-600 text-primary-600 hover:bg-primary-50 active:bg-primary-100",
       ghost: "text-primary-600 hover:bg-primary-50 active:bg-primary-100",
     };
 
@@ -46,31 +34,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variants[variant],
       sizes[size],
       fullWidth && "w-full",
-      className,
+      className
     );
 
     return (
-      <button
-        ref={ref}
-        className={buttonClasses}
-        disabled={disabled || isLoading}
-        {...props}
-      >
+      <button ref={ref} className={buttonClasses} disabled={disabled || isLoading} {...props}>
         {isLoading && (
-          <svg
-            className="animate-spin h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
+          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path
               className="opacity-75"
               fill="currentColor"
@@ -81,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  },
+  }
 );
 
 Button.displayName = "Button";

@@ -37,9 +37,7 @@ export default function RootLayout({
     <html lang="en" data-theme="light">
       <body className={roboto.className}>
         <Providers>
-          <Navbar />
-          <main className="min-h-[calc(100vh-80px)]">{children}</main>
-          <Footer />
+          {children}
         </Providers>
       </body>
     </html>

@@ -11,7 +11,7 @@ const footerLinks = {
   ],
   company: [
     { label: "About", href: ROUTES.ABOUT },
-    { label: "Blog", href: ROUTES.BLOGS },
+    { label: "Blogs", href: ROUTES.BLOGS },
     { label: "Careers", href: "#" },
   ],
   support: [
@@ -43,25 +43,13 @@ export default function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 md:gap-12">
             {/* Brand Section */}
             <div className="lg:col-span-2">
-              <Link
-                href={ROUTES.HOME}
-                className="flex items-center gap-3 mb-4 group"
-              >
+              <Link href={ROUTES.HOME} className="flex items-center gap-3 mb-4 group">
                 <div className="relative w-12 h-12 transition-transform group-hover:scale-110">
-                  <Image
-                    src="/logo.png"
-                    fill
-                    alt={`${APP_CONFIG.SITE_NAME} logo`}
-                    className="object-contain"
-                  />
+                  <Image src="/logo.png" fill alt={`${APP_CONFIG.SITE_NAME} logo`} className="object-contain" />
                 </div>
-                <span className="text-2xl font-bold gradient-text">
-                  {APP_CONFIG.SITE_NAME}
-                </span>
+                <span className="text-2xl font-bold gradient-text">{APP_CONFIG.SITE_NAME}</span>
               </Link>
-              <p className="text-neutral-600 mb-6 max-w-sm">
-                {APP_CONFIG.SITE_DESCRIPTION}
-              </p>
+              <p className="text-neutral-600 mb-6 max-w-sm">{APP_CONFIG.SITE_DESCRIPTION}</p>
               {/* Social Links */}
               <div className="flex items-center gap-3">
                 {socialLinks.map((social) => (
@@ -83,10 +71,7 @@ export default function Footer() {
               <ul className="space-y-3">
                 {footerLinks.product.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-neutral-600 hover:text-primary-600 transition-colors"
-                    >
+                    <Link href={link.href} className="text-neutral-600 hover:text-primary-600 transition-colors">
                       {link.label}
                     </Link>
                   </li>
@@ -99,10 +84,7 @@ export default function Footer() {
               <ul className="space-y-3">
                 {footerLinks.company.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-neutral-600 hover:text-primary-600 transition-colors"
-                    >
+                    <Link href={link.href} className="text-neutral-600 hover:text-primary-600 transition-colors">
                       {link.label}
                     </Link>
                   </li>
@@ -115,10 +97,7 @@ export default function Footer() {
               <ul className="space-y-3">
                 {footerLinks.support.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-neutral-600 hover:text-primary-600 transition-colors"
-                    >
+                    <Link href={link.href} className="text-neutral-600 hover:text-primary-600 transition-colors">
                       {link.label}
                     </Link>
                   </li>
@@ -131,10 +110,7 @@ export default function Footer() {
               <ul className="space-y-3">
                 {footerLinks.legal.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-neutral-600 hover:text-primary-600 transition-colors"
-                    >
+                    <Link href={link.href} className="text-neutral-600 hover:text-primary-600 transition-colors">
                       {link.label}
                     </Link>
                   </li>
@@ -151,8 +127,7 @@ export default function Footer() {
               © {currentYear} {APP_CONFIG.SITE_NAME}. All rights reserved.
             </p>
             <p className="text-sm text-neutral-600 flex items-center gap-1">
-              Made with <FaHeart className="text-red-500 w-4 h-4" /> by the{" "}
-              {APP_CONFIG.SITE_NAME} Team
+              Made with <FaHeart className="text-red-500 w-4 h-4" /> by the {APP_CONFIG.SITE_NAME} Team
             </p>
           </div>
         </div>

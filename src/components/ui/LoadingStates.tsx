@@ -1,4 +1,4 @@
-import { FiLoader, FiFileText, FiImage } from "react-icons/fi";
+import { FiImage, FiLoader } from "react-icons/fi";
 
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
@@ -8,7 +8,7 @@ interface LoadingSpinnerProps {
 export function LoadingSpinner({ size = "md", className = "" }: LoadingSpinnerProps) {
   const sizeClasses = {
     sm: "w-4 h-4",
-    md: "w-6 h-6", 
+    md: "w-6 h-6",
     lg: "w-8 h-8",
   };
 
@@ -104,9 +104,9 @@ export function LoadingPage({ type = "blogs" }: LoadingPageProps) {
                 <div className="h-4 bg-neutral-200 rounded w-16" />
               </div>
             </div>
-            
+
             <div className="h-96 bg-neutral-200 rounded-2xl mb-12" />
-            
+
             <div className="space-y-4">
               <div className="h-6 bg-neutral-200 rounded" />
               <div className="h-6 bg-neutral-200 rounded" />
@@ -114,7 +114,7 @@ export function LoadingPage({ type = "blogs" }: LoadingPageProps) {
               <div className="h-6 bg-neutral-200 rounded" />
               <div className="h-6 bg-neutral-200 rounded w-4/5" />
             </div>
-            
+
             <div className="flex items-center justify-between pt-8 border-t border-neutral-200 mt-12">
               <div className="h-10 bg-neutral-200 rounded w-24" />
               <div className="flex gap-2">
@@ -136,7 +136,7 @@ export function LoadingPage({ type = "blogs" }: LoadingPageProps) {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-neutral-200 rounded w-48 mb-8" />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="bg-white rounded-xl p-6">
@@ -145,7 +145,7 @@ export function LoadingPage({ type = "blogs" }: LoadingPageProps) {
                 </div>
               ))}
             </div>
-            
+
             <div className="bg-white rounded-xl p-6">
               <div className="h-6 bg-neutral-200 rounded w-32 mb-4" />
               <div className="space-y-3">
@@ -198,7 +198,7 @@ export function LoadingPage({ type = "blogs" }: LoadingPageProps) {
           <div className="h-8 bg-neutral-200 rounded w-64 mx-auto mb-4" />
           <div className="h-4 bg-neutral-200 rounded w-96 mx-auto" />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...Array(6)].map((_, i) => (
             <LoadingCard key={i} variant="blog" />

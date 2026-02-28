@@ -367,11 +367,11 @@ async function analyzeBlogContent(content: string): Promise<any> {
   const [
     sentiment,
     quality,
-    readability,
+    contentAnalysis,
   ] = await Promise.all([
     huggingFaceAI.analyzeSentiment(content),
     tensorflowAI.getContentQualityScore(content),
-    tensorflowAI.calculateReadabilityScore(content),
+    tensorflowAI.analyzeContent(content),
   ]);
 
   const wordCount = content.split(/\s+/).length;
@@ -380,7 +380,7 @@ async function analyzeBlogContent(content: string): Promise<any> {
   return {
     sentiment,
     quality,
-    readability,
+    readability: contentAnalysis.readabilityScore,
     wordCount,
     readingTime,
     suggestions: await generateContentSuggestions(content, sentiment, quality),

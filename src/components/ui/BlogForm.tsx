@@ -1,18 +1,18 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
-import { Button } from "@/components/ui/Button";
-import { createBlog } from "@/lib/api";
 import { ROUTES } from "@/config/constants";
-import { generateId } from "@/lib/utils";
+import { createBlog } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 type FormValues = {
   title: string;
   description: string;
+  content: string;
   publish_date: string;
   author_name: string;
   blog_image: string;
@@ -36,8 +36,10 @@ export default function CreateBlogForm() {
     try {
       const blogData = {
         ...data,
-        id: generateId(),
-        total_likes: "0",
+        total_likes: 0,
+        status: "published" as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       await createBlog(blogData);
@@ -59,9 +61,7 @@ export default function CreateBlogForm() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
                 Create Your <span className="gradient-text">Blog Post</span>
               </h1>
-              <p className="text-lg text-neutral-600">
-                Share your thoughts and ideas with the community
-              </p>
+              <p className="text-lg text-neutral-600">Share your thoughts and ideas with the community</p>
             </div>
 
             {/* Form Card */}
@@ -69,12 +69,7 @@ export default function CreateBlogForm() {
               <div className="card-body p-6 md:p-8 lg:p-10">
                 {error && (
                   <div className="alert alert-error mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -89,10 +84,7 @@ export default function CreateBlogForm() {
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   {/* Title */}
                   <fieldset className="fieldset">
-                    <label
-                      htmlFor="title"
-                      className="label text-sm font-semibold text-neutral-700 mb-2"
-                    >
+                    <label htmlFor="title" className="label text-sm font-semibold text-neutral-700 mb-2">
                       Title <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -112,49 +104,56 @@ export default function CreateBlogForm() {
                       placeholder="Enter an engaging title for your blog post"
                       className="input w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
                     />
-                    {errors.title && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {errors.title.message}
-                      </p>
-                    )}
+                    {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>}
                   </fieldset>
 
                   {/* Description */}
                   <fieldset className="fieldset">
-                    <label
-                      htmlFor="description"
-                      className="label text-sm font-semibold text-neutral-700 mb-2"
-                    >
-                      Content <span className="text-red-500">*</span>
+                    <label htmlFor="description" className="label text-sm font-semibold text-neutral-700 mb-2">
+                      Description <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       id="description"
                       {...register("description", {
-                        required: "Content is required",
+                        required: "Description is required",
                         minLength: {
                           value: 50,
-                          message: "Content must be at least 50 characters",
+                          message: "Description must be at least 50 characters",
                         },
                       })}
-                      placeholder="Write your blog content here..."
-                      rows={8}
+                      placeholder="Write a brief description for your blog..."
+                      rows={4}
                       className="textarea w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all resize-none"
                     />
-                    {errors.description && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {errors.description.message}
-                      </p>
-                    )}
+                    {errors.description && <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>}
+                  </fieldset>
+
+                  {/* Content */}
+                  <fieldset className="fieldset">
+                    <label htmlFor="content" className="label text-sm font-semibold text-neutral-700 mb-2">
+                      Content <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="content"
+                      {...register("content", {
+                        required: "Content is required",
+                        minLength: {
+                          value: 100,
+                          message: "Content must be at least 100 characters",
+                        },
+                      })}
+                      placeholder="Write your full blog content here..."
+                      rows={12}
+                      className="textarea w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all resize-none"
+                    />
+                    {errors.content && <p className="text-sm text-red-600 mt-1">{errors.content.message}</p>}
                   </fieldset>
 
                   {/* Two Column Layout */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Publish Date */}
                     <fieldset className="fieldset">
-                      <label
-                        htmlFor="publish_date"
-                        className="label text-sm font-semibold text-neutral-700 mb-2"
-                      >
+                      <label htmlFor="publish_date" className="label text-sm font-semibold text-neutral-700 mb-2">
                         Publish Date <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -166,18 +165,13 @@ export default function CreateBlogForm() {
                         className="input w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
                       />
                       {errors.publish_date && (
-                        <p className="text-sm text-red-600 mt-1">
-                          {errors.publish_date.message}
-                        </p>
+                        <p className="text-sm text-red-600 mt-1">{errors.publish_date.message}</p>
                       )}
                     </fieldset>
 
                     {/* Author Name */}
                     <fieldset className="fieldset">
-                      <label
-                        htmlFor="author_name"
-                        className="label text-sm font-semibold text-neutral-700 mb-2"
-                      >
+                      <label htmlFor="author_name" className="label text-sm font-semibold text-neutral-700 mb-2">
                         Author Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -193,20 +187,13 @@ export default function CreateBlogForm() {
                         placeholder="Your name"
                         className="input w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
                       />
-                      {errors.author_name && (
-                        <p className="text-sm text-red-600 mt-1">
-                          {errors.author_name.message}
-                        </p>
-                      )}
+                      {errors.author_name && <p className="text-sm text-red-600 mt-1">{errors.author_name.message}</p>}
                     </fieldset>
                   </div>
 
                   {/* Blog Image URL */}
                   <fieldset className="fieldset">
-                    <label
-                      htmlFor="blog_image"
-                      className="label text-sm font-semibold text-neutral-700 mb-2"
-                    >
+                    <label htmlFor="blog_image" className="label text-sm font-semibold text-neutral-700 mb-2">
                       Featured Image URL <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -222,14 +209,8 @@ export default function CreateBlogForm() {
                       placeholder="https://example.com/image.jpg"
                       className="input w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
                     />
-                    {errors.blog_image && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {errors.blog_image.message}
-                      </p>
-                    )}
-                    <p className="text-sm text-neutral-500 mt-1">
-                      Supported formats: JPG, PNG, WebP, GIF
-                    </p>
+                    {errors.blog_image && <p className="text-sm text-red-600 mt-1">{errors.blog_image.message}</p>}
+                    <p className="text-sm text-neutral-500 mt-1">Supported formats: JPG, PNG, WebP, GIF</p>
                   </fieldset>
 
                   {/* Submit Buttons */}
