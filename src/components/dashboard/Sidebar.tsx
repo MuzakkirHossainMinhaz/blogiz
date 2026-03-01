@@ -1,17 +1,9 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { 
-  FiHome, 
-  FiFileText, 
-  FiPlusCircle, 
-  FiBarChart2, 
-  FiSettings,
-  FiEdit3,
-  FiGrid
-} from "react-icons/fi";
+import { FiBarChart2, FiEdit3, FiFileText, FiGrid, FiHome, FiSettings } from "react-icons/fi";
 
 const navigation = [
   {
@@ -25,12 +17,6 @@ const navigation = [
     href: "/dashboard/blogs",
     icon: FiFileText,
     current: (pathname: string) => pathname.startsWith("/dashboard/blogs"),
-  },
-  {
-    name: "Create Blog",
-    href: "/dashboard/blogs/create",
-    icon: FiPlusCircle,
-    current: (pathname: string) => pathname === "/dashboard/blogs/create",
   },
   {
     name: "Analytics",
@@ -62,14 +48,12 @@ export default function Sidebar() {
     <div className="space-y-6">
       {/* Main Navigation */}
       <div>
-        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-          Main Menu
-        </h3>
+        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Main Menu</h3>
         <div className="mt-3 space-y-1">
           {navigation.map((item) => {
             const isActive = item.current(pathname);
             const Icon = item.icon;
-            
+
             return (
               <Link
                 key={item.name}
@@ -81,15 +65,14 @@ export default function Sidebar() {
                     : "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
                 )}
               >
-                <Icon className={cn(
-                  "mr-3 h-5 w-5 shrink-0",
-                  isActive ? "text-primary-600" : "text-neutral-400 group-hover:text-primary-600"
-                )}
+                <Icon
+                  className={cn(
+                    "mr-3 h-5 w-5 shrink-0",
+                    isActive ? "text-primary-600" : "text-neutral-400 group-hover:text-primary-600"
+                  )}
                 />
                 {item.name}
-                {isActive && (
-                  <div className="ml-auto w-2 h-2 bg-primary-600 rounded-full"></div>
-                )}
+                {isActive && <div className="ml-auto w-2 h-2 bg-primary-600 rounded-full"></div>}
               </Link>
             );
           })}
@@ -98,9 +81,7 @@ export default function Sidebar() {
 
       {/* Quick Actions */}
       <div>
-        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-          Quick Actions
-        </h3>
+        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Quick Actions</h3>
         <div className="mt-3 space-y-1">
           <Link
             href="/dashboard/blogs/create"
@@ -114,13 +95,11 @@ export default function Sidebar() {
 
       {/* Secondary Navigation */}
       <div>
-        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-          External
-        </h3>
+        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">External</h3>
         <div className="mt-3 space-y-1">
           {secondaryNavigation.map((item) => {
             const Icon = item.icon;
-            
+
             return (
               <Link
                 key={item.name}
@@ -156,9 +135,7 @@ export default function Sidebar() {
 
       {/* Stats Summary */}
       <div className="px-3 py-4 bg-linear-to-br from-primary-50 to-accent-50 rounded-lg border border-primary-100">
-        <h4 className="text-sm font-medium text-primary-900 mb-2">
-          Quick Stats
-        </h4>
+        <h4 className="text-sm font-medium text-primary-900 mb-2">Quick Stats</h4>
         <div className="space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-primary-700">Total Posts</span>

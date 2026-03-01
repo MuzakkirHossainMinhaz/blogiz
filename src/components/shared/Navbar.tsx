@@ -23,6 +23,8 @@ export default function Navbar() {
   const isLoggedIn = status === "authenticated";
   const user = session?.user;
 
+  console.log(user);
+
   const isActive = (href: string) => {
     if (href === ROUTES.HOME) {
       return pathname === href;
@@ -31,7 +33,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200">
       <div className="container-custom">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
@@ -68,18 +70,35 @@ export default function Navbar() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-50 transition-colors"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-50 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                    <FiUser className="w-4 h-4 text-primary-600" />
+                  {/* Name and Username - Left Side */}
+                  <div className="flex flex-col items-end">
+                    <span className="text-md font-semibold text-neutral-900 leading-tight">{user?.name || "User"}</span>
+                    <span className="text-xs text-neutral-500 leading-tight">
+                      @{user?.email?.split("@")[0] || "username"}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-neutral-700">{user?.name || "Profile"}</span>
+                  {/* Profile Picture - Right Side */}
+                  <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden border-2 border-primary-200">
+                    <FiUser className="w-5 h-5 text-primary-600" />
+                  </div>
                 </Link>
+                {/* Sign Out Icon Button */}
                 <button
-                  onClick={() => signOut()}
-                  className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="p-2 rounded-lg text-neutral-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  aria-label="Sign Out"
+                  title="Sign Out"
                 >
-                  Sign Out
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
+                  </svg>
                 </button>
               </div>
             ) : (
