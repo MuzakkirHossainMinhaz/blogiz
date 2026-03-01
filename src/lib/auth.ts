@@ -1,10 +1,8 @@
-import User from "@/models/User";
-import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { connectDB } from "./mongodb";
 
-const authOptions = {
+// Edge-compatible auth configuration (no Node.js modules)
+const authConfig = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -13,6 +11,11 @@ const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials: any) {
+        // Dynamic import to avoid loading in edge runtime
+        const { connectDB } = await import("./mongodb");
+        const User = (await import("@/models/User")).default;
+        const bcrypt = await import("bcryptjs");
+
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email and password are required");
         }
@@ -66,8 +69,9 @@ const authOptions = {
   trustHost: true,
 };
 
-// Export the auth function for API routes
-export const { handlers, auth } = NextAuth(authOptions);
+// Export the auth function for API routes and middleware
+export const { handlers, auth } = NextAuth(authConfig);
 
-// Export authOptions for other components
-export { authOptions };
+// Export authConfig for other components
+export { authConfig };
+

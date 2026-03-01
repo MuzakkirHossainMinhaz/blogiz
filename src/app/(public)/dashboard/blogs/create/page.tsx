@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/Button";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
-import { FiSave, FiEye, FiUpload, FiCalendar, FiUser } from "react-icons/fi";
-import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { hasPermission, UserRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { FiCalendar, FiEye, FiLock, FiSave, FiUpload, FiUser } from "react-icons/fi";
+import { z } from "zod";
 
 const blogSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -23,8 +25,63 @@ const blogSchema = z.object({
 
 type BlogFormData = z.infer<typeof blogSchema>;
 
+// Extend session user type
+declare module "next-auth" {
+  interface User {
+    role?: string;
+  }
+}
+
 export default function CreateBlogPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const userRole = (session?.user?.role as UserRole) || "user";
+  const canCreateBlog = hasPermission(userRole, "createBlog");
+
+  // Redirect if user doesn't have permission
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!canCreateBlog) {
+      router.push("/dashboard");
+    }
+  }, [canCreateBlog, router, status]);
+
+  // Show loading state while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  // Show access denied for users without permission
+  if (!canCreateBlog) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+          <FiLock className="w-10 h-10 text-red-600" />
+        </div>
+        <h1 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h1>
+        <p className="text-neutral-600 mb-6 max-w-md">
+          You don't have permission to create blog posts. This feature is only available to authors, admins, and
+          superadmins.
+        </p>
+        <div className="space-y-3">
+          <Link href="/dashboard">
+            <Button variant="primary">Go to Dashboard</Button>
+          </Link>
+          <div className="text-sm text-neutral-500 mt-4">
+            Want to become an author?{" "}
+            <Link href="/dashboard/settings" className="text-primary-600 hover:underline">
+              Request author role
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +104,7 @@ export default function CreateBlogPage() {
       author_name: "",
       blog_image: "",
       status: "draft",
-      publish_date: new Date().toISOString().split('T')[0],
+      publish_date: new Date().toISOString().split("T")[0],
     },
   });
 
@@ -60,7 +117,7 @@ export default function CreateBlogPage() {
 
   useEffect(() => {
     if (watchedStatus === "published" && !watch("publish_date")) {
-      setValue("publish_date", new Date().toISOString().split('T')[0]);
+      setValue("publish_date", new Date().toISOString().split("T")[0]);
     }
   }, [watchedStatus, setValue, watch]);
 
@@ -72,7 +129,7 @@ export default function CreateBlogPage() {
       const submitData = {
         ...data,
         status: isDraft ? "draft" : data.status,
-        publish_date: data.status === "published" ? (data.publish_date || new Date().toISOString()) : undefined,
+        publish_date: data.status === "published" ? data.publish_date || new Date().toISOString() : undefined,
       };
 
       const response = await fetch("/api/blogs", {
@@ -209,15 +266,9 @@ export default function CreateBlogPage() {
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard/blogs">
-            <Button variant="outline">
-              Cancel
-            </Button>
+            <Button variant="outline">Cancel</Button>
           </Link>
-          <Button
-            variant="outline"
-            onClick={handleSaveDraft}
-            disabled={isSavingDraft || isSubmitting}
-          >
+          <Button variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft || isSubmitting}>
             <FiSave className="w-4 h-4 mr-2" />
             {isSavingDraft ? "Saving..." : "Save Draft"}
           </Button>
@@ -229,21 +280,14 @@ export default function CreateBlogPage() {
             <FiEye className="w-4 h-4 mr-2" />
             Preview
           </Button>
-          <Button
-            onClick={handlePublish}
-            disabled={isSubmitting || !content || content.trim().length < 50}
-          >
+          <Button onClick={handlePublish} disabled={isSubmitting || !content || content.trim().length < 50}>
             {isSubmitting ? "Publishing..." : "Publish"}
           </Button>
         </div>
       </div>
 
       {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>}
 
       {/* Form */}
       <div className="bg-white rounded-lg border border-neutral-200">
@@ -266,9 +310,7 @@ export default function CreateBlogPage() {
                   : "border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-primary-500"
               )}
             />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-            )}
+            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
           </div>
 
           {/* Description */}
@@ -289,24 +331,14 @@ export default function CreateBlogPage() {
                   : "border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-primary-500"
               )}
             />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-            )}
+            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
           </div>
 
           {/* Content */}
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Content *
-            </label>
-            <RichTextEditor
-              value={content}
-              onChange={setContent}
-              placeholder="Write your blog content here..."
-            />
-            {errors.content && (
-              <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
-            )}
+            <label className="block text-sm font-medium text-neutral-700 mb-2">Content *</label>
+            <RichTextEditor value={content} onChange={setContent} placeholder="Write your blog content here..." />
+            {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -331,9 +363,7 @@ export default function CreateBlogPage() {
                   )}
                 />
               </div>
-              {errors.author_name && (
-                <p className="mt-1 text-sm text-red-600">{errors.author_name.message}</p>
-              )}
+              {errors.author_name && <p className="mt-1 text-sm text-red-600">{errors.author_name.message}</p>}
             </div>
 
             {/* Blog Image URL */}
@@ -357,17 +387,10 @@ export default function CreateBlogPage() {
                 />
                 <label className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors">
                   <FiUpload className="w-4 h-4" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </label>
               </div>
-              {errors.blog_image && (
-                <p className="mt-1 text-sm text-red-600">{errors.blog_image.message}</p>
-              )}
+              {errors.blog_image && <p className="mt-1 text-sm text-red-600">{errors.blog_image.message}</p>}
             </div>
           </div>
 
