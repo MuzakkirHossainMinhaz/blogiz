@@ -77,7 +77,7 @@ export default function RegisterPage() {
           router.push("/auth/login");
         }, 2000);
       } else {
-        setError(result.error || "Registration failed");
+        setError(result.message || "Registration failed");
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");

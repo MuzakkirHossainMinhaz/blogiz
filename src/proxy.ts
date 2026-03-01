@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 
 export async function proxy(req: any) {
   // Get the token from the request
-  const token = await getToken({ req });
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
   const isAuthenticated = !!token;
 
   // Get the pathname

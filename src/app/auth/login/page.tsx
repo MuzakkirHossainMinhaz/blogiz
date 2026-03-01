@@ -99,6 +99,13 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-neutral-900 text-center mb-2">Welcome Back</h1>
           <p className="text-sm text-neutral-500 text-center mb-8">Sign in to continue to Blogiz</p>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm text-center">{error}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email Field */}
             <Input
@@ -142,13 +149,6 @@ export default function LoginPage() {
                 Remember me
               </label>
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800 text-sm text-center">{error}</p>
-              </div>
-            )}
 
             {/* Submit Button */}
             <Button
