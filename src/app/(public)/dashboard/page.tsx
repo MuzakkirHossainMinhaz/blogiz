@@ -1,23 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { Button } from "@/components/ui/Button";
-import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
-import { 
-  FiFileText, 
-  FiHeart, 
-  FiEdit3, 
-  FiEye,
-  FiTrendingUp,
-  FiPlusCircle,
-  FiBarChart2,
-  FiClock
-} from "react-icons/fi";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { APP_CONFIG } from "@/config/constants";
+import { useEffect, useState } from "react";
+import { FiBarChart2, FiClock, FiEdit3, FiEye, FiFileText, FiHeart, FiPlusCircle, FiTrendingUp } from "react-icons/fi";
 
 interface DashboardStats {
   totalBlogs: number;
@@ -76,9 +65,13 @@ export default function DashboardPage() {
       published: "bg-green-100 text-green-800 border-green-200",
       draft: "bg-yellow-100 text-yellow-800 border-yellow-200",
     };
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${variants[status as keyof typeof variants] || variants.draft}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+          variants[status as keyof typeof variants] || variants.draft
+        }`}
+      >
         {status}
       </span>
     );
@@ -88,12 +81,8 @@ export default function DashboardPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Header */}
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Welcome back, {session?.user?.email?.split("@")[0]}! 👋
-        </h1>
-        <p className="mt-1 text-neutral-600">
-          Here's what's happening with your blog today.
-        </p>
+        <h1 className="text-2xl font-bold text-neutral-900">Welcome back, {session?.user?.email?.split("@")[0]}! 👋</h1>
+        <p className="mt-1 text-neutral-600">Here's what's happening with your blog today.</p>
       </div>
 
       {/* Quick Actions */}
@@ -128,7 +117,7 @@ export default function DashboardPage() {
             variant="primary"
             change={{
               value: "+12%",
-              type: "increase"
+              type: "increase",
             }}
           />
           <StatsCard
@@ -138,7 +127,7 @@ export default function DashboardPage() {
             variant="success"
             change={{
               value: "+8%",
-              type: "increase"
+              type: "increase",
             }}
           />
           <StatsCard
@@ -148,7 +137,7 @@ export default function DashboardPage() {
             variant="warning"
             change={{
               value: "-2%",
-              type: "decrease"
+              type: "decrease",
             }}
           />
           <StatsCard
@@ -158,7 +147,7 @@ export default function DashboardPage() {
             variant="accent"
             change={{
               value: "+24%",
-              type: "increase"
+              type: "increase",
             }}
           />
         </div>
@@ -198,13 +187,9 @@ export default function DashboardPage() {
                   {stats.recentBlogs.map((blog) => (
                     <tr key={blog._id} className="hover:bg-neutral-50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-neutral-900 truncate max-w-xs">
-                          {blog.title}
-                        </div>
+                        <div className="text-sm font-medium text-neutral-900 truncate max-w-xs">{blog.title}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        {getStatusBadge(blog.status)}
-                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(blog.status)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center text-sm text-neutral-600">
                           <FiHeart className="w-4 h-4 mr-1 text-red-500" />
@@ -239,12 +224,8 @@ export default function DashboardPage() {
           ) : (
             <div className="p-8 text-center">
               <FiFileText className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-neutral-900 mb-2">
-                No posts yet
-              </h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                Get started by creating your first blog post.
-              </p>
+              <h3 className="text-lg font-medium text-neutral-900 mb-2">No posts yet</h3>
+              <p className="text-sm text-neutral-600 mb-4">Get started by creating your first blog post.</p>
               <Link href="/dashboard/blogs/create">
                 <Button variant="primary" className="rounded-full">
                   <FiPlusCircle className="w-4 h-4 mr-2" />
@@ -270,7 +251,7 @@ export default function DashboardPage() {
               Use the rich text editor to create beautiful posts with formatting, images, and more.
             </p>
           </div>
-          
+
           <div className="bg-linear-to-br from-accent-50 to-accent-100 p-6 rounded-lg border border-accent-200">
             <div className="flex items-center mb-3">
               <div className="p-2 bg-accent-600 rounded-lg">
@@ -282,7 +263,7 @@ export default function DashboardPage() {
               Monitor your blog's performance with real-time analytics and engagement metrics.
             </p>
           </div>
-          
+
           <div className="bg-linear-to-br from-neutral-50 to-neutral-100 p-6 rounded-lg border border-neutral-200">
             <div className="flex items-center mb-3">
               <div className="p-2 bg-neutral-600 rounded-lg">

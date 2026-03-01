@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function NotFoundPage() {
   return (
-    <main className="min-h-[calc(100vh-8rem)] flex items-center justify-center bg-linear-to-br from-primary-50 to-neutral-50">
+    <main className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary-50 to-neutral-50">
       <Container>
         <div className="max-w-2xl mx-auto text-center">
           {/* 404 Illustration */}
@@ -27,11 +27,7 @@ export default function NotFoundPage() {
               </Button>
             </Link>
             <Link href={ROUTES.BLOGS}>
-              <Button
-                variant="ghost"
-                size="md"
-                className="w-full border-[1px] border-neutral-300 sm:w-auto cursor-pointer"
-              >
+              <Button variant="ghost" size="md" className="w-full border border-neutral-300 sm:w-auto cursor-pointer">
                 Browse Blogs
               </Button>
             </Link>

@@ -14,12 +14,8 @@ export default function LoadingPage() {
           </div>
 
           {/* Loading Text */}
-          <h2 className="text-2xl font-semibold text-neutral-900 mb-2">
-            Loading
-          </h2>
-          <p className="text-neutral-600">
-            Please wait while we fetch your content
-          </p>
+          <h2 className="text-2xl font-semibold text-neutral-900 mb-2">Loading</h2>
+          <p className="text-neutral-600">Please wait while we fetch your content</p>
 
           {/* Animated Dots */}
           <div className="flex items-center justify-center gap-2 mt-6">

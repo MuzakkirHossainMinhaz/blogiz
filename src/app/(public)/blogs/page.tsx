@@ -35,10 +35,7 @@ export default function BlogsPage() {
         <Container>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="card bg-white shadow-soft animate-pulse-slow"
-              >
+              <div key={i} className="card bg-white shadow-soft animate-pulse-slow">
                 <div className="h-64 bg-neutral-200 rounded-t-xl" />
                 <div className="card-body p-6 space-y-4">
                   <div className="h-4 bg-neutral-200 rounded w-24" />
@@ -62,12 +59,7 @@ export default function BlogsPage() {
         <Container>
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-              <svg
-                className="w-8 h-8 text-red-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -76,12 +68,8 @@ export default function BlogsPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-              Failed to load blogs
-            </h3>
-            <p className="text-neutral-600">
-              {error || "Something went wrong. Please try again later."}
-            </p>
+            <h3 className="text-xl font-semibold text-neutral-900 mb-2">Failed to load blogs</h3>
+            <p className="text-neutral-600">{error || "Something went wrong. Please try again later."}</p>
           </div>
         </Container>
       </Section>
@@ -109,12 +97,7 @@ export default function BlogsPage() {
           {blogs && blogs.length === 0 && (
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-neutral-100 mb-4">
-                <svg
-                  className="w-8 h-8 text-neutral-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
+                <svg className="w-8 h-8 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -123,12 +106,8 @@ export default function BlogsPage() {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-                No blogs yet
-              </h3>
-              <p className="text-neutral-600">
-                Be the first to create a blog post!
-              </p>
+              <h3 className="text-xl font-semibold text-neutral-900 mb-2">No blogs yet</h3>
+              <p className="text-neutral-600">Be the first to create a blog post!</p>
             </div>
           )}
         </Container>

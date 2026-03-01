@@ -1,8 +1,8 @@
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
-import { FiInfo } from "react-icons/fi";
+import { FiHeadphones } from "react-icons/fi";
 
-export default function AboutPage() {
+export default function SupportPage() {
   return (
     <main className="bg-white">
       <Section className="min-h-[60vh] flex items-center justify-center">
@@ -10,15 +10,16 @@ export default function AboutPage() {
           <div className="max-w-3xl mx-auto text-center">
             {/* Icon */}
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-100 mb-6">
-              <FiInfo className="w-10 h-10 text-primary-600" />
+              <FiHeadphones className="w-10 h-10 text-primary-600" />
             </div>
 
             {/* Message */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              About <span className="gradient-text">Blogiz</span>
+              Support <span className="gradient-text">Center</span>
             </h1>
             <p className="text-xl text-neutral-600 mb-8">
-              This page is currently under construction. We're working hard to bring you something amazing!
+              Our support page is currently under construction. We're working hard to bring you helpful resources and
+              assistance!
             </p>
 
             {/* Coming Soon Badge */}
@@ -28,7 +29,7 @@ export default function AboutPage() {
             </div>
 
             {/* Decorative Element */}
-            <div className="mt-12 text-6xl">😴</div>
+            <div className="mt-12 text-6xl">🛠️</div>
           </div>
         </Container>
       </Section>
