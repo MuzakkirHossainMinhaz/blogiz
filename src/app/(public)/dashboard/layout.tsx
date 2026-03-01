@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div
           className={`
           fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-neutral-200 transform transition-transform duration-300 ease-in-out
-          lg:sticky lg:top-20.25 lg:h-[calc(100vh-5rem)] lg:transform-none
+          lg:sticky top-16.5 lg:top-20.25 lg:h-[calc(100vh-5rem)] lg:transform-none
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
         >
@@ -62,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Mobile sidebar overlay */}
         {isSidebarOpen && (
-          <div className="fixed inset-0 z-40 bg-neutral-900/50 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+          <div className="fixed inset-0 z-30 bg-neutral-900/50 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
 
         {/* Main Content */}
