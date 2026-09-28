@@ -18,10 +18,11 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState<string | null>(null);
   const { data: session, status } = useSession();
   const isLoggedIn = status === "authenticated";
   const user = session?.user;
+  const isMobileMenuOpen = menuPath === pathname;
 
   const isActive = (href: string) => {
     if (href === ROUTES.HOME) {
@@ -30,14 +31,13 @@ export default function Navbar() {
     return pathname.startsWith(href);
   };
 
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+  const closeMobileMenu = () => setMenuPath(null);
+  const toggleMobileMenu = () => setMenuPath((current) => (current === pathname ? null : pathname));
 
   useEffect(() => {
     if (!isMobileMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsMobileMenuOpen(false);
+      if (event.key === "Escape") closeMobileMenu();
     };
     document.addEventListener("keydown", onKeyDown);
     document.body.classList.add("overflow-hidden");
@@ -146,7 +146,7 @@ export default function Navbar() {
               </Link>
             )}
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={toggleMobileMenu}
               className="min-h-11 min-w-11 p-2.5 rounded-lg hover:bg-neutral-100 transition-colors"
               aria-label="Toggle menu"
               aria-expanded={isMobileMenuOpen}
@@ -169,7 +169,7 @@ export default function Navbar() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeMobileMenu}
                     className={cn(
                       "block px-4 py-3 min-h-11 rounded-lg font-medium transition-all duration-200",
                       isActive(link.href) ? "bg-primary-50 text-primary-700" : "text-neutral-700 hover:bg-neutral-50"
@@ -186,14 +186,14 @@ export default function Navbar() {
                 <>
                   <Link
                     href="/dashboard"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeMobileMenu}
                     className="block px-4 py-3 min-h-11 rounded-lg font-medium text-neutral-700 hover:bg-neutral-50"
                   >
                     Dashboard
                   </Link>
                   <button
                     onClick={() => {
-                      setIsMobileMenuOpen(false);
+                      closeMobileMenu();
                       signOut({ callbackUrl: "/" });
                     }}
                     className="w-full text-left px-4 py-3 min-h-11 rounded-lg font-medium text-red-600 hover:bg-red-50"
@@ -205,14 +205,14 @@ export default function Navbar() {
                 <>
                   <Link
                     href="/auth/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeMobileMenu}
                     className="block px-4 py-3 min-h-11 rounded-lg font-medium text-neutral-700 hover:bg-neutral-50"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/auth/register"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeMobileMenu}
                     className="block px-4 py-3 min-h-11 rounded-lg font-semibold text-center text-white bg-primary-600 hover:bg-primary-700"
                   >
                     Get Started
@@ -227,7 +227,7 @@ export default function Navbar() {
       {isMobileMenuOpen && (
         <div
           className="fixed inset-0 top-14 sm:top-16 md:top-20 z-[-1] bg-neutral-900/40 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={closeMobileMenu}
           aria-hidden="true"
         />
       )}

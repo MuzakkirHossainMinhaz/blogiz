@@ -11,7 +11,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarPath, setSidebarPath] = useState<string | null>(null);
+  const isSidebarOpen = sidebarPath === pathname;
+
+  const closeSidebar = () => setSidebarPath(null);
+  const toggleSidebar = () => setSidebarPath((current) => (current === pathname ? null : pathname));
 
   useEffect(() => {
     if (status === "loading") return;
@@ -21,13 +25,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [session, status, router]);
 
   useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     if (!isSidebarOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsSidebarOpen(false);
+      if (event.key === "Escape") closeSidebar();
     };
     document.addEventListener("keydown", onKeyDown);
     document.body.classList.add("overflow-hidden");
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="lg:hidden sticky top-14 sm:top-16 md:top-20 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur-md">
         <div className="flex items-center gap-3 px-4 py-2.5">
           <button
-            onClick={() => setIsSidebarOpen((open) => !open)}
+            onClick={toggleSidebar}
             className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors"
             aria-label="Toggle dashboard menu"
             aria-expanded={isSidebarOpen}
@@ -81,14 +81,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           `}
         >
           <nav className="p-3 sm:p-4 h-full overflow-y-auto overscroll-contain">
-            <Sidebar onNavigate={() => setIsSidebarOpen(false)} />
+            <Sidebar onNavigate={closeSidebar} />
           </nav>
         </aside>
 
         {isSidebarOpen && (
           <div
             className="fixed inset-0 z-30 bg-neutral-900/50 lg:hidden top-14 sm:top-16 md:top-20"
-            onClick={() => setIsSidebarOpen(false)}
+            onClick={closeSidebar}
             aria-hidden="true"
           />
         )}
