@@ -7,11 +7,13 @@ Optional Hugging Face helpers can draft text, analyze a post, or generate an ima
 ## Stack
 
 - Next.js 16 (App Router) and React 19
-- TypeScript 7 and Tailwind CSS 4
+- TypeScript 7, Tailwind CSS 4, and daisyUI (light theme only)
+- Fraunces (display) and Plus Jakarta Sans (UI) via `next/font`
 - MongoDB with Mongoose
 - Auth.js (`next-auth` 5 beta) with email and password sessions
 - Cloudinary for images
 - Redis for sliding-window rate limits
+- Framer Motion for enter/stagger motion (respects reduced motion)
 
 ## Quick start
 

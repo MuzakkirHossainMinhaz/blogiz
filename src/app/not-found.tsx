@@ -5,16 +5,16 @@ import Link from "next/link";
 
 export default function NotFoundPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary-50 to-neutral-50">
+    <main className="min-h-screen flex items-center justify-center bg-paper">
       <Container>
         <div className="max-w-2xl mx-auto text-center">
           {/* 404 Illustration */}
           <div className="mb-8">
-            <h1 className="text-7xl sm:text-9xl md:text-[10rem] font-bold gradient-text leading-none">404</h1>
+            <h1 className="text-7xl sm:text-9xl md:text-[10rem] font-display font-semibold text-ink leading-none">404</h1>
           </div>
 
           {/* Message */}
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-4">Page Not Found</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-semibold text-ink tracking-tight mb-4">Page Not Found</h2>
           <p className="text-base sm:text-lg text-neutral-600 mb-8 max-w-md mx-auto">
             Oops! The page you&apos;re looking for doesn&apos;t exist. It might have been moved or deleted.
           </p>

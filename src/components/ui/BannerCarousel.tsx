@@ -54,14 +54,14 @@ function usePrefersReducedMotion() {
 function BannerTypeBadge({ type }: { type: Banner["type"] }) {
   return (
     <span
-      className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+      className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-lg ${
         type === "hero"
-          ? "bg-purple-100 text-purple-800"
+          ? "bg-primary-100 text-primary-800"
           : type === "featured"
-            ? "bg-blue-100 text-blue-800"
+            ? "bg-primary-50 text-primary-700"
             : type === "announcement"
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-green-100 text-green-800"
+              ? "bg-accent-100 text-accent-700"
+              : "bg-neutral-100 text-neutral-700"
       }`}
     >
       {type}
@@ -75,7 +75,9 @@ function BannerContent({ banner }: { banner: Banner }) {
       <div className="space-y-3 sm:space-y-4 z-10" style={{ color: banner.metadata?.textColor || "#000000" }}>
         <div className="space-y-2">
           {banner.type && <BannerTypeBadge type={banner.type} />}
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold leading-tight break-words">{banner.title}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold leading-tight break-words tracking-tight">
+            {banner.title}
+          </h1>
           {banner.subtitle && (
             <h2 className="text-base sm:text-xl md:text-2xl font-medium opacity-90 break-words">{banner.subtitle}</h2>
           )}
@@ -89,9 +91,9 @@ function BannerContent({ banner }: { banner: Banner }) {
           <a
             href={banner.ctaLink}
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center min-h-11 px-5 sm:px-6 py-3 font-semibold rounded-lg transition-colors hover:opacity-90"
+            className="inline-flex items-center justify-center min-h-11 px-5 sm:px-6 py-3 font-semibold rounded-xl transition-colors hover:opacity-90"
             style={{
-              backgroundColor: banner.metadata?.buttonColor || "#8b5cf6",
+              backgroundColor: banner.metadata?.buttonColor || "#7B85F0",
               color: "#ffffff",
             }}
           >

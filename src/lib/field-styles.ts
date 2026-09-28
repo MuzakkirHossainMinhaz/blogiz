@@ -13,7 +13,7 @@ export function controlClassName({
   className?: string;
 } = {}) {
   return cn(
-    "w-full border rounded-lg bg-white font-medium text-base transition-all duration-200 appearance-none",
+    "w-full border rounded-xl bg-white font-medium text-base transition-colors duration-200 appearance-none",
     "focus:outline-none focus:ring-2 focus:border-transparent",
     "disabled:opacity-50 disabled:cursor-not-allowed",
     "placeholder:text-neutral-400",

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageEnter } from "@/components/motion";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Container } from "@/components/ui/Container";
 import { useSession } from "next-auth/react";
@@ -39,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+      <div className="min-h-screen flex items-center justify-center bg-paper">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
@@ -50,30 +51,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="bg-neutral-50 min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)] md:min-h-[calc(100dvh-5rem)]">
-      {/* Mobile dashboard nav bar — sits below site navbar */}
-      <div className="lg:hidden sticky top-14 sm:top-16 md:top-20 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur-md">
+    <div className="bg-paper min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)] md:min-h-[calc(100dvh-5rem)]">
+      <div className="lg:hidden sticky top-14 sm:top-16 md:top-20 z-30 border-b border-neutral-200 bg-surface/95 backdrop-blur-md">
         <div className="flex items-center gap-3 px-4 py-2.5">
           <button
             onClick={toggleSidebar}
-            className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors"
+            className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-xl border border-neutral-200 bg-surface text-neutral-700 hover:bg-primary-50 transition-colors"
             aria-label="Toggle dashboard menu"
             aria-expanded={isSidebarOpen}
           >
             {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
           </button>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-neutral-900 truncate">Dashboard</p>
-            <p className="text-xs text-neutral-500 truncate">Navigate sections</p>
+            <p className="text-sm font-semibold text-ink truncate">Dashboard</p>
+            <p className="text-xs text-accent-500 truncate">Navigate sections</p>
           </div>
         </div>
       </div>
 
       <div className="flex">
-        {/* Sidebar drawer / sticky column */}
         <aside
           className={`
-            fixed z-40 w-[min(18rem,85vw)] bg-white border-r border-neutral-200
+            fixed z-40 w-[min(18rem,85vw)] bg-surface border-r border-neutral-200
             top-14 sm:top-16 md:top-20 bottom-0
             transform transition-transform duration-300 ease-in-out motion-reduce:transition-none
             lg:sticky lg:top-20 lg:h-[calc(100dvh-5rem)] lg:w-64 lg:shrink-0 lg:translate-x-0
@@ -87,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 z-30 bg-neutral-900/50 lg:hidden top-14 sm:top-16 md:top-20"
+            className="fixed inset-0 z-30 bg-ink/40 lg:hidden top-14 sm:top-16 md:top-20"
             onClick={closeSidebar}
             aria-hidden="true"
           />
@@ -96,7 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex-1 min-w-0">
           <main className="flex-1">
             <Container size="full" className="py-4 sm:py-6 lg:py-8">
-              {children}
+              <PageEnter>{children}</PageEnter>
             </Container>
           </main>
         </div>

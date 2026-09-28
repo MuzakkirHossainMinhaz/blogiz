@@ -10,60 +10,69 @@
   name: "light";
   default: true;
   color-scheme: light;
-  --color-primary: #8b5cf6;
+  --color-primary: #7b85f0;
   --color-primary-content: #ffffff;
-  --color-secondary: #06b6d4;
+  --color-secondary: #5b5f7a;
   --color-secondary-content: #ffffff;
-  --color-accent: #06b6d4;
+  --color-accent: #5b5f7a;
   --color-accent-content: #ffffff;
-  --color-neutral: #404040;
+  --color-neutral: #3f4285;
+  --color-neutral-content: #ffffff;
   --color-base-100: #ffffff;
-  --color-base-200: #f5f5f5;
-  --color-base-300: #e5e5e5;
+  --color-base-200: #f7f6ff;
+  --color-base-300: #e4e6f5;
+  --color-base-content: #3f4285;
 }
 
-/* Custom Theme Variables based on Logo Colors */
+/* Logo-native theme: paper, feather, quill, ink */
 @theme {
-  /* Primary Colors - Purple/Indigo from logo */
-  --color-primary-50: #f5f3ff;
-  --color-primary-100: #ede9fe;
-  --color-primary-200: #ddd6fe;
-  --color-primary-300: #c4b5fd;
-  --color-primary-400: #a78bfa;
-  --color-primary-500: #8b5cf6;
-  --color-primary-600: #7c3aed;
-  --color-primary-700: #6d28d9;
-  --color-primary-800: #5b21b6;
-  --color-primary-900: #4c1d95;
-  
-  /* Accent Colors - Cyan from logo */
-  --color-accent-50: #ecfeff;
-  --color-accent-100: #cffafe;
-  --color-accent-200: #a5f3fc;
-  --color-accent-300: #67e8f9;
-  --color-accent-400: #22d3ee;
-  --color-accent-500: #06b6d4;
-  --color-accent-600: #0891b2;
-  --color-accent-700: #0e7490;
-  --color-accent-800: #155e75;
-  --color-accent-900: #164e63;
-  
-  /* Neutral Colors */
-  --color-neutral-50: #fafafa;
-  --color-neutral-100: #f5f5f5;
-  --color-neutral-200: #e5e5e5;
-  --color-neutral-300: #d4d4d4;
-  --color-neutral-400: #a3a3a3;
-  --color-neutral-500: #737373;
-  --color-neutral-600: #525252;
-  --color-neutral-700: #404040;
-  --color-neutral-800: #262626;
-  --color-neutral-900: #171717;
+  --color-paper: #f7f6ff;
+  --color-surface: #ffffff;
+  --color-ink: #3f4285;
+  --color-quill: #7b85f0;
+  --color-feather: #c0c8ff;
 
-  --font-sans: var(--font-roboto), system-ui, sans-serif;
+  /* Primary scale from logo indigo */
+  --color-primary-50: #f7f6ff;
+  --color-primary-100: #eef0ff;
+  --color-primary-200: #c0c8ff;
+  --color-primary-300: #a8b0f8;
+  --color-primary-400: #9199f4;
+  --color-primary-500: #7b85f0;
+  --color-primary-600: #636ccd;
+  --color-primary-700: #5158a8;
+  --color-primary-800: #3f4285;
+  --color-primary-900: #2f3163;
 
-  --shadow-soft: 0 2px 15px -3px rgba(139, 92, 246, 0.1), 0 10px 20px -2px rgba(139, 92, 246, 0.05);
-  --shadow-soft-lg: 0 10px 40px -10px rgba(139, 92, 246, 0.2);
+  /* Accent: warm graphite (meta / secondary), not cyan */
+  --color-accent-50: #f3f3f7;
+  --color-accent-100: #e6e7ee;
+  --color-accent-200: #c8cad6;
+  --color-accent-300: #a4a7b8;
+  --color-accent-400: #7a7e95;
+  --color-accent-500: #5b5f7a;
+  --color-accent-600: #4a4e66;
+  --color-accent-700: #3b3e52;
+  --color-accent-800: #2d3040;
+  --color-accent-900: #1f2130;
+
+  /* Neutrals biased toward ink */
+  --color-neutral-50: #f7f6ff;
+  --color-neutral-100: #eef0f8;
+  --color-neutral-200: #e4e6f5;
+  --color-neutral-300: #c8cad9;
+  --color-neutral-400: #9b9eb3;
+  --color-neutral-500: #5b5f7a;
+  --color-neutral-600: #4a4e66;
+  --color-neutral-700: #3f4285;
+  --color-neutral-800: #2f3163;
+  --color-neutral-900: #1e203f;
+
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --shadow-soft: 0 4px 20px -4px rgba(63, 66, 133, 0.1), 0 2px 8px -2px rgba(63, 66, 133, 0.06);
+  --shadow-soft-lg: 0 12px 40px -12px rgba(63, 66, 133, 0.16);
 }
 
 /* Base Styles */
@@ -76,7 +85,11 @@ html {
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 overflow-x-clip;
+  @apply bg-paper text-ink overflow-x-clip font-sans antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* Custom Scrollbar */
@@ -85,20 +98,21 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-neutral-100;
+  @apply bg-primary-50;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary-400 rounded-full;
+  @apply bg-primary-300 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-primary-500;
 }
 
-/* Smooth Transitions */
-a, button {
-  @apply transition-all duration-300 ease-in-out;
+/* Quiet transitions — Tailwind handles hover/focus; Motion handles enter */
+a,
+button {
+  @apply transition-colors duration-200 ease-out;
 }
 
 /* Focus Styles for Accessibility */
@@ -106,72 +120,28 @@ a, button {
   @apply outline-2 outline-offset-2 outline-primary-500;
 }
 
-/* Native control accents (date picker chrome, etc.) follow the brand */
+/* Native control accents follow the brand */
 input[type="date"],
 input[type="datetime-local"],
 input[type="time"],
 input[type="search"] {
   color-scheme: light;
-  accent-color: var(--color-primary-600);
+  accent-color: var(--color-primary-500);
 }
 
-/* Custom Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulse-slow {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.5s ease-out;
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Card Hover Effects */
+/* Soft card lift on interaction containers */
 .card-hover {
-  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  @apply transition-shadow duration-200 ease-out hover:shadow-soft-lg;
 }
 
-/* Gradient Text */
+/* Brand wordmark / display accent */
 .gradient-text {
-  @apply bg-linear-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent;
+  @apply text-ink;
 }
 
-/* Glass Morphism */
+/* Quiet surface for overlays */
 .glass {
-  @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-xl;
+  @apply bg-white/90 backdrop-blur-md border border-neutral-200 shadow-soft;
 }
 
 /* Container Utilities */
@@ -209,13 +179,7 @@ input[type="search"] {
     scroll-behavior: auto !important;
   }
 
-  .animate-fade-in,
-  .animate-slide-in,
-  .animate-pulse-slow {
-    animation: none !important;
-  }
-
   .card-hover {
-    @apply hover:translate-y-0;
+    @apply hover:shadow-soft;
   }
 }

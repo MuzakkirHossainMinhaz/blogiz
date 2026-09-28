@@ -129,7 +129,7 @@ export default function DashboardPage() {
   // Render role-specific dashboard
   if (userRole === "user") {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 ">
         {/* Welcome Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Welcome back, {userName}! 👋</h1>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
         {/* User Dashboard Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Reading History */}
-          <div className="bg-white rounded-lg border border-neutral-200 p-6">
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
             <div className="flex items-center mb-4">
               <div className="p-2 bg-primary-100 rounded-lg">
                 <FiBookOpen className="w-5 h-5 text-primary-600" />
@@ -154,7 +154,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Liked Posts */}
-          <div className="bg-white rounded-lg border border-neutral-200 p-6">
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
             <div className="flex items-center mb-4">
               <div className="p-2 bg-red-100 rounded-lg">
                 <FiHeart className="w-5 h-5 text-red-600" />
@@ -189,7 +189,7 @@ export default function DashboardPage() {
 
   // Author, Admin, Superadmin Dashboard
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 ">
       {/* Welcome Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">
@@ -203,14 +203,14 @@ export default function DashboardPage() {
         <div className="flex flex-wrap gap-3">
           {canViewUsers && (
             <Link href="/dashboard/admin/users">
-              <Button variant="outline" className="rounded-full">
+              <Button variant="outline" className="rounded-xl">
                 <FiUser className="w-4 h-4 mr-2" />
                 Manage Users
               </Button>
             </Link>
           )}
           <Link href="/dashboard/admin">
-            <Button variant="outline" className="rounded-full">
+            <Button variant="outline" className="rounded-xl">
               <FiShield className="w-4 h-4 mr-2" />
               Admin Panel
             </Button>
@@ -222,19 +222,19 @@ export default function DashboardPage() {
       {canCreateBlog && (
         <div className="flex flex-wrap gap-3">
           <Link href="/dashboard/blogs/create">
-            <Button variant="primary" className="rounded-full">
+            <Button variant="primary" className="rounded-xl">
               <FiPlusCircle className="w-4 h-4 mr-2" />
               Write New Post
             </Button>
           </Link>
           <Link href="/dashboard/blogs">
-            <Button variant="outline" className="rounded-full">
+            <Button variant="outline" className="rounded-xl">
               <FiFileText className="w-4 h-4 mr-2" />
               View All Posts
             </Button>
           </Link>
           <Link href="/dashboard/analytics">
-            <Button variant="ghost" className="rounded-full">
+            <Button variant="ghost" className="rounded-xl">
               <FiBarChart2 className="w-4 h-4 mr-2" />
               View Analytics
             </Button>
@@ -293,7 +293,7 @@ export default function DashboardPage() {
       {/* Recent Activity - Only for authors/admins */}
       {canCreateBlog && (
         <Section title="Recent Posts" subtitle="Your latest blog posts and their status">
-          <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
             {isLoading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-medium text-neutral-900 mb-2">No posts yet</h3>
                 <p className="text-sm text-neutral-600 mb-4">Get started by creating your first blog post.</p>
                 <Link href="/dashboard/blogs/create">
-                  <Button variant="primary" className="rounded-full">
+                  <Button variant="primary" className="rounded-xl">
                     <FiPlusCircle className="w-4 h-4 mr-2" />
                     Create Your First Post
                   </Button>
@@ -414,7 +414,7 @@ export default function DashboardPage() {
       {canCreateBlog && (
         <Section title="Quick Tips" subtitle="Helpful hints to make the most of your dashboard">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-linear-to-br from-primary-50 to-primary-100 p-6 rounded-lg border border-primary-200">
+            <div className="bg-linear-to-br from-primary-50 to-primary-100 p-6 rounded-2xl border border-primary-200">
               <div className="flex items-center mb-3">
                 <div className="p-2 bg-primary-600 rounded-lg">
                   <FiEdit3 className="w-5 h-5 text-white" />
@@ -426,19 +426,19 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="bg-linear-to-br from-accent-50 to-accent-100 p-6 rounded-lg border border-accent-200">
+            <div className="bg-linear-to-br from-primary-50 to-primary-100 p-6 rounded-2xl border border-primary-200">
               <div className="flex items-center mb-3">
-                <div className="p-2 bg-accent-600 rounded-lg">
+                <div className="p-2 bg-primary-600 rounded-lg">
                   <FiTrendingUp className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="ml-3 font-semibold text-accent-900">Track Performance</h3>
+                <h3 className="ml-3 font-semibold text-primary-900">Track Performance</h3>
               </div>
-              <p className="text-sm text-accent-700">
+              <p className="text-sm text-primary-700">
                 Monitor your blog&apos;s performance with real-time analytics and engagement metrics.
               </p>
             </div>
 
-            <div className="bg-linear-to-br from-neutral-50 to-neutral-100 p-6 rounded-lg border border-neutral-200">
+            <div className="bg-linear-to-br from-neutral-50 to-neutral-100 p-6 rounded-2xl border border-neutral-200">
               <div className="flex items-center mb-3">
                 <div className="p-2 bg-neutral-600 rounded-lg">
                   <FiHeart className="w-5 h-5 text-white" />

@@ -97,13 +97,14 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white py-6 px-4 sm:py-8 sm:px-8 shadow-xl rounded-2xl">
-          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 text-center mb-2">Welcome Back</h1>
-          <p className="text-sm text-neutral-500 text-center mb-8">Sign in to continue to Blogiz</p>
+        <div className="bg-surface py-6 px-4 sm:py-8 sm:px-8 shadow-soft-lg border border-neutral-200 rounded-2xl">
+          <h1 className="font-display text-xl sm:text-2xl font-semibold text-ink text-center mb-2 tracking-tight">
+            Welcome Back
+          </h1>
+          <p className="text-sm text-accent-500 text-center mb-8">Sign in to continue to Blogiz</p>
 
-          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
               <p className="text-red-800 text-sm text-center">{error}</p>
             </div>
           )}
@@ -148,7 +149,7 @@ export default function LoginPage() {
               size="lg"
               isLoading={isLoading}
               fullWidth
-              className="rounded-full cursor-pointer"
+              className="rounded-xl cursor-pointer"
             >
               {isLoading ? "Logging in..." : "Sign In"}
             </Button>

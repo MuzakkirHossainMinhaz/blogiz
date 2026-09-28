@@ -12,6 +12,10 @@ Run these before `npm run dev` or the checks:
 
 A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET` and `AUTH_URL`. It does not call Redis or Cloudinary while pages are prerendered.
 
+## Theme and fonts
+
+The UI is light-only (`data-theme="light"`). daisyUI’s light theme is remapped to the logo palette: paper `#F7F6FF`, feather `#C0C8FF`, quill `#7B85F0`, ink `#3F4285`. Display type is Fraunces; UI type is Plus Jakarta Sans, both loaded with `next/font`.
+
 ## Environment variables
 
 | Variable | Required | What it is |

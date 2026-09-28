@@ -222,7 +222,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Stats Summary - Only for authors/admins */}
       {canCreateBlog && (
-        <div className="px-3 py-4 bg-linear-to-br from-primary-50 to-accent-50 rounded-lg border border-primary-100">
+        <div className="px-3 py-4 bg-primary-50 rounded-2xl border border-primary-100">
           <h4 className="text-sm font-medium text-primary-900 mb-2">Quick Stats</h4>
           <div className="space-y-1">
             <div className="flex justify-between text-xs">
