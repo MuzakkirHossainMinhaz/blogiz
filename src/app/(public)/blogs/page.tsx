@@ -31,11 +31,11 @@ export default function BlogsPage() {
 
   if (isLoading) {
     return (
-      <Section className="bg-white">
+      <Section className="bg-surface">
         <Container>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="card bg-white shadow-soft animate-pulse-slow">
+              <div key={i} className="card bg-surface shadow-soft animate-pulse">
                 <div className="h-64 bg-neutral-200 rounded-t-xl" />
                 <div className="card-body p-6 space-y-4">
                   <div className="h-4 bg-neutral-200 rounded w-24" />
@@ -55,7 +55,7 @@ export default function BlogsPage() {
 
   if (error) {
     return (
-      <Section className="bg-white">
+      <Section className="bg-surface">
         <Container>
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
@@ -81,11 +81,11 @@ export default function BlogsPage() {
       <Section
         title={
           <>
-            All Articles from <span className="gradient-text">Blogiz</span>
+            All Articles from Blogiz
           </>
         }
         subtitle={APP_CONFIG.SITE_DESCRIPTION}
-        className="bg-white px-4"
+        className="bg-surface px-4"
       >
         <Container>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">

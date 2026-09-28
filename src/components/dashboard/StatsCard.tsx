@@ -47,7 +47,7 @@ const StatsCard = ({
 
   return (
     <div className={cn(
-      "p-4 sm:p-6 rounded-lg border shadow-sm card-hover",
+      "p-4 sm:p-6 rounded-2xl border shadow-soft card-hover",
       variants[variant],
       className
     )}>

@@ -221,7 +221,7 @@ export default function CreateBlogPage() {
 
   if (showPreview) {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 ">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Preview</h1>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
@@ -268,7 +268,7 @@ export default function CreateBlogPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 ">
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">

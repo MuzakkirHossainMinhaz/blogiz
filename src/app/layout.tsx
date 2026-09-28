@@ -1,13 +1,19 @@
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Providers from "@/lib/Providers";
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const roboto = Roboto({
-  weight: "400",
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-plus-jakarta",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-fraunces",
 });
 
 export const metadata: Metadata = {
@@ -34,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-theme="light">
-      <body className={roboto.className}>
+      <body className={`${plusJakarta.variable} ${fraunces.variable} font-sans`}>
         <ErrorBoundary>
           <Providers>{children}</Providers>
         </ErrorBoundary>

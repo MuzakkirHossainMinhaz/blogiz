@@ -148,7 +148,7 @@ export default function BlogsPage() {
     };
     
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${variants[status as keyof typeof variants] || variants.draft}`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${variants[status as keyof typeof variants] || variants.draft}`}>
         {status}
       </span>
     );
@@ -168,7 +168,7 @@ export default function BlogsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 ">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
@@ -176,7 +176,7 @@ export default function BlogsPage() {
           <p className="text-neutral-600">Manage your blog posts</p>
         </div>
         <Link href="/dashboard/blogs/create" className="w-full sm:w-auto">
-          <Button variant="primary" className="rounded-full w-full sm:w-auto">
+          <Button variant="primary" className="rounded-xl w-full sm:w-auto">
             <FiPlusCircle className="w-4 h-4 mr-2" />
             Create New Post
           </Button>
@@ -263,7 +263,7 @@ export default function BlogsPage() {
           </p>
           {!searchTerm && statusFilter === "all" && (
             <Link href="/dashboard/blogs/create">
-              <Button variant="primary" className="rounded-full">
+              <Button variant="primary" className="rounded-xl">
                 <FiPlusCircle className="w-4 h-4 mr-2" />
                 Create Your First Post
               </Button>

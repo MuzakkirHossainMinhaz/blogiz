@@ -83,11 +83,11 @@ export function CommentSection({ blogId }: { blogId: string }) {
   };
 
   return (
-    <section className="mt-12 pt-8 border-t border-neutral-200">
-      <h2 className="text-xl font-semibold text-neutral-900 mb-4">Comments</h2>
+    <section className="mt-10 pt-8 border-t border-neutral-200">
+      <h2 className="font-display text-xl font-semibold text-ink mb-5">Comments</h2>
 
       {status === "authenticated" ? (
-        <form onSubmit={submit} className="mb-8 space-y-3">
+        <form onSubmit={submit} className="mb-10 space-y-3">
           <Textarea
             id="comment"
             label="Add a comment"
@@ -102,7 +102,7 @@ export function CommentSection({ blogId }: { blogId: string }) {
           </Button>
         </form>
       ) : (
-        <p className="mb-8 text-sm text-neutral-600">
+        <p className="mb-10 text-sm text-accent-500">
           <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-700">
             Sign in
           </Link>{" "}
@@ -110,23 +110,29 @@ export function CommentSection({ blogId }: { blogId: string }) {
         </p>
       )}
 
-      {message && <p className="mb-4 text-sm text-green-700">{message}</p>}
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {message && (
+        <p className="mb-4 text-sm text-green-700 rounded-xl border border-green-200 bg-green-50 px-3 py-2">{message}</p>
+      )}
+      {error && (
+        <p className="mb-4 text-sm text-red-600 rounded-xl border border-red-200 bg-red-50 px-3 py-2">{error}</p>
+      )}
 
       {comments.length === 0 ? (
-        <p className="text-sm text-neutral-500">No comments yet.</p>
+        <p className="text-sm text-accent-500">No comments yet. Be the first to reply.</p>
       ) : (
-        <ul className="space-y-6">
+        <ul className="space-y-5">
           {comments.map((comment) => (
-            <li key={comment._id}>
-              <p className="text-sm font-medium text-neutral-900">{commenterName(comment.userId)}</p>
-              <p className="mt-1 text-neutral-700 whitespace-pre-wrap break-words">{comment.content}</p>
+            <li key={comment._id} className="rounded-2xl border border-neutral-200 bg-surface p-4 sm:p-5">
+              <p className="text-sm font-semibold text-ink">{commenterName(comment.userId)}</p>
+              <p className="mt-2 text-neutral-700 whitespace-pre-wrap break-words leading-relaxed">{comment.content}</p>
               {comment.replies && comment.replies.length > 0 && (
-                <ul className="mt-3 ml-2 sm:ml-4 space-y-3 border-l border-neutral-200 pl-3 sm:pl-4">
+                <ul className="mt-4 space-y-3 border-l-2 border-primary-100 pl-4">
                   {comment.replies.map((reply) => (
                     <li key={reply._id}>
-                      <p className="text-sm font-medium text-neutral-900">{commenterName(reply.userId)}</p>
-                      <p className="mt-1 text-neutral-700 whitespace-pre-wrap break-words">{reply.content}</p>
+                      <p className="text-sm font-semibold text-ink">{commenterName(reply.userId)}</p>
+                      <p className="mt-1 text-neutral-700 whitespace-pre-wrap break-words leading-relaxed">
+                        {reply.content}
+                      </p>
                     </li>
                   ))}
                 </ul>

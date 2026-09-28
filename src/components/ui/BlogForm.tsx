@@ -58,8 +58,8 @@ export default function CreateBlogForm() {
           <div className="max-w-3xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8 md:mb-12">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                Create Your <span className="gradient-text">Blog Post</span>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-semibold tracking-tight mb-4">
+                Create Your Blog Post
               </h1>
               <p className="text-lg text-neutral-600">Share your thoughts and ideas with the community</p>
             </div>
