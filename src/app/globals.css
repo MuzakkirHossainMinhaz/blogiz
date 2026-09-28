@@ -71,8 +71,12 @@
   @apply border-neutral-200;
 }
 
+html {
+  @apply overflow-x-clip;
+}
+
 body {
-  @apply bg-neutral-50 text-neutral-900;
+  @apply bg-neutral-50 text-neutral-900 overflow-x-clip;
 }
 
 /* Custom Scrollbar */
@@ -163,13 +167,46 @@ a, button {
 
 /* Container Utilities */
 .container-custom {
-  @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  @apply w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8;
 }
 
 /* Section Spacing */
 .section-padding {
-  @apply py-12 md:py-16 lg:py-20;
+  @apply py-8 sm:py-12 md:py-16 lg:py-20;
 }
 
+/* Long unbroken strings (URLs, tokens) should wrap on narrow viewports */
+.prose {
+  @apply break-words;
+}
 
+.prose img,
+.prose pre,
+.prose table {
+  @apply max-w-full;
+}
 
+.prose pre {
+  @apply overflow-x-auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in,
+  .animate-slide-in,
+  .animate-pulse-slow {
+    animation: none !important;
+  }
+
+  .card-hover {
+    @apply hover:translate-y-0;
+  }
+}

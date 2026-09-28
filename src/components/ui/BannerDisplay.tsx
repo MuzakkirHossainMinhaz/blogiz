@@ -71,9 +71,9 @@ export default function BannerDisplay({ type = "all", limit = 5, className = "" 
 
   if (loading) {
     return (
-      <div className={`w-full h-96 md:h-[500px] bg-gray-100 animate-pulse rounded-lg ${className}`}>
+      <div className={`w-full min-h-[22rem] sm:min-h-[24rem] md:h-[500px] bg-neutral-100 animate-pulse ${className}`}>
         <div className="h-full flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
       </div>
     );

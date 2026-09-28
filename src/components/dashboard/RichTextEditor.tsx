@@ -49,16 +49,16 @@ export default function RichTextEditor({
 
   return (
     <div className={cn("border border-neutral-300 rounded-lg overflow-hidden", className)}>
-      {/* Toolbar */}
-      <div className="flex items-center justify-between p-1.5 bg-neutral-50 border-b border-neutral-300">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 sm:p-2 bg-neutral-50 border-b border-neutral-300">
+        <div className="flex flex-wrap items-center gap-0.5">
           {toolbarButtons.map((button) => (
             <button
               key={button.label}
               type="button"
               onClick={button.action}
-              className="p-2 rounded hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 transition-colors"
+              className="min-h-10 min-w-10 inline-flex items-center justify-center p-2 rounded hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 transition-colors touch-manipulation"
               title={button.label}
+              aria-label={button.label}
             >
               <button.icon className="w-4 h-4" />
             </button>
@@ -69,7 +69,7 @@ export default function RichTextEditor({
             type="button"
             onClick={() => setActiveTab("write")}
             className={cn(
-              "px-2 py-0.5 text-sm font-medium rounded transition-colors",
+              "min-h-9 px-3 py-1.5 text-sm font-medium rounded transition-colors touch-manipulation",
               activeTab === "write" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-600 hover:text-neutral-900"
             )}
           >
@@ -79,7 +79,7 @@ export default function RichTextEditor({
             type="button"
             onClick={() => setActiveTab("preview")}
             className={cn(
-              "px-2 py-0.5 text-sm font-medium rounded transition-colors",
+              "min-h-9 px-3 py-1.5 text-sm font-medium rounded transition-colors touch-manipulation",
               activeTab === "preview"
                 ? "bg-white text-neutral-900 shadow-sm"
                 : "text-neutral-600 hover:text-neutral-900"
@@ -90,20 +90,21 @@ export default function RichTextEditor({
         </div>
       </div>
 
-      {/* Content Area */}
       {activeTab === "write" ? (
         <textarea
           id="blog-content"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full min-h-75 p-2 resize-y focus:outline-none font-sans text-base leading-relaxed"
+          className="w-full min-h-60 sm:min-h-75 p-3 sm:p-4 resize-y focus:outline-none font-sans text-base leading-relaxed"
         />
       ) : (
-        <div className="w-full min-h-75 p-2 prose prose-neutral max-w-none" dangerouslySetInnerHTML={previewHtml} />
+        <div
+          className="w-full min-h-60 sm:min-h-75 p-3 sm:p-4 prose prose-neutral max-w-none break-words"
+          dangerouslySetInnerHTML={previewHtml}
+        />
       )}
 
-      {/* Footer */}
       <div className="px-3 py-2 bg-neutral-50 border-t border-neutral-300 text-xs text-neutral-500">
         Supports Markdown: **bold**, *italic*, `code`, [links](url), - lists
       </div>

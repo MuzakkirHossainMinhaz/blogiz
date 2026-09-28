@@ -283,9 +283,9 @@ export default function BannerManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Banner Management</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Banner Management</h1>
           <p className="text-gray-600">Manage carousel banners and hero sections</p>
         </div>
         <button
@@ -294,7 +294,7 @@ export default function BannerManager() {
             resetForm();
             setShowModal(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white min-h-11 px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto touch-manipulation"
         >
           Add New Banner
         </button>
@@ -381,13 +381,13 @@ export default function BannerManager() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
                       onClick={() => handleEdit(banner)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="inline-flex items-center min-h-10 text-blue-600 hover:text-blue-900 touch-manipulation"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(banner._id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="inline-flex items-center min-h-10 text-red-600 hover:text-red-900 touch-manipulation"
                     >
                       Delete
                     </button>
@@ -401,15 +401,16 @@ export default function BannerManager() {
 
       {/* Banner Form Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90dvh] overflow-y-auto overscroll-contain">
+            <div className="flex justify-between items-center gap-3 mb-4">
+              <h2 className="text-lg sm:text-xl font-bold">
                 {editingBanner ? 'Edit Banner' : 'Add New Banner'}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="min-h-11 min-w-11 inline-flex items-center justify-center text-gray-400 hover:text-gray-600 touch-manipulation"
+                aria-label="Close dialog"
               >
                 ✕
               </button>
@@ -672,18 +673,18 @@ export default function BannerManager() {
               </div>
 
               {/* Form Actions */}
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-0 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  className="min-h-11 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 touch-manipulation"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="min-h-11 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 touch-manipulation"
                 >
                   {uploading ? 'Uploading...' : (editingBanner ? 'Update Banner' : 'Create Banner')}
                 </button>

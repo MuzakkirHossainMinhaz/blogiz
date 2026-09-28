@@ -24,7 +24,7 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
   return (
     <article
       className={cn(
-        "group card bg-white shadow-soft hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden",
+        "group card bg-white shadow-soft hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-1 motion-reduce:hover:translate-y-0 overflow-hidden",
         className
       )}
     >
@@ -37,18 +37,19 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
             height={isFeatured ? 400 : 300}
             alt={blog.title}
             className={cn(
-              "w-full object-cover transition-transform duration-300 group-hover:scale-105",
-              isFeatured ? "h-80 md:h-96" : "h-56 md:h-64"
+              "w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:group-hover:scale-100",
+              isFeatured ? "h-56 sm:h-72 md:h-96" : "h-48 sm:h-56 md:h-64"
             )}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             priority={isFeatured}
           />
         </Link>
         {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 motion-reduce:hidden" />
       </figure>
 
       {/* Content */}
-      <div className="card-body p-5 md:p-6">
+      <div className="card-body p-4 sm:p-5 md:p-6">
         {/* Date Badge */}
         <Badge variant="accent" size="sm" className="w-fit mb-3">
           <FaCalendar className="w-3 h-3" />
@@ -59,8 +60,8 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
         <Link href={ROUTES.BLOG_DETAIL(blog._id)}>
           <h3
             className={cn(
-              "font-bold text-neutral-900 group-hover:text-primary-600 transition-colors line-clamp-2",
-              isFeatured ? "text-xl md:text-2xl mb-3" : "text-lg md:text-xl mb-2"
+              "font-bold text-neutral-900 group-hover:text-primary-600 transition-colors line-clamp-2 break-words",
+              isFeatured ? "text-lg sm:text-xl md:text-2xl mb-3" : "text-base sm:text-lg md:text-xl mb-2"
             )}
           >
             {truncateText(blog.title, UI_CONFIG.MAX_TITLE_LENGTH)}
@@ -75,7 +76,7 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
         {/* Read More Link */}
         <Link
           href={ROUTES.BLOG_DETAIL(blog._id)}
-          className="text-primary-600 hover:text-primary-700 font-medium text-sm inline-flex items-center gap-1 group/link"
+          className="text-primary-600 hover:text-primary-700 font-medium text-sm inline-flex items-center gap-1 min-h-10 group/link"
         >
           Read More
           <svg
@@ -94,10 +95,10 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
         </Link>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-100">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-neutral-100">
           {/* Author */}
-          <div className="flex items-center gap-2">
-            <div className="avatar">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="avatar shrink-0">
               <div className="w-8 h-8 flex justify-center items-center rounded-full ring-2 ring-primary-100">
                 <Image
                   src={UI_CONFIG.DEFAULT_AVATAR}
@@ -109,11 +110,11 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
               </div>
             </div>
             {profileId ? (
-              <Link href={ROUTES.AUTHOR(profileId)} className="text-sm text-neutral-700 font-medium hover:text-primary-600">
+              <Link href={ROUTES.AUTHOR(profileId)} className="text-sm text-neutral-700 font-medium hover:text-primary-600 truncate">
                 {blog.author_name}
               </Link>
             ) : (
-              <span className="text-sm text-neutral-700 font-medium">{blog.author_name}</span>
+              <span className="text-sm text-neutral-700 font-medium truncate">{blog.author_name}</span>
             )}
           </div>
 

@@ -17,39 +17,37 @@ interface BlogDetailClientProps {
 }
 
 export function BlogDetailClient({ blog }: BlogDetailClientProps) {
-  const currentUrl = typeof window !== 'undefined' 
-    ? window.location.href 
+  const currentUrl = typeof window !== "undefined"
+    ? window.location.href
     : `https://your-domain.com/blogs/${blog._id}`;
   const profileId = authorProfileId(blog.authorId);
 
   return (
-    <article className="max-w-4xl mx-auto">
-      {/* Header */}
+    <article className="max-w-4xl mx-auto w-full min-w-0">
       <header className="mb-8 md:mb-12 text-center">
         <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-accent-100 text-accent-800 border border-accent-200 mb-4">
-          <FaCalendar className="w-3.5 h-3.5 mr-2" />
+          <FaCalendar className="w-3.5 h-3.5 mr-2 shrink-0" />
           <span>{formatDate(blog.publish_date || blog.createdAt)}</span>
         </div>
 
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-neutral-900 mb-6 leading-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-neutral-900 mb-6 leading-tight break-words">
           {blog.title}
         </h1>
 
-        {/* Author Info */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full ring-2 ring-primary-100 bg-primary-100 flex items-center justify-center">
+            <div className="w-12 h-12 shrink-0 rounded-full ring-2 ring-primary-100 bg-primary-100 flex items-center justify-center">
               <span className="text-primary-700 font-semibold text-lg">
                 {blog.author_name.charAt(0).toUpperCase()}
               </span>
             </div>
-            <div className="text-left">
+            <div className="text-left min-w-0">
               {profileId ? (
-                <Link href={ROUTES.AUTHOR(profileId)} className="font-semibold text-neutral-900 hover:text-primary-600">
+                <Link href={ROUTES.AUTHOR(profileId)} className="font-semibold text-neutral-900 hover:text-primary-600 break-words">
                   {blog.author_name}
                 </Link>
               ) : (
-                <p className="font-semibold text-neutral-900">{blog.author_name}</p>
+                <p className="font-semibold text-neutral-900 break-words">{blog.author_name}</p>
               )}
               <p className="text-sm text-neutral-600">Author</p>
             </div>
@@ -63,33 +61,33 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
             initialDislikes={blog.total_dislikes ?? 0}
             size="md"
             showSignInHint
+            className="items-center sm:items-start"
           />
         </div>
       </header>
 
-      {/* Featured Image */}
       {blog.blog_image && isCloudinaryDeliveryUrl(blog.blog_image) && (
-        <figure className="mb-8 md:mb-12 rounded-2xl overflow-hidden shadow-soft-lg">
+        <figure className="mb-8 md:mb-12 rounded-xl sm:rounded-2xl overflow-hidden shadow-soft-lg">
           <Image
             src={blog.blog_image}
             width={1200}
             height={600}
             alt={blog.title}
             className="w-full h-auto object-cover"
+            sizes="(max-width: 768px) 100vw, 896px"
             priority
           />
         </figure>
       )}
 
-      {/* Content */}
-      <div className="prose prose-lg max-w-none mb-12">
+      <div className="prose prose-neutral sm:prose-lg max-w-none mb-10 sm:mb-12">
         <div
-          className="text-neutral-700 leading-relaxed text-lg"
+          className="text-neutral-700 leading-relaxed text-base sm:text-lg break-words"
           dangerouslySetInnerHTML={{ __html: renderMarkdown(blog.content || blog.description) }}
         />
       </div>
 
-      <footer className="pt-8 border-t border-neutral-200">
+      <footer className="pt-6 sm:pt-8 border-t border-neutral-200">
         <ShareButtons title={blog.title} url={currentUrl} size="md" variant="compact" />
         <CommentSection blogId={blog._id} />
       </footer>

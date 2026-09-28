@@ -37,23 +37,112 @@ interface BannerCarouselProps {
   className?: string;
 }
 
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return reduced;
+}
+
+function BannerTypeBadge({ type }: { type: Banner["type"] }) {
+  return (
+    <span
+      className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+        type === "hero"
+          ? "bg-purple-100 text-purple-800"
+          : type === "featured"
+            ? "bg-blue-100 text-blue-800"
+            : type === "announcement"
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-green-100 text-green-800"
+      }`}
+    >
+      {type}
+    </span>
+  );
+}
+
+function BannerContent({ banner }: { banner: Banner }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 items-center py-6 sm:py-8 md:py-0">
+      <div className="space-y-3 sm:space-y-4 z-10" style={{ color: banner.metadata?.textColor || "#000000" }}>
+        <div className="space-y-2">
+          {banner.type && <BannerTypeBadge type={banner.type} />}
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold leading-tight break-words">{banner.title}</h1>
+          {banner.subtitle && (
+            <h2 className="text-base sm:text-xl md:text-2xl font-medium opacity-90 break-words">{banner.subtitle}</h2>
+          )}
+        </div>
+
+        {banner.description && (
+          <p className="text-sm sm:text-base md:text-lg opacity-80 max-w-lg break-words">{banner.description}</p>
+        )}
+
+        {banner.ctaText && banner.ctaLink && isSafeNavigationUrl(banner.ctaLink) && (
+          <a
+            href={banner.ctaLink}
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center min-h-11 px-5 sm:px-6 py-3 font-semibold rounded-lg transition-colors hover:opacity-90"
+            style={{
+              backgroundColor: banner.metadata?.buttonColor || "#8b5cf6",
+              color: "#ffffff",
+            }}
+          >
+            {banner.ctaText}
+          </a>
+        )}
+      </div>
+
+      <div className="relative h-40 sm:h-56 md:h-80 w-full max-w-md mx-auto md:max-w-none">
+        {isCloudinaryDeliveryUrl(banner.image) && (
+          <Image
+            src={banner.image}
+            alt={banner.title}
+            fill
+            className="object-contain"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            priority
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function BannerCarousel({ banners, carouselSettings, className = "" }: BannerCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
-  // Default carousel settings
   const settings = {
     autoSlide: true,
     slideInterval: 5000,
-    animation: "slide",
+    animation: "slide" as const,
     showIndicators: true,
     showNavigation: true,
     infinite: true,
     ...carouselSettings,
   };
 
+  const animationEnabled = !prefersReducedMotion && settings.animation !== "none";
+  const autoSlideEnabled = settings.autoSlide && !prefersReducedMotion;
+
   const handleNext = useCallback(() => {
     if (isAnimating) return;
+
+    if (!animationEnabled) {
+      setCurrentIndex((prev) =>
+        settings.infinite ? (prev + 1) % banners.length : Math.min(prev + 1, banners.length - 1)
+      );
+      return;
+    }
 
     setIsAnimating(true);
     setTimeout(() => {
@@ -62,10 +151,17 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
       );
       setIsAnimating(false);
     }, 300);
-  }, [banners.length, isAnimating, settings.infinite]);
+  }, [animationEnabled, banners.length, isAnimating, settings.infinite]);
 
   const handlePrev = useCallback(() => {
     if (isAnimating) return;
+
+    if (!animationEnabled) {
+      setCurrentIndex((prev) =>
+        settings.infinite ? (prev - 1 + banners.length) % banners.length : Math.max(prev - 1, 0)
+      );
+      return;
+    }
 
     setIsAnimating(true);
     setTimeout(() => {
@@ -74,17 +170,17 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
       );
       setIsAnimating(false);
     }, 300);
-  }, [banners.length, isAnimating, settings.infinite]);
+  }, [animationEnabled, banners.length, isAnimating, settings.infinite]);
 
   useEffect(() => {
-    if (!settings.autoSlide || banners.length <= 1) return;
+    if (!autoSlideEnabled || banners.length <= 1) return;
 
     const interval = setInterval(() => {
       handleNext();
     }, settings.slideInterval);
 
     return () => clearInterval(interval);
-  }, [banners.length, currentIndex, handleNext, settings.autoSlide, settings.slideInterval]);
+  }, [autoSlideEnabled, banners.length, currentIndex, handleNext, settings.slideInterval]);
 
   const goToSlide = (index: number) => {
     if (isAnimating) return;
@@ -92,6 +188,7 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
   };
 
   const getAnimationClass = () => {
+    if (!animationEnabled) return "opacity-0";
     switch (settings.animation) {
       case "fade":
         return "opacity-0 transition-opacity duration-300";
@@ -104,6 +201,7 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
   };
 
   const getActiveAnimationClass = () => {
+    if (!animationEnabled) return "opacity-100";
     switch (settings.animation) {
       case "fade":
         return "opacity-100";
@@ -119,122 +217,71 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
     return null;
   }
 
-  const currentBanner = banners[currentIndex];
-
   return (
-    <div className={`relative w-full overflow-hidden rounded-lg ${className}`}>
-      {/* Banner Container */}
-      <div className="relative h-96 md:h-[500px]">
+    <div className={`relative w-full overflow-hidden ${className}`}>
+      <div className="relative min-h-[22rem] sm:min-h-[24rem] md:h-[500px]">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
-            className={`absolute inset-0 ${index === currentIndex ? getActiveAnimationClass() : getAnimationClass()}`}
+            className={`absolute inset-0 overflow-y-auto ${
+              index === currentIndex ? getActiveAnimationClass() : getAnimationClass()
+            } ${index === currentIndex ? "pointer-events-auto" : "pointer-events-none"}`}
             style={{
               backgroundColor: banner.metadata?.backgroundColor || "#ffffff",
               backgroundImage: banner.backgroundImage ? `url(${banner.backgroundImage})` : undefined,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
+            aria-hidden={index !== currentIndex}
           >
             <div className="relative h-full flex items-center">
-              <div className="container mx-auto px-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  {/* Content */}
-                  <div className="space-y-4 z-10" style={{ color: banner.metadata?.textColor || "#000000" }}>
-                    <div className="space-y-2">
-                      {banner.type && (
-                        <span
-                          className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
-                            banner.type === "hero"
-                              ? "bg-purple-100 text-purple-800"
-                              : banner.type === "featured"
-                              ? "bg-blue-100 text-blue-800"
-                              : banner.type === "announcement"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {banner.type}
-                        </span>
-                      )}
-                      <h1 className="text-3xl md:text-5xl font-bold leading-tight">{banner.title}</h1>
-                      {banner.subtitle && (
-                        <h2 className="text-xl md:text-2xl font-medium opacity-90">{banner.subtitle}</h2>
-                      )}
-                    </div>
-
-                    {banner.description && <p className="text-lg opacity-80 max-w-lg">{banner.description}</p>}
-
-                    {banner.ctaText && banner.ctaLink && isSafeNavigationUrl(banner.ctaLink) && (
-                      <a
-                        href={banner.ctaLink}
-                        rel="noopener noreferrer"
-                        className="inline-block px-6 py-3 font-semibold rounded-lg transition-colors hover:opacity-90"
-                        style={{
-                          backgroundColor: banner.metadata?.buttonColor || "#8b5cf6",
-                          color: "#ffffff",
-                        }}
-                      >
-                        {banner.ctaText}
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Image */}
-                  <div className="relative h-64 md:h-80">
-                    {isCloudinaryDeliveryUrl(banner.image) && (
-                    <Image
-                      src={banner.image}
-                      alt={banner.title}
-                      fill
-                      className="object-contain"
-                      priority={index === 0}
-                    />
-                    )}
-                  </div>
-                </div>
+              <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <BannerContent banner={banner} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Navigation Arrows */}
       {settings.showNavigation && banners.length > 1 && (
         <>
           <button
             onClick={handlePrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-colors z-20"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-neutral-800 min-h-11 min-w-11 p-2.5 rounded-full shadow-lg transition-colors z-20"
             aria-label="Previous banner"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <button
             onClick={handleNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-colors z-20"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-neutral-800 min-h-11 min-w-11 p-2.5 rounded-full shadow-lg transition-colors z-20"
             aria-label="Next banner"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </>
       )}
 
-      {/* Indicators */}
       {settings.showIndicators && banners.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex space-x-1 z-20">
           {banners.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                index === currentIndex ? "bg-white" : "bg-white/50 hover:bg-white/75"
-              }`}
+              className="min-h-11 min-w-11 inline-flex items-center justify-center"
               aria-label={`Go to slide ${index + 1}`}
-            />
+              aria-current={index === currentIndex}
+            >
+              <span
+                className={`block w-2.5 h-2.5 rounded-full transition-colors ${
+                  index === currentIndex ? "bg-white" : "bg-white/50 hover:bg-white/75"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}
@@ -242,11 +289,10 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
   );
 }
 
-// Hero Banner Component (for single banner display)
 export function HeroBanner({ banner, className = "" }: { banner: Banner; className?: string }) {
   return (
     <div
-      className={`relative w-full h-96 md:h-[500px] overflow-hidden rounded-lg ${className}`}
+      className={`relative w-full min-h-[22rem] sm:min-h-[24rem] md:h-[500px] overflow-hidden ${className}`}
       style={{
         backgroundColor: banner.metadata?.backgroundColor || "#ffffff",
         backgroundImage: banner.backgroundImage ? `url(${banner.backgroundImage})` : undefined,
@@ -255,60 +301,8 @@ export function HeroBanner({ banner, className = "" }: { banner: Banner; classNa
       }}
     >
       <div className="relative h-full flex items-center">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            {/* Content */}
-            <div className="space-y-4 z-10" style={{ color: banner.metadata?.textColor || "#000000" }}>
-              <div className="space-y-2">
-                {banner.type && (
-                  <span
-                    className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
-                      banner.type === "hero"
-                        ? "bg-purple-100 text-purple-800"
-                        : banner.type === "featured"
-                        ? "bg-blue-100 text-blue-800"
-                        : banner.type === "announcement"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {banner.type}
-                  </span>
-                )}
-                <h1 className="text-3xl md:text-5xl font-bold leading-tight">{banner.title}</h1>
-                {banner.subtitle && <h2 className="text-xl md:text-2xl font-medium opacity-90">{banner.subtitle}</h2>}
-              </div>
-
-              {banner.description && <p className="text-lg opacity-80 max-w-lg">{banner.description}</p>}
-
-              {banner.ctaText && banner.ctaLink && isSafeNavigationUrl(banner.ctaLink) && (
-                <a
-                  href={banner.ctaLink}
-                  rel="noopener noreferrer"
-                  className="inline-block px-6 py-3 font-semibold rounded-lg transition-colors hover:opacity-90"
-                  style={{
-                    backgroundColor: banner.metadata?.buttonColor || "#8b5cf6",
-                    color: "#ffffff",
-                  }}
-                >
-                  {banner.ctaText}
-                </a>
-              )}
-            </div>
-
-            {/* Image */}
-            <div className="relative h-64 md:h-80">
-              {isCloudinaryDeliveryUrl(banner.image) && (
-                <Image
-                  src={banner.image}
-                  alt={banner.title}
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              )}
-            </div>
-          </div>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <BannerContent banner={banner} />
         </div>
       </div>
     </div>

@@ -60,41 +60,41 @@ export default function EditBlogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-neutral-900">Edit post</h1>
-        <Link href="/dashboard/blogs" className="text-sm text-primary-600">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Edit post</h1>
+        <Link href="/dashboard/blogs" className="inline-flex items-center min-h-11 text-sm font-medium text-primary-600">
           Back
         </Link>
       </div>
       {error && <p className="text-sm text-red-700">{error}</p>}
       {preview ? (
-        <div className="bg-white rounded-lg border border-neutral-200 p-8">
-          <h2 className="text-3xl font-bold mb-4">{title}</h2>
-          <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+        <div className="bg-white rounded-lg border border-neutral-200 p-4 sm:p-6 md:p-8 overflow-hidden">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 break-words">{title}</h2>
+          <div className="prose max-w-none break-words" dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
           <Button className="mt-6" variant="outline" onClick={() => setPreview(false)}>
             Back to edit
           </Button>
         </div>
       ) : (
-        <div className="space-y-4 bg-white p-6 rounded-xl border border-neutral-200">
+        <div className="space-y-4 bg-white p-4 sm:p-6 rounded-xl border border-neutral-200">
           <label className="block text-sm font-medium text-neutral-700">
             Title
-            <input className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2" value={title} onChange={(event) => setTitle(event.target.value)} />
+            <input className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-3 text-base" value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
           <label className="block text-sm font-medium text-neutral-700">
             Description
-            <textarea className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2" value={description} onChange={(event) => setDescription(event.target.value)} />
+            <textarea className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-3 text-base" value={description} onChange={(event) => setDescription(event.target.value)} />
           </label>
           <label className="block text-sm font-medium text-neutral-700">
             Author name
-            <input className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2" value={authorName} onChange={(event) => setAuthorName(event.target.value)} />
+            <input className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-3 text-base" value={authorName} onChange={(event) => setAuthorName(event.target.value)} />
           </label>
           <RichTextEditor value={content} onChange={setContent} />
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => setPreview(true)}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Button type="button" variant="outline" onClick={() => setPreview(true)} className="w-full sm:w-auto">
               Preview
             </Button>
-            <Button type="button" variant="primary" onClick={save} isLoading={isSaving}>
+            <Button type="button" variant="primary" onClick={save} isLoading={isSaving} className="w-full sm:w-auto">
               Save
             </Button>
           </div>

@@ -48,7 +48,7 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
               )}
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-neutral-900">{displayName}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 break-words">{displayName}</h1>
               {profile.profile.location && <p className="text-sm text-neutral-500 mt-1">{profile.profile.location}</p>}
               {profile.profile.bio && <p className="mt-3 text-neutral-700 max-w-2xl">{profile.profile.bio}</p>}
               {profile.profile.expertise.length > 0 && (
@@ -75,11 +75,11 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
             <ul className="divide-y divide-neutral-200 border-y border-neutral-200">
               {profile.blogs.map((blog) => (
                 <li key={blog._id} className="py-5">
-                  <Link href={ROUTES.BLOG_DETAIL(blog._id)} className="text-lg font-semibold text-neutral-900 hover:text-primary-600">
+                  <Link href={ROUTES.BLOG_DETAIL(blog._id)} className="text-base sm:text-lg font-semibold text-neutral-900 hover:text-primary-600 break-words">
                     {blog.title}
                   </Link>
                   {blog.publish_date && <p className="text-sm text-neutral-500 mt-1">{formatDate(blog.publish_date)}</p>}
-                  <p className="text-neutral-600 mt-2">{blog.description}</p>
+                  <p className="text-neutral-600 mt-2 break-words">{blog.description}</p>
                   <p className="text-sm text-neutral-700 mt-3">
                     <span className="font-medium">{blog.total_likes}</span> likes
                     <span className="mx-2 text-neutral-300">·</span>
@@ -90,11 +90,11 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
             </ul>
           )}
           {profile.pagination.pages > 1 && (
-            <nav className="mt-6 flex items-center justify-between text-sm">
+            <nav className="mt-6 flex items-center justify-between gap-3 text-sm">
               {profile.pagination.page > 1 ? (
                 <Link
                   href={`${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page - 1}`}
-                  className="font-medium text-primary-600 hover:text-primary-700"
+                  className="inline-flex items-center min-h-11 font-medium text-primary-600 hover:text-primary-700"
                 >
                   Previous
                 </Link>
@@ -104,7 +104,7 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
               {profile.pagination.page < profile.pagination.pages ? (
                 <Link
                   href={`${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page + 1}`}
-                  className="font-medium text-primary-600 hover:text-primary-700"
+                  className="inline-flex items-center min-h-11 font-medium text-primary-600 hover:text-primary-700"
                 >
                   Next
                 </Link>

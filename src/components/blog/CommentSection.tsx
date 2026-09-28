@@ -96,7 +96,7 @@ export function CommentSection({ blogId }: { blogId: string }) {
             onChange={(event) => setContent(event.target.value)}
             maxLength={1000}
             rows={4}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-3 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
             Post comment
@@ -121,13 +121,13 @@ export function CommentSection({ blogId }: { blogId: string }) {
           {comments.map((comment) => (
             <li key={comment._id}>
               <p className="text-sm font-medium text-neutral-900">{commenterName(comment.userId)}</p>
-              <p className="mt-1 text-neutral-700 whitespace-pre-wrap">{comment.content}</p>
+              <p className="mt-1 text-neutral-700 whitespace-pre-wrap break-words">{comment.content}</p>
               {comment.replies && comment.replies.length > 0 && (
-                <ul className="mt-3 ml-4 space-y-3 border-l border-neutral-200 pl-4">
+                <ul className="mt-3 ml-2 sm:ml-4 space-y-3 border-l border-neutral-200 pl-3 sm:pl-4">
                   {comment.replies.map((reply) => (
                     <li key={reply._id}>
                       <p className="text-sm font-medium text-neutral-900">{commenterName(reply.userId)}</p>
-                      <p className="mt-1 text-neutral-700 whitespace-pre-wrap">{reply.content}</p>
+                      <p className="mt-1 text-neutral-700 whitespace-pre-wrap break-words">{reply.content}</p>
                     </li>
                   ))}
                 </ul>

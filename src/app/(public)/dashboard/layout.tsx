@@ -3,24 +3,40 @@
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Container } from "@/components/ui/Container";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
-    if (status === "loading") return; // Still loading
+    if (status === "loading") return;
     if (!session) {
       router.push("/auth/login?callbackUrl=/dashboard");
     }
   }, [session, status, router]);
 
-  // Show loading while checking session
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSidebarOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.body.classList.add("overflow-hidden");
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [isSidebarOpen]);
+
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
@@ -29,45 +45,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Don't render if not authenticated (will redirect)
   if (!session) {
     return null;
   }
 
   return (
-    <div className="bg-neutral-50">
-      {/* Mobile Menu Button - Top Right */}
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed top-2.5 md:top-5 right-4 z-50 p-2 rounded-lg bg-white shadow-md border border-neutral-200 hover:bg-neutral-50 transition-colors"
-        aria-label="Toggle sidebar"
-      >
-        {isSidebarOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
-      </button>
+    <div className="bg-neutral-50 min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)] md:min-h-[calc(100dvh-5rem)]">
+      {/* Mobile dashboard nav bar — sits below site navbar */}
+      <div className="lg:hidden sticky top-14 sm:top-16 md:top-20 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur-md">
+        <div className="flex items-center gap-3 px-4 py-2.5">
+          <button
+            onClick={() => setIsSidebarOpen((open) => !open)}
+            className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors"
+            aria-label="Toggle dashboard menu"
+            aria-expanded={isSidebarOpen}
+          >
+            {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
+          </button>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-neutral-900 truncate">Dashboard</p>
+            <p className="text-xs text-neutral-500 truncate">Navigate sections</p>
+          </div>
+        </div>
+      </div>
 
       <div className="flex">
-        {/* Sidebar */}
-        <div
+        {/* Sidebar drawer / sticky column */}
+        <aside
           className={`
-          fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-neutral-200 transform transition-transform duration-300 ease-in-out
-          lg:sticky top-16.5 lg:top-20.25 lg:h-[calc(100vh-5rem)] lg:transform-none
-          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-        `}
+            fixed z-40 w-[min(18rem,85vw)] bg-white border-r border-neutral-200
+            top-14 sm:top-16 md:top-20 bottom-0
+            transform transition-transform duration-300 ease-in-out motion-reduce:transition-none
+            lg:sticky lg:top-20 lg:h-[calc(100dvh-5rem)] lg:w-64 lg:shrink-0 lg:translate-x-0
+            ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          `}
         >
-          {/* Navigation */}
-          <nav className="p-4 h-full overflow-y-auto">
-            <Sidebar />
+          <nav className="p-3 sm:p-4 h-full overflow-y-auto overscroll-contain">
+            <Sidebar onNavigate={() => setIsSidebarOpen(false)} />
           </nav>
-        </div>
+        </aside>
 
-        {/* Mobile sidebar overlay */}
         {isSidebarOpen && (
-          <div className="fixed inset-0 z-30 bg-neutral-900/50 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+          <div
+            className="fixed inset-0 z-30 bg-neutral-900/50 lg:hidden top-14 sm:top-16 md:top-20"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden="true"
+          />
         )}
 
-        {/* Main Content */}
-        <div className="flex-1">
-          {/* Page Content */}
+        <div className="flex-1 min-w-0">
           <main className="flex-1">
             <Container size="full" className="py-4 sm:py-6 lg:py-8">
               {children}

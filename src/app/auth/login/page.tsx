@@ -96,8 +96,8 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white py-8 px-8 shadow-xl rounded-2xl">
-          <h1 className="text-2xl font-bold text-neutral-900 text-center mb-2">Welcome Back</h1>
+        <div className="bg-white py-6 px-4 sm:py-8 sm:px-8 shadow-xl rounded-2xl">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 text-center mb-2">Welcome Back</h1>
           <p className="text-sm text-neutral-500 text-center mb-8">Sign in to continue to Blogiz</p>
 
           {/* Error Message */}

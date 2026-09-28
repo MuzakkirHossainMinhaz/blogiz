@@ -214,22 +214,22 @@ export default function CreateBlogPage() {
   if (showPreview) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-neutral-900">Preview</h1>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setShowPreview(false)}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Preview</h1>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setShowPreview(false)} className="w-full sm:w-auto">
               Back to Edit
             </Button>
-            <Button onClick={handlePublish} disabled={isSubmitting}>
+            <Button onClick={handlePublish} disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting ? "Publishing..." : "Publish"}
             </Button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-neutral-200 p-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-neutral-900 mb-4">{watch("title")}</h1>
-            <div className="flex items-center gap-4 text-sm text-neutral-600 mb-6">
+        <div className="bg-white rounded-lg border border-neutral-200 p-4 sm:p-6 md:p-8 overflow-hidden">
+          <div className="max-w-4xl mx-auto min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-4 break-words">{watch("title")}</h1>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-neutral-600 mb-6">
               <div className="flex items-center gap-1">
                 <FiUser className="w-4 h-4" />
                 {watch("author_name")}
@@ -243,10 +243,10 @@ export default function CreateBlogPage() {
               <img
                 src={watch("blog_image")}
                 alt={watch("title")}
-                className="w-full h-64 object-cover rounded-lg mb-6"
+                className="w-full h-48 sm:h-64 object-cover rounded-lg mb-6"
               />
             )}
-            <div className="prose max-w-none">
+            <div className="prose max-w-none break-words">
               <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
             </div>
           </div>
@@ -258,16 +258,16 @@ export default function CreateBlogPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Create New Blog Post</h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Create New Blog Post</h1>
           <p className="text-neutral-600">Write and publish your blog content</p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/dashboard/blogs">
-            <Button variant="outline">Cancel</Button>
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 w-full lg:w-auto">
+          <Link href="/dashboard/blogs" className="col-span-1">
+            <Button variant="outline" className="w-full">Cancel</Button>
           </Link>
-          <Button variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft || isSubmitting}>
+          <Button variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft || isSubmitting} className="w-full sm:w-auto">
             <FiSave className="w-4 h-4 mr-2" />
             {isSavingDraft ? "Saving..." : "Save Draft"}
           </Button>
@@ -275,11 +275,12 @@ export default function CreateBlogPage() {
             onClick={() => setShowPreview(true)}
             variant="outline"
             disabled={!content || content.trim().length < 50}
+            className="w-full sm:w-auto"
           >
             <FiEye className="w-4 h-4 mr-2" />
             Preview
           </Button>
-          <Button onClick={handlePublish} disabled={isSubmitting || !content || content.trim().length < 50}>
+          <Button onClick={handlePublish} disabled={isSubmitting || !content || content.trim().length < 50} className="w-full sm:w-auto">
             {isSubmitting ? "Publishing..." : "Publish"}
           </Button>
         </div>
@@ -290,7 +291,7 @@ export default function CreateBlogPage() {
 
       {/* Form */}
       <div className="bg-white rounded-lg border border-neutral-200">
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* Title */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-2">
