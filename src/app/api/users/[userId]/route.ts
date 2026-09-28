@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { getPublicAuthorProfile } from "@/lib/db";
+import { RECENT_AUTHOR_BLOGS, getPublicAuthorProfile } from "@/lib/db";
 import { denied, requireUser } from "@/lib/authz";
 import { jsonError, serverError } from "@/lib/http";
 import { canPerformAction } from "@/lib/permissions";
@@ -20,7 +20,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await params;
-    const profile = await getPublicAuthorProfile(userId);
+    const profile = await getPublicAuthorProfile(userId, { page: 1, limit: RECENT_AUTHOR_BLOGS, skip: 0 });
     if (!profile) return jsonError("User not found", 404);
 
     return NextResponse.json({
@@ -31,7 +31,7 @@ export async function GET(
         createdAt: profile.createdAt,
         profile: profile.profile,
         stats: {
-          publishedBlogsCount: profile.blogs.length,
+          publishedBlogsCount: profile.pagination.total,
         },
         recentBlogs: profile.blogs,
       },

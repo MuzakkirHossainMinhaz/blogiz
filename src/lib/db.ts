@@ -7,6 +7,7 @@ import BlogModel from "@/models/Blog";
 import User from "@/models/User";
 import { Blog } from "@/types";
 import { connectDB } from "./mongodb";
+import { type PageQuery } from "./pagination";
 import {
   PUBLIC_CARD_FIELDS,
   PUBLIC_PROFILE_BLOG_FIELDS,
@@ -16,6 +17,9 @@ import {
   type PostViewer,
 } from "./public-posts";
 import mongoose from "mongoose";
+
+export const PUBLIC_PROFILE_PAGE_LIMIT = 10;
+export const RECENT_AUTHOR_BLOGS = 5;
 
 export interface PublicAuthorBlog {
   _id: string;
@@ -49,6 +53,12 @@ export interface PublicAuthorProfile {
     };
   };
   blogs: PublicAuthorBlog[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 export async function getBlogs(limit = 12): Promise<Blog[]> {
@@ -70,17 +80,26 @@ export async function getBlogById(id: string, viewer?: PostViewer | null): Promi
   return JSON.parse(JSON.stringify(blog));
 }
 
-export async function getPublicAuthorProfile(userId: string): Promise<PublicAuthorProfile | null> {
+export async function getPublicAuthorProfile(
+  userId: string,
+  paging: PageQuery = { page: 1, limit: PUBLIC_PROFILE_PAGE_LIMIT, skip: 0 }
+): Promise<PublicAuthorProfile | null> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return null;
   await connectDB();
 
   const user = await User.findById(userId).select(PUBLIC_PROFILE_FIELDS).lean();
   if (!user) return null;
 
-  const blogs = await BlogModel.find(publicPostFilter({ authorId: userId }))
-    .select(PUBLIC_PROFILE_BLOG_FIELDS)
-    .sort({ publish_date: -1 })
-    .lean();
+  const filter = publicPostFilter({ authorId: userId });
+  const [blogs, total] = await Promise.all([
+    BlogModel.find(filter)
+      .select(PUBLIC_PROFILE_BLOG_FIELDS)
+      .sort({ publish_date: -1 })
+      .skip(paging.skip)
+      .limit(paging.limit)
+      .lean(),
+    BlogModel.countDocuments(filter),
+  ]);
 
   const published = JSON.parse(JSON.stringify(blogs)) as PublicAuthorBlog[];
   const profile = user.profile;
@@ -115,5 +134,11 @@ export async function getPublicAuthorProfile(userId: string): Promise<PublicAuth
       total_likes: blog.total_likes ?? 0,
       total_dislikes: blog.total_dislikes ?? 0,
     })),
+    pagination: {
+      page: paging.page,
+      limit: paging.limit,
+      total,
+      pages: Math.ceil(total / paging.limit),
+    },
   };
 }

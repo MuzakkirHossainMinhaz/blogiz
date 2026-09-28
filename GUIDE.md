@@ -56,9 +56,11 @@ A published post has two reactions, like and dislike. A signed-in user has one r
 
 `POST /api/likes` with `{ "blogId", "reaction": "like" | "dislike" }` is that single reaction flow.
 
+Like counts include only rows whose `type` is `like`. Older databases can still have like rows with no `type`, and those rows are left out of the count until the type is set. Before you trust like counts on an existing database, run `npm run backfill:likes` once. It needs `MONGODB_URI`, sets each missing `type` to `like`, and is safe to run again.
+
 ## Public author profiles
 
-The byline on a post links to `/authors/[authorId]`. Anyone, including a visitor who is not signed in, can open it. The page shows that author's public profile and their published posts, with each post's like and dislike counts. It does not show an email address, and it does not list drafts or other unpublished posts.
+The byline on a post links to `/authors/[authorId]`. Anyone, including a visitor who is not signed in, can open it. The page shows that author's public profile and the first 10 published posts, newest first, with each post's like and dislike counts. Later pages are `/authors/[authorId]?page=2`. It does not show an email address, and it does not list drafts or other unpublished posts.
 
 ## Auth
 

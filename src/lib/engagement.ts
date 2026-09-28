@@ -8,6 +8,15 @@ export function isDuplicateKey(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && (error as { code?: number }).code === 11000;
 }
 
+/** Old like-only rows have no type. They count as likes once this has run. */
+export async function backfillMissingLikeTypes(): Promise<number> {
+  const result = await Like.collection.updateMany(
+    { $or: [{ type: { $exists: false } }, { type: null }] },
+    { $set: { type: "like" } }
+  );
+  return result.modifiedCount;
+}
+
 /** Recount like and dislike rows and store both totals on the blog. */
 export async function syncReactionCounts(blogId: mongoose.Types.ObjectId | string, session?: ClientSession | null) {
   const options = { session: session ?? undefined };

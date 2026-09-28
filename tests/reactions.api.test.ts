@@ -5,7 +5,8 @@ import { NextRequest } from "next/server";
 import User from "@/models/User";
 import Blog from "@/models/Blog";
 import Like from "@/models/Like";
-import { getPublicAuthorProfile } from "@/lib/db";
+import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
+import { backfillMissingLikeTypes } from "@/lib/engagement";
 
 const authMock = vi.hoisted(() => vi.fn(async (): Promise<{ user: Record<string, unknown> } | null> => null));
 
@@ -233,5 +234,62 @@ describe("public author profile", () => {
     expect(body.user.recentBlogs).toHaveLength(1);
     expect(body.user.recentBlogs[0]).toMatchObject({ total_likes: 4, total_dislikes: 2 });
     expect(body.user.profile.fullName).toBe("Ada Writer");
+    expect(body.user.stats.publishedBlogsCount).toBe(1);
+  });
+
+  it("returns the first page of published posts and five recent blogs", async () => {
+    const author = await makeUser({ role: "author" });
+    for (let index = 0; index < 6; index += 1) {
+      await makeBlog(author._id, {
+        title: `Post ${index}`,
+        publish_date: new Date(Date.UTC(2024, 0, index + 1)),
+      });
+    }
+
+    const first = await getPublicAuthorProfile(author._id.toString(), { page: 1, limit: 2, skip: 0 });
+    expect(first?.blogs.map((blog) => blog.title)).toEqual(["Post 5", "Post 4"]);
+    expect(first?.pagination).toEqual({ page: 1, limit: 2, total: 6, pages: 3 });
+
+    const second = await getPublicAuthorProfile(author._id.toString(), { page: 2, limit: 2, skip: 2 });
+    expect(second?.blogs.map((blog) => blog.title)).toEqual(["Post 3", "Post 2"]);
+
+    const bounded = await getPublicAuthorProfile(author._id.toString());
+    expect(bounded?.pagination.limit).toBe(PUBLIC_PROFILE_PAGE_LIMIT);
+    expect(bounded?.pagination.total).toBe(6);
+    expect(bounded?.blogs).toHaveLength(6);
+
+    const { GET } = await import("@/app/api/users/[userId]/route");
+    const response = await GET(new NextRequest(`http://localhost:3000/api/users/${author._id.toString()}`), {
+      params: Promise.resolve({ userId: author._id.toString() }),
+    });
+    const body = await response.json();
+    expect(body.user.stats.publishedBlogsCount).toBe(6);
+    expect(body.user.recentBlogs.map((blog: { title: string }) => blog.title)).toEqual([
+      "Post 5",
+      "Post 4",
+      "Post 3",
+      "Post 2",
+      "Post 1",
+    ]);
+  });
+});
+
+describe("like type backfill", () => {
+  it("sets a missing type to like and leaves an existing dislike", async () => {
+    const author = await makeUser({ role: "author" });
+    const reader = await makeUser();
+    const blog = await makeBlog(author._id);
+    await Like.collection.insertOne({
+      blogId: blog._id,
+      userId: reader._id,
+      createdAt: new Date(),
+    });
+    await Like.create({ blogId: blog._id, userId: author._id, type: "dislike" });
+
+    expect(await backfillMissingLikeTypes()).toBe(1);
+    const legacy = await Like.collection.findOne({ userId: reader._id });
+    expect(legacy?.type).toBe("like");
+    expect((await Like.findOne({ userId: author._id }))?.type).toBe("dislike");
+    expect(await backfillMissingLikeTypes()).toBe(0);
   });
 });

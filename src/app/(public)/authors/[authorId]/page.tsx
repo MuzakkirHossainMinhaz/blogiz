@@ -1,7 +1,8 @@
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
 import { ROUTES } from "@/config/constants";
-import { getPublicAuthorProfile } from "@/lib/db";
+import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
+import { parsePageLimit } from "@/lib/pagination";
 import { formatDate } from "@/lib/utils";
 import { isCloudinaryDeliveryUrl, isHttpsUrl } from "@/lib/urls";
 import Image from "next/image";
@@ -12,11 +13,18 @@ interface AuthorProfilePageProps {
   params: Promise<{
     authorId: string;
   }>;
+  searchParams: Promise<{
+    page?: string;
+  }>;
 }
 
-export default async function AuthorProfilePage({ params }: AuthorProfilePageProps) {
+export default async function AuthorProfilePage({ params, searchParams }: AuthorProfilePageProps) {
   const { authorId } = await params;
-  const profile = await getPublicAuthorProfile(authorId);
+  const { page } = await searchParams;
+  const paging = parsePageLimit(page ?? null, null, PUBLIC_PROFILE_PAGE_LIMIT);
+  if ("error" in paging) notFound();
+
+  const profile = await getPublicAuthorProfile(authorId, paging);
   if (!profile) notFound();
 
   const displayName = profile.profile.fullName || profile.name;
@@ -80,6 +88,30 @@ export default async function AuthorProfilePage({ params }: AuthorProfilePagePro
                 </li>
               ))}
             </ul>
+          )}
+          {profile.pagination.pages > 1 && (
+            <nav className="mt-6 flex items-center justify-between text-sm">
+              {profile.pagination.page > 1 ? (
+                <Link
+                  href={`${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page - 1}`}
+                  className="font-medium text-primary-600 hover:text-primary-700"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span />
+              )}
+              {profile.pagination.page < profile.pagination.pages ? (
+                <Link
+                  href={`${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page + 1}`}
+                  className="font-medium text-primary-600 hover:text-primary-700"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
           )}
         </Container>
       </Section>
