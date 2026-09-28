@@ -2,11 +2,11 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IBlogView extends Document {
   blogId: mongoose.Types.ObjectId;
-  userId?: mongoose.Types.ObjectId; // Optional for anonymous views
-  ipAddress: string;
-  userAgent: string;
+  userId?: mongoose.Types.ObjectId;
+  /** Salted hash of a trusted-proxy address. Raw IPs are not stored. Rows expire after 90 days. */
+  ipHash?: string;
   viewedAt: Date;
-  sessionId?: string; // For tracking unique sessions
+  sessionId?: string;
 }
 
 const BlogViewSchema = new Schema<IBlogView>(
@@ -21,13 +21,8 @@ const BlogViewSchema = new Schema<IBlogView>(
       ref: "User",
       default: null, // Allow anonymous views
     },
-    ipAddress: {
+    ipHash: {
       type: String,
-      required: true,
-    },
-    userAgent: {
-      type: String,
-      required: true,
     },
     sessionId: {
       type: String,
@@ -46,8 +41,8 @@ const BlogViewSchema = new Schema<IBlogView>(
 // Index for better query performance
 BlogViewSchema.index({ blogId: 1, viewedAt: -1 });
 BlogViewSchema.index({ userId: 1, viewedAt: -1 });
-BlogViewSchema.index({ ipAddress: 1, sessionId: 1 });
-BlogViewSchema.index({ viewedAt: -1 });
+BlogViewSchema.index({ sessionId: 1, blogId: 1, viewedAt: -1 });
+BlogViewSchema.index({ viewedAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 // Compound index to prevent duplicate views from same user in short time
 BlogViewSchema.index({ blogId: 1, userId: 1, viewedAt: 1 });

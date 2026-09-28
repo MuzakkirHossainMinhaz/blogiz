@@ -1,101 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
+import { randomUUID } from "crypto";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import BlogView from "@/models/BlogView";
-import { getClientIP, getUserAgent } from "@/lib/request-utils";
 import { auth } from "@/lib/auth";
+import { jsonError, serverError } from "@/lib/http";
+import { readTrustedClientAddress, hashIdentifier } from "@/lib/request-utils";
+import { publicPostFilter } from "@/lib/public-posts";
 
-// POST /api/blogs/[id]/view - Track blog view
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const COOKIE = "blogiz_sid";
+const HOUR_MS = 60 * 60 * 1000;
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await connectDB();
     const { id } = await params;
-
-    // Check if blog exists and is published
-    const blog = await Blog.findById(id);
-    if (!blog) {
-      return NextResponse.json(
-        { error: "Blog not found" },
-        { status: 404 }
-      );
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return jsonError("Invalid blog ID", 400);
     }
 
-    if (blog.status !== "published" || !blog.isApproved) {
-      return NextResponse.json(
-        { error: "Blog is not published" },
-        { status: 403 }
-      );
-    }
+    await connectDB();
 
-    // Get user info (optional)
+    const blog = await Blog.findOne({ _id: id, ...publicPostFilter() }).select("_id");
+    if (!blog) return jsonError("Blog not found", 404);
+
     const session = await auth();
-    const userId = session?.user ? (session.user as any).id : null;
+    const userId = session?.user?.id || undefined;
+    const existingSessionId = request.cookies.get(COOKIE)?.value;
+    const sessionId =
+      existingSessionId && /^[0-9a-f-]{36}$/i.test(existingSessionId) ? existingSessionId : randomUUID();
+    const mintedSession = sessionId !== existingSessionId;
 
-    // Get request info
-    const ipAddress = await getClientIP();
-    const userAgent = await getUserAgent();
-    
-    // Get session ID from headers or generate one
-    const sessionId = request.headers.get("x-session-id") || 
-                     `anon_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const trustedIp = readTrustedClientAddress((name) => request.headers.get(name));
+    const ipHash = trustedIp ? hashIdentifier(trustedIp) : undefined;
 
-    // Check if this user/session has viewed this blog recently (within 1 hour)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    
+    const oneHourAgo = new Date(Date.now() - HOUR_MS);
     let shouldTrackView = true;
-    
+
     if (userId) {
-      // For logged-in users, check their recent views
       const recentView = await BlogView.findOne({
         blogId: id,
         userId,
         viewedAt: { $gte: oneHourAgo },
-      });
-      
-      if (recentView) {
-        shouldTrackView = false;
-      }
-    } else {
-      // For anonymous users, check by IP and session
+      }).select("_id");
+      if (recentView) shouldTrackView = false;
+    } else if (!mintedSession) {
       const recentView = await BlogView.findOne({
         blogId: id,
-        ipAddress,
         sessionId,
         viewedAt: { $gte: oneHourAgo },
-      });
-      
-      if (recentView) {
-        shouldTrackView = false;
-      }
+      }).select("_id");
+      if (recentView) shouldTrackView = false;
     }
 
     if (shouldTrackView) {
-      // Create view record
       await BlogView.create({
         blogId: id,
         userId,
-        ipAddress,
-        userAgent,
         sessionId,
+        ...(ipHash ? { ipHash } : {}),
         viewedAt: new Date(),
       });
-
-      // Optionally update blog view count (if you add this field to Blog model)
-      // await Blog.findByIdAndUpdate(id, { $inc: { totalViews: 1 } });
+      await Blog.updateOne({ _id: id }, { $inc: { total_views: 1 } });
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: "View tracked successfully",
       tracked: shouldTrackView,
     });
-  } catch (error: any) {
-    console.error("Error tracking blog view:", error);
-    return NextResponse.json(
-      { error: "Failed to track view", message: error.message },
-      { status: 500 }
-    );
+
+    if (mintedSession) {
+      response.cookies.set(COOKIE, sessionId, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 90 * 24 * 60 * 60,
+      });
+    }
+
+    return response;
+  } catch (error) {
+    return serverError("Error tracking blog view:", error);
   }
 }

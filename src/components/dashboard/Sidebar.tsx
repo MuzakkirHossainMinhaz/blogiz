@@ -82,13 +82,6 @@ const secondaryNavigation = [
   },
 ];
 
-// Extend session user type to include role
-declare module "next-auth" {
-  interface User {
-    role?: string;
-  }
-}
-
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();

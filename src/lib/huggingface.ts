@@ -11,35 +11,31 @@ export interface ImageGenerationResponse {
 
 class HuggingFaceAI {
   private apiKey: string;
-  private baseUrl = "https://api-inference.huggingface.co/models";
+  private baseUrl = "https://router.huggingface.co/hf-inference/models";
 
   constructor() {
     this.apiKey = process.env.HUGGINGFACE_API_KEY || "";
-    if (!this.apiKey) {
-      console.warn("HuggingFace API key not found in environment variables");
-    }
   }
 
-  private async makeRequest(model: string, payload: any): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseUrl}/${model}`, {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HuggingFace API error: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("HuggingFace API request failed:", error);
-      throw error;
+  private async makeRequest(model: string, payload: Record<string, unknown>): Promise<any> {
+    if (!this.apiKey) {
+      throw new Error("Hugging Face is not configured");
     }
+
+    const response = await fetch(`${this.baseUrl}/${model}`, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HuggingFace API error: ${response.status}`);
+    }
+
+    return response.json();
   }
 
   // Text Generation Models
@@ -59,7 +55,7 @@ class HuggingFaceAI {
       return response[0]?.generated_text || "";
     } catch (error) {
       console.error("Text generation failed:", error);
-      return "";
+      throw error;
     }
   }
 
@@ -79,7 +75,7 @@ class HuggingFaceAI {
       return response.map((item: any) => item.generated_text.trim()).filter(Boolean);
     } catch (error) {
       console.error("Blog title generation failed:", error);
-      return [];
+      throw error;
     }
   }
 
@@ -99,7 +95,7 @@ class HuggingFaceAI {
       return outline.split("\n").filter((line: string) => line.trim().startsWith("-") || line.trim().match(/^\d+\./));
     } catch (error) {
       console.error("Blog outline generation failed:", error);
-      return [];
+      throw error;
     }
   }
 
@@ -118,7 +114,7 @@ class HuggingFaceAI {
       return response[0]?.generated_text || "";
     } catch (error) {
       console.error("Blog summarization failed:", error);
-      return "";
+      throw error;
     }
   }
 
@@ -141,7 +137,7 @@ class HuggingFaceAI {
         .filter(Boolean);
     } catch (error) {
       console.error("Tag generation failed:", error);
-      return [];
+      throw error;
     }
   }
 
@@ -191,7 +187,7 @@ class HuggingFaceAI {
       return { metaDescription, keywords };
     } catch (error) {
       console.error("SEO metadata generation failed:", error);
-      return { metaDescription: "", keywords: [] };
+      throw error;
     }
   }
 
@@ -209,7 +205,7 @@ class HuggingFaceAI {
       return response[0]?.generated_text || "";
     } catch (error) {
       console.error("Continue writing failed:", error);
-      return "";
+      throw error;
     }
   }
 
@@ -228,7 +224,7 @@ class HuggingFaceAI {
       return response[0]?.generated_text || text;
     } catch (error) {
       console.error("Writing improvement failed:", error);
-      return text;
+      throw error;
     }
   }
 
@@ -261,7 +257,7 @@ class HuggingFaceAI {
       }
     } catch (error) {
       console.error("Image generation failed:", error);
-      return "";
+      throw error;
     }
   }
 
@@ -271,7 +267,7 @@ class HuggingFaceAI {
       return await this.generateImage(prompt, "realistic");
     } catch (error) {
       console.error("Blog cover generation failed:", error);
-      return "";
+      throw error;
     }
   }
 
@@ -295,7 +291,7 @@ class HuggingFaceAI {
       };
     } catch (error) {
       console.error("Sentiment analysis failed:", error);
-      return { sentiment: "neutral", score: 0.5 };
+      throw error;
     }
   }
 
@@ -314,7 +310,7 @@ class HuggingFaceAI {
       return [...new Set(keywords)]; // Remove duplicates
     } catch (error) {
       console.error("Keyword extraction failed:", error);
-      return [];
+      throw error;
     }
   }
 
@@ -329,7 +325,7 @@ class HuggingFaceAI {
         .filter((label: unknown): label is string => typeof label === "string");
     } catch (error) {
       console.error("Content classification failed:", error);
-      return [];
+      throw error;
     }
   }
 }

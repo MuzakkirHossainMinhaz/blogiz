@@ -1,91 +1,82 @@
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
+import { isDuplicateKey } from "@/lib/engagement";
+import { jsonError, serverError } from "@/lib/http";
+import { accountLink, sendAccountEmail } from "@/lib/mail";
+import { rateLimit } from "@/lib/rate-limit";
+import { readTrustedClientAddress, hashIdentifier } from "@/lib/request-utils";
+import { createSecretToken } from "@/lib/tokens";
+import { passwordSchema } from "@/lib/validation";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-// Validation schema
 const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  name: z.string().trim().min(2).max(80),
+  email: z.email(),
+  password: passwordSchema,
+  fullName: z.string().trim().min(2).max(120),
   role: z.enum(["user", "author"]).default("user"),
 });
 
-// POST /api/auth/register - Register a new user
+const GENERIC_MESSAGE =
+  "If this address can be registered, check your email to verify the account. Author accounts also need admin approval before they can publish.";
+
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
-    const body = await request.json();
-
-    // Validate input
+    const body = await request.json().catch(() => null);
     const validation = registerSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json(
-        { success: false, message: "Invalid input", details: validation.error.issues },
-        { status: 400 }
+      return jsonError("Invalid input", 400);
+    }
+
+    const email = validation.data.email.toLowerCase();
+    const ip = readTrustedClientAddress((name) => request.headers.get(name));
+    const emailLimit = rateLimit(`register:${email}`, 5, 60 * 60 * 1000);
+    const ipLimit = ip ? rateLimit(`register-ip:${hashIdentifier(ip)}`, 20, 60 * 60 * 1000) : { ok: true as const };
+    if (!emailLimit.ok || !ipLimit.ok) {
+      return jsonError("Too many requests", 429);
+    }
+
+    await connectDB();
+
+    const { name, password, fullName, role } = validation.data;
+    const token = createSecretToken();
+    const existingUser = await User.findOne({ email });
+
+    if (!existingUser) {
+      const hashedPassword = await bcrypt.hash(password, 12);
+      try {
+        await User.create({
+          name,
+          email,
+          password: hashedPassword,
+          role,
+          profile: { fullName, bio: "" },
+          isApproved: role !== "author",
+          emailVerified: false,
+          emailVerificationTokenHash: token.hash,
+          emailVerificationExpires: token.expires,
+        });
+      } catch (error) {
+        if (!isDuplicateKey(error)) throw error;
+      }
+    } else if (!existingUser.emailVerified) {
+      existingUser.emailVerificationTokenHash = token.hash;
+      existingUser.emailVerificationExpires = token.expires;
+      await existingUser.save();
+    }
+
+    if (!existingUser || !existingUser.emailVerified) {
+      await sendAccountEmail(
+        email,
+        "Verify your Blogiz email",
+        `Verify your email: ${accountLink("/auth/verify-email", token.raw)}`
       );
     }
 
-    const { name, email, password, fullName, role } = validation.data;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return NextResponse.json({ success: false, message: "User with this email already exists" }, { status: 409 });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create user with profile
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-      profile: {
-        fullName,
-        bio: "",
-      },
-      isApproved: role === "author" ? false : true, // Authors need approval
-    });
-
-    // Remove password from response
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      profile: user.profile,
-      isApproved: user.isApproved,
-      createdAt: user.createdAt,
-    };
-
-    return NextResponse.json(
-      {
-        success: true,
-        message:
-          role === "author"
-            ? "Registration successful! Your account is pending approval from an admin."
-            : "User created successfully",
-        user: userResponse,
-      },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    console.error("Registration error:", error);
-
-    // Handle duplicate key error (MongoDB)
-    if (error.code === 11000) {
-      return NextResponse.json({ success: false, message: "User with this email already exists" }, { status: 409 });
-    }
-
-    return NextResponse.json(
-      { success: false, message: "Failed to create user", error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
+  } catch (error) {
+    return serverError("Registration error:", error);
   }
 }

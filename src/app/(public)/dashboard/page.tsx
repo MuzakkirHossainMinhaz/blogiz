@@ -35,13 +35,6 @@ interface DashboardStats {
   }>;
 }
 
-// Extend session user type
-declare module "next-auth" {
-  interface User {
-    role?: string;
-  }
-}
-
 export default function DashboardPage() {
   const { data: session } = useSession();
   const userRole = (session?.user?.role as UserRole) || "user";
@@ -143,7 +136,7 @@ export default function DashboardPage() {
               </div>
               <h3 className="ml-3 font-semibold text-neutral-900">Reading History</h3>
             </div>
-            <p className="text-sm text-neutral-600 mb-4">Track blogs you've read and engaged with.</p>
+            <p className="text-sm text-neutral-600 mb-4">Track blogs you&apos;ve read and engaged with.</p>
             <div className="text-center py-8 text-neutral-400">
               <FiBookOpen className="w-12 h-12 mx-auto mb-2" />
               <p>No reading history yet</p>
@@ -158,7 +151,7 @@ export default function DashboardPage() {
               </div>
               <h3 className="ml-3 font-semibold text-neutral-900">Liked Posts</h3>
             </div>
-            <p className="text-sm text-neutral-600 mb-4">Posts you've liked and enjoyed.</p>
+            <p className="text-sm text-neutral-600 mb-4">Posts you&apos;ve liked and enjoyed.</p>
             <div className="text-center py-8 text-neutral-400">
               <FiHeart className="w-12 h-12 mx-auto mb-2" />
               <p>No liked posts yet</p>
@@ -397,7 +390,7 @@ export default function DashboardPage() {
                 <h3 className="ml-3 font-semibold text-accent-900">Track Performance</h3>
               </div>
               <p className="text-sm text-accent-700">
-                Monitor your blog's performance with real-time analytics and engagement metrics.
+                Monitor your blog&apos;s performance with real-time analytics and engagement metrics.
               </p>
             </div>
 

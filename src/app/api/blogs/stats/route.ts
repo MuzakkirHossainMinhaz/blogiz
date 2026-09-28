@@ -2,23 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import Like from "@/models/Like";
-import { auth } from "@/lib/auth";
+import { denied, requireUser } from "@/lib/authz";
+import { serverError } from "@/lib/http";
 
 // GET /api/blogs/stats - Get blog statistics (auth required)
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please login" },
-        { status: 401 }
-      );
-    }
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
     await connectDB();
 
-    const userId = (session.user as any).id;
+    const userId = actor.id;
 
     // Get counts
     const [totalBlogs, publishedBlogs, draftBlogs, totalLikes] =
@@ -56,11 +51,7 @@ export async function GET(request: NextRequest) {
       mostLikedBlogs,
       recentBlogs,
     });
-  } catch (error: any) {
-    console.error("Error fetching blog stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch blog stats", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching blog stats:", error);
   }
 }

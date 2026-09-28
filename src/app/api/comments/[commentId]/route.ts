@@ -1,159 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Comment from "@/models/Comment";
-import Blog from "@/models/Blog";
-import { auth } from "@/lib/auth";
-import { canPerformAction } from "@/lib/permissions";
+import { denied, requireUser } from "@/lib/authz";
+import { syncCommentCount } from "@/lib/engagement";
+import { jsonError, serverError } from "@/lib/http";
+import { canPerformAction, hasPermission } from "@/lib/permissions";
 
-// PUT /api/comments/[commentId] - Update a comment
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ commentId: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ commentId: string }> }) {
   try {
-    const session = await auth();
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const { commentId } = await params;
+    if (!mongoose.Types.ObjectId.isValid(commentId)) return jsonError("Comment not found", 404);
 
     await connectDB();
-    const { commentId } = await params;
-
     const comment = await Comment.findById(commentId);
-    if (!comment) {
-      return NextResponse.json(
-        { error: "Comment not found" },
-        { status: 404 }
-      );
-    }
+    if (!comment) return jsonError("Comment not found", 404);
 
-    const userId = (session.user as any).id;
-    const userRole = (session.user as any).role;
+    const canEdit =
+      canPerformAction(actor.role, "editOwnComment", comment.userId.toString(), actor.id) ||
+      canPerformAction(actor.role, "editAnyComment");
+    if (!canEdit) return jsonError("You don't have permission to edit this comment", 403);
 
-    // Check if user can edit this comment
-    const canEdit = canPerformAction(
-      userRole,
-      "editOwnComment",
-      comment.userId.toString(),
-      userId
-    ) || canPerformAction(userRole, "editAnyComment");
+    const body = await request.json().catch(() => null);
+    const content = typeof body?.content === "string" ? body.content.trim() : "";
+    if (!content || content.length > 1000) return jsonError("Content is required", 400);
 
-    if (!canEdit) {
-      return NextResponse.json(
-        { error: "You don't have permission to edit this comment" },
-        { status: 403 }
-      );
-    }
-
-    const body = await request.json();
-    const { content } = body;
-
-    if (!content || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400 }
-      );
-    }
-
-    // Update comment
+    const isApproved = hasPermission(actor.role, "approveComment");
     const updatedComment = await Comment.findByIdAndUpdate(
       commentId,
-      {
-        content: content.trim(),
-        isEdited: true,
-        editedAt: new Date(),
-      },
-      { new: true }
+      { content, isEdited: true, editedAt: new Date(), isApproved },
+      { returnDocument: "after" }
     ).populate("userId", "profile.fullName profile.avatar name");
 
+    await syncCommentCount(comment.blogId);
+
     return NextResponse.json({
-      message: "Comment updated successfully",
+      message: isApproved ? "Comment updated successfully" : "Comment submitted for approval",
       comment: updatedComment,
     });
-  } catch (error: any) {
-    console.error("Error updating comment:", error);
-    return NextResponse.json(
-      { error: "Failed to update comment", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error updating comment:", error);
   }
 }
 
-// DELETE /api/comments/[commentId] - Delete a comment
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ commentId: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ commentId: string }> }) {
   try {
-    const session = await auth();
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const { commentId } = await params;
+    if (!mongoose.Types.ObjectId.isValid(commentId)) return jsonError("Comment not found", 404);
 
     await connectDB();
-    const { commentId } = await params;
-
     const comment = await Comment.findById(commentId);
-    if (!comment) {
-      return NextResponse.json(
-        { error: "Comment not found" },
-        { status: 404 }
-      );
-    }
+    if (!comment) return jsonError("Comment not found", 404);
 
-    const userId = (session.user as any).id;
-    const userRole = (session.user as any).role;
+    const canDelete =
+      canPerformAction(actor.role, "deleteOwnComment", comment.userId.toString(), actor.id) ||
+      canPerformAction(actor.role, "deleteAnyComment");
+    if (!canDelete) return jsonError("You don't have permission to delete this comment", 403);
 
-    // Check if user can delete this comment
-    const canDelete = canPerformAction(
-      userRole,
-      "deleteOwnComment",
-      comment.userId.toString(),
-      userId
-    ) || canPerformAction(userRole, "deleteAnyComment");
+    const blogId = comment.blogId;
+    await Comment.deleteMany({ $or: [{ _id: commentId }, { parentId: commentId }] });
+    await syncCommentCount(blogId);
 
-    if (!canDelete) {
-      return NextResponse.json(
-        { error: "You don't have permission to delete this comment" },
-        { status: 403 }
-      );
-    }
-
-    // Delete comment and its replies
-    await Comment.deleteMany({ 
-      $or: [
-        { _id: commentId },
-        { parentId: commentId }
-      ]
-    });
-
-    // Update blog comment count
-    const deletedCount = await Comment.countDocuments({ 
-      blogId: comment.blogId,
-      parentId: null,
-      isApproved: true 
-    });
-    
-    await Blog.findByIdAndUpdate(comment.blogId, {
-      total_comments: deletedCount,
-    });
-
-    return NextResponse.json({
-      message: "Comment deleted successfully",
-    });
-  } catch (error: any) {
-    console.error("Error deleting comment:", error);
-    return NextResponse.json(
-      { error: "Failed to delete comment", message: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Comment deleted successfully" });
+  } catch (error) {
+    return serverError("Error deleting comment:", error);
   }
 }

@@ -23,8 +23,6 @@ export default function Navbar() {
   const isLoggedIn = status === "authenticated";
   const user = session?.user;
 
-  console.log(user);
-
   const isActive = (href: string) => {
     if (href === ROUTES.HOME) {
       return pathname === href;
@@ -134,7 +132,7 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  href="/auth/secure/login"
+                  href="/auth/login"
                   className="px-3 py-1.5 text-sm font-medium text-neutral-700 hover:text-primary-600 transition-colors"
                 >
                   Sign In

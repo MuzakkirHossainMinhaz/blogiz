@@ -1,60 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Comment from "@/models/Comment";
-import { auth } from "@/lib/auth";
+import { denied, requireUser } from "@/lib/authz";
+import { jsonError, serverError } from "@/lib/http";
 
-// POST /api/comments/[commentId]/like - Toggle like on a comment
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ commentId: string }> }
-) {
+export async function POST(_request: NextRequest, { params }: { params: Promise<{ commentId: string }> }) {
   try {
-    const session = await auth();
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please login to like comments" },
-        { status: 401 }
-      );
-    }
+    const { commentId } = await params;
+    if (!mongoose.Types.ObjectId.isValid(commentId)) return jsonError("Comment not found", 404);
 
     await connectDB();
-    const { commentId } = await params;
+    const userId = new mongoose.Types.ObjectId(actor.id);
 
-    const comment = await Comment.findById(commentId);
-    if (!comment) {
-      return NextResponse.json(
-        { error: "Comment not found" },
-        { status: 404 }
-      );
-    }
-
-    const userId = (session.user as any).id;
-    const userIdObj = userId;
-
-    // Check if user already liked this comment
-    const likeIndex = comment.likes.indexOf(userIdObj);
-    const isLiked = likeIndex > -1;
-
-    if (isLiked) {
-      // Remove like
-      comment.likes.splice(likeIndex, 1);
-    } else {
-      // Add like
-      comment.likes.push(userIdObj);
-    }
-
-    await comment.save();
-
-    return NextResponse.json({
-      liked: !isLiked,
-      likesCount: comment.likes.length,
-    });
-  } catch (error: any) {
-    console.error("Error toggling comment like:", error);
-    return NextResponse.json(
-      { error: "Failed to toggle like", message: error.message },
-      { status: 500 }
+    const removed = await Comment.findOneAndUpdate(
+      { _id: commentId, likes: userId },
+      { $pull: { likes: userId } },
+      { returnDocument: "after" }
     );
+    if (removed) {
+      return NextResponse.json({ liked: false, likesCount: removed.likes.length });
+    }
+
+    const added = await Comment.findOneAndUpdate(
+      { _id: commentId, likes: { $ne: userId } },
+      { $addToSet: { likes: userId } },
+      { returnDocument: "after" }
+    );
+    if (!added) return jsonError("Comment not found", 404);
+
+    return NextResponse.json({ liked: true, likesCount: added.likes.length });
+  } catch (error) {
+    return serverError("Error toggling comment like:", error);
   }
 }

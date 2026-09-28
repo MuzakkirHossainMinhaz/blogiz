@@ -18,7 +18,7 @@ export default function SupportPage() {
               Support <span className="gradient-text">Center</span>
             </h1>
             <p className="text-xl text-neutral-600 mb-8">
-              Our support page is currently under construction. We're working hard to bring you helpful resources and
+              Our support page is currently under construction. We&apos;re working hard to bring you helpful resources and
               assistance!
             </p>
 

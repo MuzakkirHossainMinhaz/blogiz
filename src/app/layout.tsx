@@ -1,5 +1,4 @@
-import Footer from "@/components/shared/Footer";
-import Navbar from "@/components/shared/Navbar";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Providers from "@/lib/Providers";
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
@@ -36,9 +35,9 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="light">
       <body className={roboto.className}>
-        <Providers>
-          {children}
-        </Providers>
+        <ErrorBoundary>
+          <Providers>{children}</Providers>
+        </ErrorBoundary>
       </body>
     </html>
   );

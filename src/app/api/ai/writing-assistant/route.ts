@@ -1,111 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
+import { huggingFaceConfigured } from "@/lib/ai-provider";
+import { denied } from "@/lib/authz";
+import { requireAiUser } from "@/lib/ai-guard";
 import { huggingFaceAI } from "@/lib/huggingface";
-import { auth } from "@/lib/auth";
+import { jsonError, serverError } from "@/lib/http";
 
-// POST /api/ai/writing-assistant/generate-title - Generate blog titles
+function unavailable() {
+  return jsonError("Writing assistant is unavailable", 503);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requireAiUser();
+    if (denied(actor)) return actor;
+    if (!huggingFaceConfigured()) return unavailable();
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    const { topic, count = 5 } = body;
-
-    if (!topic) {
-      return NextResponse.json(
-        { error: "Topic is required" },
-        { status: 400 }
-      );
-    }
+    const body = await request.json().catch(() => null);
+    const topic = typeof body?.topic === "string" ? body.topic.trim().slice(0, 300) : "";
+    if (!topic) return jsonError("Topic is required", 400);
 
     const titles = await huggingFaceAI.generateBlogTitle(topic);
-    
-    return NextResponse.json({
-      titles: titles.slice(0, count),
-    });
-  } catch (error: any) {
+    if (!titles.length) return jsonError("Writing assistant is unavailable", 502);
+    return NextResponse.json({ titles: titles.slice(0, 5) });
+  } catch (error) {
     console.error("Title generation failed:", error);
-    return NextResponse.json(
-      { error: "Failed to generate titles", message: error.message },
-      { status: 500 }
-    );
+    return jsonError("Writing assistant is unavailable", 502);
   }
 }
 
-// GET /api/ai/writing-assistant/generate-outline - Generate blog outline
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requireAiUser();
+    if (denied(actor)) return actor;
+    if (!huggingFaceConfigured()) return unavailable();
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    const topic = searchParams.get("topic");
-
-    if (!topic) {
-      return NextResponse.json(
-        { error: "Topic is required" },
-        { status: 400 }
-      );
-    }
+    const topic = new URL(request.url).searchParams.get("topic")?.trim().slice(0, 300) || "";
+    if (!topic) return jsonError("Topic is required", 400);
 
     const outline = await huggingFaceAI.generateBlogOutline(topic);
-    
-    return NextResponse.json({
-      outline,
-    });
-  } catch (error: any) {
-    console.error("Outline generation failed:", error);
-    return NextResponse.json(
-      { error: "Failed to generate outline", message: error.message },
-      { status: 500 }
-    );
+    if (!outline.length) return jsonError("Writing assistant is unavailable", 502);
+    return NextResponse.json({ outline });
+  } catch (error) {
+    return serverError("Outline generation failed:", error);
   }
 }
 
-// PUT /api/ai/writing-assistant/continue-writing - Continue writing
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requireAiUser();
+    if (denied(actor)) return actor;
+    if (!huggingFaceConfigured()) return unavailable();
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    const { content } = body;
-
-    if (!content) {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400 }
-      );
-    }
+    const body = await request.json().catch(() => null);
+    const content = typeof body?.content === "string" ? body.content.slice(0, 8000) : "";
+    if (!content) return jsonError("Content is required", 400);
 
     const continuation = await huggingFaceAI.continueWriting(content);
-    
-    return NextResponse.json({
-      continuation,
-    });
-  } catch (error: any) {
-    console.error("Continue writing failed:", error);
-    return NextResponse.json(
-      { error: "Failed to continue writing", message: error.message },
-      { status: 500 }
-    );
+    if (!continuation) return jsonError("Writing assistant is unavailable", 502);
+    return NextResponse.json({ continuation });
+  } catch (error) {
+    return serverError("Continue writing failed:", error);
   }
 }

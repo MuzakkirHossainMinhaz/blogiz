@@ -1,191 +1,123 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
-import { auth } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { denied, requirePermission } from "@/lib/authz";
+import { jsonError, serverError } from "@/lib/http";
+import { boundedSearch, escapeRegex, parsePageLimit } from "@/lib/pagination";
+import { canManageRole, hasPermission, isUserRole, type Permission, type UserRole } from "@/lib/permissions";
 
-// GET /api/admin/users - Get all users with pagination and filtering
+const ACTION_PERMISSION: Record<string, keyof Permission["can"]> = {
+  approve: "approveUser",
+  deactivate: "deactivateUser",
+  activate: "deactivateUser",
+  changeRole: "changeUserRole",
+};
+
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requirePermission("viewUsers");
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const userRole = (session.user as any).role;
-    if (!hasPermission(userRole, "viewUsers")) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const { searchParams } = new URL(request.url);
+    const paging = parsePageLimit(searchParams.get("page"), searchParams.get("limit"));
+    if ("error" in paging) return jsonError(paging.error, 400);
 
     await connectDB();
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const search = searchParams.get("search") || "";
-    const role = searchParams.get("role") || "";
-    const status = searchParams.get("status") || ""; // active, inactive, approved, pending
-
-    const skip = (page - 1) * limit;
-
-    // Build query
-    const query: any = {};
-
+    const query: Record<string, unknown> = {};
+    const search = boundedSearch(searchParams.get("search"));
     if (search) {
+      const pattern = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { "profile.fullName": { $regex: search, $options: "i" } },
+        { name: { $regex: pattern, $options: "i" } },
+        { email: { $regex: pattern, $options: "i" } },
+        { "profile.fullName": { $regex: pattern, $options: "i" } },
       ];
     }
 
+    const role = searchParams.get("role") || "";
     if (role) {
+      if (!isUserRole(role)) return jsonError("Invalid role", 400);
       query.role = role;
     }
 
-    if (status) {
-      if (status === "active") {
-        query.isActive = true;
-      } else if (status === "inactive") {
-        query.isActive = false;
-      } else if (status === "approved") {
-        query.isApproved = true;
-      } else if (status === "pending") {
-        query.isApproved = false;
-      }
-    }
+    const status = searchParams.get("status") || "";
+    if (status === "active") query.isActive = true;
+    else if (status === "inactive") query.isActive = false;
+    else if (status === "approved") query.isApproved = true;
+    else if (status === "pending") query.isApproved = false;
+    else if (status) return jsonError("Invalid status", 400);
 
-    // Get users with pagination
-    const users = await User.find(query)
-      .select("-password") // Exclude password
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    // Get total count
-    const total = await User.countDocuments(query);
+    const [users, total] = await Promise.all([
+      User.find(query).select("-password").sort({ createdAt: -1 }).skip(paging.skip).limit(paging.limit).lean(),
+      User.countDocuments(query),
+    ]);
 
     return NextResponse.json({
       users,
       pagination: {
-        page,
-        limit,
+        page: paging.page,
+        limit: paging.limit,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / paging.limit),
       },
     });
-  } catch (error: any) {
-    console.error("Error fetching users:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching users:", error);
   }
 }
 
-// PUT /api/admin/users/[userId]/approve - Approve a user (typically for authors)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requirePermission("approveUser", { verified: true });
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const userRole = (session.user as any).role;
-    if (!hasPermission(userRole, "approveUser")) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
+    const body = await request.json().catch(() => null);
+    const userId = typeof body?.userId === "string" ? body.userId : "";
+    const action = typeof body?.action === "string" ? body.action : "";
+    const permission = ACTION_PERMISSION[action];
+    if (!userId || !permission) return jsonError("Invalid action", 400);
+    if (!hasPermission(actor.role, permission)) {
+      return jsonError("Insufficient permissions", 403);
     }
 
     await connectDB();
-
-    const body = await request.json();
-    const { userId, action } = body; // action: "approve", "deactivate", "activate", "changeRole"
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
     const user = await User.findById(userId);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+    if (!user) return jsonError("User not found", 404);
+    if (!canManageRole(actor.role, user.role)) {
+      return jsonError("Insufficient permissions", 403);
     }
 
-    let updateData: any = {};
     let message = "";
-
-    switch (action) {
-      case "approve":
-        updateData = { isApproved: true };
-        message = "User approved successfully";
-        break;
-      case "deactivate":
-        updateData = { isActive: false };
-        message = "User deactivated successfully";
-        break;
-      case "activate":
-        updateData = { isActive: true };
-        message = "User activated successfully";
-        break;
-      case "changeRole":
-        const { newRole } = body;
-        if (!newRole || !["user", "author", "admin"].includes(newRole)) {
-          return NextResponse.json(
-            { error: "Invalid role" },
-            { status: 400 }
-          );
-        }
-        if (!hasPermission(userRole, "changeUserRole")) {
-          return NextResponse.json(
-            { error: "Insufficient permissions to change user role" },
-            { status: 403 }
-          );
-        }
-        updateData = { role: newRole };
-        message = `User role changed to ${newRole} successfully`;
-        break;
-      default:
-        return NextResponse.json(
-          { error: "Invalid action" },
-          { status: 400 }
-        );
+    if (action === "approve") {
+      user.isApproved = true;
+      message = "User approved successfully";
+    } else if (action === "deactivate") {
+      user.isActive = false;
+      user.sessionVersion = (user.sessionVersion ?? 0) + 1;
+      message = "User deactivated successfully";
+    } else if (action === "activate") {
+      user.isActive = true;
+      user.sessionVersion = (user.sessionVersion ?? 0) + 1;
+      message = "User activated successfully";
+    } else if (action === "changeRole") {
+      const newRole = body?.newRole;
+      if (!isUserRole(newRole) || newRole === "superadmin") {
+        return jsonError("Invalid role", 400);
+      }
+      if (!canManageRole(actor.role, newRole as UserRole)) {
+        return jsonError("Insufficient permissions", 403);
+      }
+      user.role = newRole as UserRole;
+      user.sessionVersion = (user.sessionVersion ?? 0) + 1;
+      message = `User role changed to ${newRole} successfully`;
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true }
-    ).select("-password");
+    await user.save();
+    const updatedUser = await User.findById(userId).select("-password");
 
-    return NextResponse.json({
-      message,
-      user: updatedUser,
-    });
-  } catch (error: any) {
-    console.error("Error updating user:", error);
-    return NextResponse.json(
-      { error: "Failed to update user", message: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message, user: updatedUser });
+  } catch (error) {
+    return serverError("Error updating user:", error);
   }
 }

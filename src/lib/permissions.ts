@@ -33,6 +33,9 @@ export interface Permission {
     viewDashboard: boolean;
     viewAdminDashboard: boolean;
     viewSuperAdminDashboard: boolean;
+
+    // Site content
+    manageBanners: boolean;
   };
 }
 
@@ -69,6 +72,8 @@ export const rolePermissions: Record<UserRole, Permission> = {
       viewDashboard: true,
       viewAdminDashboard: true,
       viewSuperAdminDashboard: true,
+
+      manageBanners: true,
     },
   },
 
@@ -104,6 +109,8 @@ export const rolePermissions: Record<UserRole, Permission> = {
       viewDashboard: true,
       viewAdminDashboard: true,
       viewSuperAdminDashboard: false,
+
+      manageBanners: true,
     },
   },
 
@@ -139,6 +146,8 @@ export const rolePermissions: Record<UserRole, Permission> = {
       viewDashboard: true,
       viewAdminDashboard: false,
       viewSuperAdminDashboard: false,
+
+      manageBanners: false,
     },
   },
 
@@ -174,6 +183,8 @@ export const rolePermissions: Record<UserRole, Permission> = {
       viewDashboard: false,
       viewAdminDashboard: false,
       viewSuperAdminDashboard: false,
+
+      manageBanners: false,
     },
   },
 };
@@ -216,4 +227,28 @@ export const roleHierarchy: Record<UserRole, number> = {
 // Check if a user has higher or equal role than another
 export function hasHigherOrEqualRole(userRole: UserRole, targetRole: UserRole): boolean {
   return roleHierarchy[userRole] >= roleHierarchy[targetRole];
+}
+
+/** True only when the actor outranks the target. Equal roles cannot manage each other. */
+export function canManageRole(actor: UserRole, target: UserRole): boolean {
+  return roleHierarchy[actor] > roleHierarchy[target];
+}
+
+const USER_ROLES: UserRole[] = ["superadmin", "admin", "author", "user"];
+
+export function isUserRole(value: unknown): value is UserRole {
+  return typeof value === "string" && USER_ROLES.includes(value as UserRole);
+}
+
+/**
+ * Proxy gate. Authentication is required for /dashboard.
+ * Admin path prefixes also require viewAdminDashboard.
+ */
+export function dashboardAccess(role: UserRole | undefined, pathname: string): "ok" | "login" | "forbidden" {
+  if (!pathname.startsWith("/dashboard")) return "ok";
+  if (!role) return "login";
+  if (pathname === "/dashboard/admin" || pathname.startsWith("/dashboard/admin/")) {
+    return hasPermission(role, "viewAdminDashboard") ? "ok" : "forbidden";
+  }
+  return "ok";
 }

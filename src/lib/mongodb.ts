@@ -1,44 +1,45 @@
 import mongoose from "mongoose";
-
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/blogiz";
-
-if (!MONGODB_URI) {
-  throw new Error("Please define the MONGODB_URI environment variable");
-}
+import { requireMongoUri } from "@/lib/env";
 
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
+  uri: string | null;
 }
 
 declare global {
-  var mongoose: MongooseCache;
+  var mongoose: MongooseCache | undefined;
 }
 
-let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
+const cached: MongooseCache = global.mongoose || { conn: null, promise: null, uri: null };
 
 if (!global.mongoose) {
   global.mongoose = cached;
 }
 
 export async function connectDB() {
-  if (cached.conn) {
+  const uri = requireMongoUri();
+
+  if (cached.conn && cached.uri === uri) {
     return cached.conn;
   }
 
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
+  if (cached.uri !== uri) {
+    cached.promise = null;
+    cached.conn = null;
+    cached.uri = uri;
+  }
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts);
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(uri, { bufferCommands: false });
   }
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+  } catch (error) {
     cached.promise = null;
-    throw e;
+    cached.conn = null;
+    throw error;
   }
 
   return cached.conn;

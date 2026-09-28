@@ -6,6 +6,7 @@ import { FaCalendar } from "react-icons/fa";
 import { Badge } from "@/components/ui/Badge";
 import { cn, truncateText, formatDate } from "@/lib/utils";
 import { ROUTES, UI_CONFIG } from "@/config/constants";
+import { isStoredImageUrl } from "@/lib/urls";
 
 interface BlogCardBaseProps {
   blog: Blog;
@@ -30,7 +31,8 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
       <figure className="relative overflow-hidden">
         <Link href={ROUTES.BLOG_DETAIL(blog._id)}>
           <Image
-            src={blog.blog_image || "/placeholder-blog.jpg"}
+            src={blog.blog_image && isStoredImageUrl(blog.blog_image) ? blog.blog_image : "/placeholder-blog.jpg"}
+            unoptimized={Boolean(blog.blog_image?.startsWith("/api/media/"))}
             width={600}
             height={isFeatured ? 400 : 300}
             alt={blog.title}

@@ -52,7 +52,7 @@ export default function BlogsPage() {
   const fetchBlogs = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/blogs");
+      const response = await fetch("/api/blogs?scope=mine&limit=50");
       if (response.ok) {
         const data = await response.json();
         setBlogs(data.blogs || []);
@@ -123,8 +123,10 @@ export default function BlogsPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        const status = data.blog?.status || newStatus;
         setBlogs(blogs.map(blog =>
-          blog._id === blogId ? { ...blog, status: newStatus as "draft" | "published" } : blog
+          blog._id === blogId ? { ...blog, status } : blog
         ));
       } else {
         alert(`Failed to ${action} blog`);

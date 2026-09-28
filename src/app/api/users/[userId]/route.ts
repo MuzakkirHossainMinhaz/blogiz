@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Blog from "@/models/Blog";
-import { auth } from "@/lib/auth";
+import { denied, requireUser } from "@/lib/authz";
+import { jsonError, serverError } from "@/lib/http";
 import { canPerformAction } from "@/lib/permissions";
+import { publicPostFilter } from "@/lib/public-posts";
+import { isHttpsUrl, isStoredImageUrl } from "@/lib/urls";
+import bcrypt from "bcryptjs";
+import BlogView from "@/models/BlogView";
+import Comment from "@/models/Comment";
+import Like from "@/models/Like";
+import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
 
 // GET /api/users/[userId] - Get user profile (public information)
 export async function GET(
@@ -26,18 +34,9 @@ export async function GET(
     }
 
     // Get user's published blogs count
-    const publishedBlogsCount = await Blog.countDocuments({
-      authorId: userId,
-      status: "published",
-      isApproved: true,
-    });
+    const publishedBlogsCount = await Blog.countDocuments(publicPostFilter({ authorId: userId }));
 
-    // Get user's recent published blogs
-    const recentBlogs = await Blog.find({
-      authorId: userId,
-      status: "published",
-      isApproved: true,
-    })
+    const recentBlogs = await Blog.find(publicPostFilter({ authorId: userId }))
       .select("title description blog_image publish_date total_likes total_comments tags readingTime")
       .sort({ publish_date: -1 })
       .limit(5)
@@ -52,12 +51,8 @@ export async function GET(
         recentBlogs,
       },
     });
-  } catch (error: any) {
-    console.error("Error fetching user profile:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch user profile", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching user profile:", error);
   }
 }
 
@@ -67,17 +62,11 @@ export async function PUT(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const session = await auth();
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const currentUserId = (session.user as any).id;
-    const currentUserRole = (session.user as any).role;
+    const currentUserId = actor.id;
+    const currentUserRole = actor.role;
     const { userId } = await params;
 
     // Check if user can edit this profile
@@ -126,28 +115,80 @@ export async function PUT(
     if (profile) {
       if (profile.fullName !== undefined) updateData["profile.fullName"] = profile.fullName.trim();
       if (profile.bio !== undefined) updateData["profile.bio"] = profile.bio.trim();
-      if (profile.avatar !== undefined) updateData["profile.avatar"] = profile.avatar;
-      if (profile.website !== undefined) updateData["profile.website"] = profile.website.trim();
+      if (profile.avatar !== undefined) {
+        if (profile.avatar && !isStoredImageUrl(profile.avatar)) {
+          return jsonError("Avatar must be an uploaded image", 400);
+        }
+        updateData["profile.avatar"] = profile.avatar;
+      }
+      if (profile.website !== undefined) {
+        const website = profile.website.trim();
+        if (website && !isHttpsUrl(website)) return jsonError("Website must be an https URL", 400);
+        updateData["profile.website"] = website;
+      }
       if (profile.location !== undefined) updateData["profile.location"] = profile.location.trim();
       if (profile.expertise !== undefined) updateData["profile.expertise"] = profile.expertise;
-      if (profile.socialLinks !== undefined) updateData["profile.socialLinks"] = profile.socialLinks;
+      if (profile.socialLinks !== undefined) {
+        const links = profile.socialLinks || {};
+        for (const key of ["twitter", "linkedin", "github"] as const) {
+          const value = typeof links[key] === "string" ? links[key].trim() : "";
+          if (value && !isHttpsUrl(value)) return jsonError("Social links must be https URLs", 400);
+          links[key] = value;
+        }
+        updateData["profile.socialLinks"] = links;
+      }
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).select("-password");
 
     return NextResponse.json({
       message: "Profile updated successfully",
       user: updatedUser,
     });
-  } catch (error: any) {
-    console.error("Error updating user profile:", error);
-    return NextResponse.json(
-      { error: "Failed to update profile", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error updating user profile:", error);
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+  try {
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
+
+    const { userId } = await params;
+    const canDelete =
+      canPerformAction(actor.role, "editOwnProfile", userId, actor.id) ||
+      canPerformAction(actor.role, "editAnyProfile");
+    if (!canDelete || userId !== actor.id) {
+      return jsonError("You don't have permission to delete this profile", 403);
+    }
+
+    const body = await request.json().catch(() => null);
+    const password = typeof body?.password === "string" ? body.password : "";
+    if (!password) return jsonError("Invalid input", 400);
+
+    await connectDB();
+    const user = await User.findById(userId);
+    if (!user) return jsonError("User not found", 404);
+
+    const matches = await bcrypt.compare(password, user.password);
+    if (!matches) return jsonError("Invalid input", 400);
+
+    await Promise.all([
+      Blog.updateMany({ createdBy: userId }, { status: "draft", isApproved: false }),
+      Comment.deleteMany({ userId }),
+      Like.deleteMany({ userId }),
+      BlogView.deleteMany({ userId }),
+      RoleUpgradeRequest.deleteMany({ userId }),
+    ]);
+    await User.findByIdAndDelete(userId);
+
+    return NextResponse.json({ message: "Account deleted" });
+  } catch (error) {
+    return serverError("Error deleting account:", error);
   }
 }

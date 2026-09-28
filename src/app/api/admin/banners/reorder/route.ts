@@ -1,67 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Banner from "@/models/Banner";
-import { auth } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { denied, requirePermission } from "@/lib/authz";
+import { jsonError, serverError } from "@/lib/http";
 
-// PUT /api/admin/banners/reorder - Reorder banners for carousel
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requirePermission("manageBanners", { verified: true });
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const body = await request.json().catch(() => null);
+    const bannerOrders = body?.bannerOrders;
+    if (!Array.isArray(bannerOrders) || bannerOrders.length > 100) {
+      return jsonError("bannerOrders must be an array", 400);
     }
 
-    const userRole = (session.user as any).role;
-    if (!hasPermission(userRole, "viewDashboard")) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
-
-    await connectDB();
-
-    const body = await request.json();
-    const { bannerOrders } = body; // Array of { id: string, order: number }
-
-    if (!Array.isArray(bannerOrders)) {
-      return NextResponse.json(
-        { error: "bannerOrders must be an array" },
-        { status: 400 }
-      );
-    }
-
-    // Validate each item in the array
     for (const item of bannerOrders) {
-      if (!item.id || typeof item.order !== "number") {
-        return NextResponse.json(
-          { error: "Each item must have id and order properties" },
-          { status: 400 }
-        );
+      if (!item || typeof item.id !== "string" || !mongoose.Types.ObjectId.isValid(item.id) || typeof item.order !== "number") {
+        return jsonError("Each item must have id and order properties", 400);
       }
     }
 
-    // Update banner orders in bulk
-    const updatePromises = bannerOrders.map(({ id, order }) =>
-      Banner.findByIdAndUpdate(id, { order }, { new: true })
+    await connectDB();
+    const updatedBanners = await Promise.all(
+      bannerOrders.map(({ id, order }: { id: string; order: number }) => Banner.findByIdAndUpdate(id, { order }, { returnDocument: "after" }))
     );
 
-    const updatedBanners = await Promise.all(updatePromises);
-
-    return NextResponse.json({
-      message: "Banners reordered successfully",
-      banners: updatedBanners,
-    });
-  } catch (error: any) {
-    console.error("Error reordering banners:", error);
-    return NextResponse.json(
-      { error: "Failed to reorder banners", message: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Banners reordered successfully", banners: updatedBanners });
+  } catch (error) {
+    return serverError("Error reordering banners:", error);
   }
 }

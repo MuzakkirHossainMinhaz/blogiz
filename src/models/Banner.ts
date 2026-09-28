@@ -28,8 +28,8 @@ export interface IBanner {
 }
 
 export interface IBannerModel extends Model<IBanner> {
-  getActiveBanners(audience?: string): any;
-  getCarouselBanners(audience?: string, limit?: number): any;
+  getActiveBanners(audience?: string, type?: string): any;
+  getCarouselBanners(audience?: string, limit?: number, type?: string): any;
 }
 
 const BannerSchema = new Schema<IBanner>(
@@ -147,9 +147,9 @@ BannerSchema.pre("save", function () {
 });
 
 // Static method to get active banners for audience
-BannerSchema.statics.getActiveBanners = function (audience: string = "all") {
+BannerSchema.statics.getActiveBanners = function (audience: string = "all", type?: string) {
   const now = new Date();
-  const query: any = {
+  const query: Record<string, unknown> = {
     isActive: true,
     $and: [
       {
@@ -164,12 +164,15 @@ BannerSchema.statics.getActiveBanners = function (audience: string = "all") {
     ],
   };
 
+  if (type) {
+    query.type = type;
+  }
+
   return this.find(query).sort({ order: 1, createdAt: -1 });
 };
 
-// Static method to get carousel banners
-BannerSchema.statics.getCarouselBanners = function (audience: string = "all", limit: number = 5) {
-  return (this as any).getActiveBanners(audience).limit(limit);
+BannerSchema.statics.getCarouselBanners = function (audience: string = "all", limit: number = 5, type?: string) {
+  return (this as IBannerModel).getActiveBanners(audience, type).limit(limit);
 };
 
 const Banner =

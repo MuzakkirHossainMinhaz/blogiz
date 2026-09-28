@@ -1,68 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
-import { auth } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { denied, requirePermission } from "@/lib/authz";
+import { jsonError, serverError } from "@/lib/http";
+import { parsePageLimit } from "@/lib/pagination";
 
-// GET /api/admin/role-upgrades - Get all role upgrade requests
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requirePermission("changeUserRole", { verified: true });
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const userRole = (session.user as any).role;
-    if (!hasPermission(userRole, "changeUserRole")) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const { searchParams } = new URL(request.url);
+    const paging = parsePageLimit(searchParams.get("page"), searchParams.get("limit"));
+    if ("error" in paging) return jsonError(paging.error, 400);
 
     await connectDB();
 
-    const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-
-    const skip = (page - 1) * limit;
-
-    // Build query
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (status && ["pending", "approved", "rejected"].includes(status)) {
       query.status = status;
     }
 
-    const requests = await RoleUpgradeRequest.find(query)
-      .populate("userId", "name email profile.fullName profile.avatar role")
-      .populate("reviewedBy", "name profile.fullName")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const total = await RoleUpgradeRequest.countDocuments(query);
+    const [requests, total] = await Promise.all([
+      RoleUpgradeRequest.find(query)
+        .populate("userId", "name email profile.fullName profile.avatar role")
+        .populate("reviewedBy", "name profile.fullName")
+        .sort({ createdAt: -1 })
+        .skip(paging.skip)
+        .limit(paging.limit)
+        .lean(),
+      RoleUpgradeRequest.countDocuments(query),
+    ]);
 
     return NextResponse.json({
       requests,
       pagination: {
-        page,
-        limit,
+        page: paging.page,
+        limit: paging.limit,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / paging.limit),
       },
     });
-  } catch (error: any) {
-    console.error("Error fetching role upgrade requests:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch requests", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching role upgrade requests:", error);
   }
 }
