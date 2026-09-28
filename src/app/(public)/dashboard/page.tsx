@@ -122,7 +122,7 @@ export default function DashboardPage() {
       <div className="space-y-6 animate-fade-in">
         {/* Welcome Header */}
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Welcome back, {userName}! 👋</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Welcome back, {userName}! 👋</h1>
           <p className="mt-1 text-neutral-600">{getWelcomeMessage()}</p>
         </div>
 
@@ -182,7 +182,7 @@ export default function DashboardPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Header */}
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">
           Welcome back, {userName}! {userRole === "superadmin" ? "👑" : userRole === "admin" ? "🛡️" : "✍️"}
         </h1>
         <p className="mt-1 text-neutral-600">{getWelcomeMessage()}</p>
@@ -290,65 +290,99 @@ export default function DashboardPage() {
                 <p className="mt-2 text-sm text-neutral-600">Loading recent posts...</p>
               </div>
             ) : stats.recentBlogs.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-neutral-50 border-b border-neutral-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Title
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Likes
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-neutral-200">
-                    {stats.recentBlogs.map((blog) => (
-                      <tr key={blog._id} className="hover:bg-neutral-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-neutral-900 truncate max-w-xs">{blog.title}</div>
-                        </td>
-                        <td className="px-6 py-4">{getStatusBadge(blog.status)}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center text-sm text-neutral-600">
-                            <FiHeart className="w-4 h-4 mr-1 text-red-500" />
-                            {blog.total_likes}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center text-sm text-neutral-600">
-                            <FiClock className="w-4 h-4 mr-1" />
-                            {formatDate(blog.createdAt)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                              <Button variant="ghost" size="sm">
-                                Edit
-                              </Button>
-                            </Link>
-                            <Link href={`/blogs/${blog._id}`} target="_blank">
-                              <Button variant="ghost" size="sm">
-                                View
-                              </Button>
-                            </Link>
-                          </div>
-                        </td>
+              <>
+                <div className="md:hidden divide-y divide-neutral-200">
+                  {stats.recentBlogs.map((blog) => (
+                    <div key={blog._id} className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium text-neutral-900 break-words min-w-0">{blog.title}</p>
+                        {getStatusBadge(blog.status)}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600">
+                        <span className="inline-flex items-center gap-1">
+                          <FiHeart className="w-4 h-4 text-red-500" />
+                          {blog.total_likes}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <FiClock className="w-4 h-4" />
+                          {formatDate(blog.createdAt)}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/dashboard/blogs/edit/${blog._id}`}>
+                          <Button variant="ghost" size="sm">
+                            Edit
+                          </Button>
+                        </Link>
+                        <Link href={`/blogs/${blog._id}`} target="_blank">
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full min-w-[36rem]">
+                    <thead className="bg-neutral-50 border-b border-neutral-200">
+                      <tr>
+                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Title
+                        </th>
+                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Likes
+                        </th>
+                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Created
+                        </th>
+                        <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-neutral-200">
+                      {stats.recentBlogs.map((blog) => (
+                        <tr key={blog._id} className="hover:bg-neutral-50 transition-colors">
+                          <td className="px-4 lg:px-6 py-4">
+                            <div className="text-sm font-medium text-neutral-900 truncate max-w-xs">{blog.title}</div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4">{getStatusBadge(blog.status)}</td>
+                          <td className="px-4 lg:px-6 py-4">
+                            <div className="flex items-center text-sm text-neutral-600">
+                              <FiHeart className="w-4 h-4 mr-1 text-red-500" />
+                              {blog.total_likes}
+                            </div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4">
+                            <div className="flex items-center text-sm text-neutral-600">
+                              <FiClock className="w-4 h-4 mr-1" />
+                              {formatDate(blog.createdAt)}
+                            </div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <Link href={`/dashboard/blogs/edit/${blog._id}`}>
+                                <Button variant="ghost" size="sm">
+                                  Edit
+                                </Button>
+                              </Link>
+                              <Link href={`/blogs/${blog._id}`} target="_blank">
+                                <Button variant="ghost" size="sm">
+                                  View
+                                </Button>
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             ) : (
               <div className="p-8 text-center">
                 <FiFileText className="w-12 h-12 text-neutral-400 mx-auto mb-4" />

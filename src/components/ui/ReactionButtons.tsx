@@ -29,9 +29,9 @@ export function ReactionButtons({
   );
 
   const sizeClasses = {
-    sm: "px-2.5 py-1 text-sm",
-    md: "px-3 py-1.5 text-sm",
-    lg: "px-4 py-2 text-base",
+    sm: "min-h-10 px-3 py-2 text-sm",
+    md: "min-h-11 px-3.5 py-2 text-sm",
+    lg: "min-h-12 px-4 py-2.5 text-base",
   };
 
   const iconSizes = {
@@ -42,7 +42,7 @@ export function ReactionButtons({
 
   const buttonClass = (kind: ReactionKind, active: string, idle: string) =>
     cn(
-      "inline-flex items-center gap-1.5 rounded-lg border font-medium transition-colors",
+      "inline-flex items-center gap-1.5 rounded-lg border font-medium transition-colors touch-manipulation",
       sizeClasses[size],
       reaction === kind ? active : idle,
       (!canReact || isLoading) && "cursor-not-allowed opacity-70"

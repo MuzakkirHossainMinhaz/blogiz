@@ -16,9 +16,9 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
   const [copied, setCopied] = useState(false);
 
   const sizeClasses = {
-    sm: "p-2 text-sm",
-    md: "p-2.5 text-base",
-    lg: "p-3 text-lg",
+    sm: "min-h-10 min-w-10 p-2 text-sm",
+    md: "min-h-11 min-w-11 p-2.5 text-base",
+    lg: "min-h-12 min-w-12 p-3 text-lg",
   };
 
   const iconSizes = {
@@ -53,11 +53,12 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={handleCopyLink}
           className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-300 hover:border-neutral-400",
             sizeClasses[size]
           )}
           title="Copy link"
+          aria-label="Copy link"
         >
           {copied ? (
             <FiCheck className={cn(iconSizes[size], "text-green-600")} />
@@ -69,11 +70,12 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={() => handleShare("twitter")}
           className={cn(
-            "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-sky-500 text-white hover:bg-sky-600 border border-sky-500",
             sizeClasses[size]
           )}
           title="Share on Twitter"
+          aria-label="Share on Twitter"
         >
           <FiTwitter className={cn(iconSizes[size])} />
         </button>
@@ -81,11 +83,12 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={() => handleShare("facebook")}
           className={cn(
-            "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-blue-600 text-white hover:bg-blue-700 border border-blue-600",
             sizeClasses[size]
           )}
           title="Share on Facebook"
+          aria-label="Share on Facebook"
         >
           <FiFacebook className={cn(iconSizes[size])} />
         </button>
@@ -93,11 +96,12 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={() => handleShare("linkedin")}
           className={cn(
-            "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-blue-700 text-white hover:bg-blue-800 border border-blue-700",
             sizeClasses[size]
           )}
           title="Share on LinkedIn"
+          aria-label="Share on LinkedIn"
         >
           <FiLinkedin className={cn(iconSizes[size])} />
         </button>
@@ -116,7 +120,7 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={handleCopyLink}
           className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-300 hover:border-neutral-400 hover:text-neutral-900",
             sizeClasses[size]
           )}
@@ -137,7 +141,7 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={() => handleShare("twitter")}
           className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-sky-500 text-white hover:bg-sky-600 border border-sky-500 hover:border-sky-600",
             sizeClasses[size]
           )}
@@ -149,7 +153,7 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={() => handleShare("facebook")}
           className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-blue-600 text-white hover:bg-blue-700 border border-blue-600 hover:border-blue-700",
             sizeClasses[size]
           )}
@@ -161,7 +165,7 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
         <button
           onClick={() => handleShare("linkedin")}
           className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200",
+            "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 touch-manipulation",
             "bg-blue-700 text-white hover:bg-blue-800 border border-blue-700 hover:border-blue-800",
             sizeClasses[size]
           )}

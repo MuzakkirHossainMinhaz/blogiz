@@ -82,7 +82,11 @@ const secondaryNavigation = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export default function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const userRole = (session?.user?.role as UserRole) || "user";
@@ -96,6 +100,14 @@ export default function Sidebar() {
     hasPermission(userRole, item.requiredPermission)
   );
 
+  const linkClass = (isActive: boolean) =>
+    cn(
+      "group flex items-center min-h-11 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+      isActive
+        ? "bg-primary-50 text-primary-700 border-r-2 border-primary-600"
+        : "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+    );
+
   return (
     <div className="space-y-6">
       {/* Main Navigation */}
@@ -108,16 +120,7 @@ export default function Sidebar() {
               const Icon = item.icon;
 
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
-                    isActive
-                      ? "bg-primary-50 text-primary-700 border-r-2 border-primary-600"
-                      : "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                  )}
-                >
+                <Link key={item.name} href={item.href} onClick={onNavigate} className={linkClass(isActive)}>
                   <Icon
                     className={cn(
                       "mr-3 h-5 w-5 shrink-0",
@@ -143,16 +146,7 @@ export default function Sidebar() {
               const Icon = item.icon;
 
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
-                    isActive
-                      ? "bg-primary-50 text-primary-700 border-r-2 border-primary-600"
-                      : "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                  )}
-                >
+                <Link key={item.name} href={item.href} onClick={onNavigate} className={linkClass(isActive)}>
                   <Icon
                     className={cn(
                       "mr-3 h-5 w-5 shrink-0",
@@ -175,7 +169,8 @@ export default function Sidebar() {
           <div className="mt-3 space-y-1">
             <Link
               href="/dashboard/blogs/create"
-              className="group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-linear-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-sm hover:shadow-md"
+              onClick={onNavigate}
+              className="group flex items-center min-h-11 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 bg-linear-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-sm hover:shadow-md"
             >
               <FiEdit3 className="mr-3 h-5 w-5 shrink-0" />
               Write New Post
@@ -195,8 +190,9 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={onNavigate}
                 className={cn(
-                  "group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                  "group flex items-center min-h-11 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
                   "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
                 )}
                 {...(item.external && { target: "_blank", rel: "noopener noreferrer" })}

@@ -98,11 +98,11 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8 max-w-xl">
-      <h1 className="text-2xl font-bold text-neutral-900">Settings</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Settings</h1>
       {error && <p className="text-sm text-red-700">{error}</p>}
       {message && <p className="text-sm text-green-700">{message}</p>}
 
-      <form onSubmit={saveProfile} className="space-y-4 bg-white p-6 rounded-xl border border-neutral-200">
+      <form onSubmit={saveProfile} className="space-y-4 bg-white p-4 sm:p-6 rounded-xl border border-neutral-200">
         <h2 className="font-semibold">Profile</h2>
         <Input id="name" label="Name" value={name} onChange={(event) => setName(event.target.value)} />
         <Input id="bio" label="Bio" value={bio} onChange={(event) => setBio(event.target.value)} />
@@ -110,20 +110,20 @@ export default function SettingsPage() {
         <Button type="submit" variant="primary">Save profile</Button>
       </form>
 
-      <form onSubmit={changePassword} className="space-y-4 bg-white p-6 rounded-xl border border-neutral-200">
+      <form onSubmit={changePassword} className="space-y-4 bg-white p-4 sm:p-6 rounded-xl border border-neutral-200">
         <h2 className="font-semibold">Password</h2>
         <Input id="currentPassword" label="Current password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
         <Input id="nextPassword" label="New password" type="password" value={nextPassword} onChange={(event) => setNextPassword(event.target.value)} />
         <Button type="submit" variant="primary">Change password</Button>
       </form>
 
-      <form onSubmit={changeEmail} className="space-y-4 bg-white p-6 rounded-xl border border-neutral-200">
+      <form onSubmit={changeEmail} className="space-y-4 bg-white p-4 sm:p-6 rounded-xl border border-neutral-200">
         <h2 className="font-semibold">Email</h2>
         <Input id="nextEmail" label="New email" type="email" value={nextEmail} onChange={(event) => setNextEmail(event.target.value)} />
         <Button type="submit" variant="outline">Send confirmation</Button>
       </form>
 
-      <form onSubmit={deleteAccount} className="space-y-4 bg-white p-6 rounded-xl border border-red-200">
+      <form onSubmit={deleteAccount} className="space-y-4 bg-white p-4 sm:p-6 rounded-xl border border-red-200">
         <h2 className="font-semibold text-red-700">Delete account</h2>
         <Input id="deletePassword" label="Confirm password" type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} />
         <Button type="submit" variant="outline">Delete account</Button>

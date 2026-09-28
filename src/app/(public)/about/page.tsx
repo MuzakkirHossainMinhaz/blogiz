@@ -14,10 +14,10 @@ export default function AboutPage() {
             </div>
 
             {/* Message */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               About <span className="gradient-text">Blogiz</span>
             </h1>
-            <p className="text-xl text-neutral-600 mb-8">
+            <p className="text-base sm:text-xl text-neutral-600 mb-8">
               This page is currently under construction. We&apos;re working hard to bring you something amazing!
             </p>
 

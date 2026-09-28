@@ -38,8 +38,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <Container className="max-w-lg w-full">
-      <div className="bg-white py-8 px-8 shadow-xl rounded-2xl">
-        <h1 className="text-2xl font-bold text-neutral-900 text-center mb-2">Reset password</h1>
+      <div className="bg-white py-6 px-4 sm:py-8 sm:px-8 shadow-xl rounded-2xl">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 text-center mb-2">Reset password</h1>
         <p className="text-sm text-neutral-500 text-center mb-8">We will email a reset link if the account exists.</p>
         {error && <p className="mb-4 text-sm text-red-700 text-center">{error}</p>}
         {message && <p className="mb-4 text-sm text-green-700 text-center">{message}</p>}

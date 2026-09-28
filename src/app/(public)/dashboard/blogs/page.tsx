@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Container } from "@/components/ui/Container";
-import { Section } from "@/components/ui/Section";
 import { 
   FiFileText, 
   FiEdit3, 
@@ -33,7 +30,6 @@ interface Blog {
 }
 
 export default function BlogsPage() {
-  const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -166,13 +162,13 @@ export default function BlogsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Blogs</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Blogs</h1>
           <p className="text-neutral-600">Manage your blog posts</p>
         </div>
-        <Link href="/dashboard/blogs/create">
-          <Button variant="primary" className="rounded-full">
+        <Link href="/dashboard/blogs/create" className="w-full sm:w-auto">
+          <Button variant="primary" className="rounded-full w-full sm:w-auto">
             <FiPlusCircle className="w-4 h-4 mr-2" />
             Create New Post
           </Button>
@@ -211,28 +207,28 @@ export default function BlogsPage() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center border border-neutral-300 rounded-lg">
+          <div className="flex items-center border border-neutral-300 rounded-lg self-start overflow-hidden">
             <button
               onClick={() => setViewMode("table")}
-              className={`px-3 py-2 flex items-center gap-2 ${
+              className={`min-h-11 px-3 py-2 flex items-center gap-2 touch-manipulation ${
                 viewMode === "table"
                   ? "bg-primary-50 text-primary-700"
                   : "text-neutral-600 hover:bg-neutral-50"
               }`}
             >
               <FiList className="w-4 h-4" />
-              Table
+              <span className="hidden sm:inline">Table</span>
             </button>
             <button
               onClick={() => setViewMode("grid")}
-              className={`px-3 py-2 flex items-center gap-2 ${
+              className={`min-h-11 px-3 py-2 flex items-center gap-2 touch-manipulation ${
                 viewMode === "grid"
                   ? "bg-primary-50 text-primary-700"
                   : "text-neutral-600 hover:bg-neutral-50"
               }`}
             >
               <FiGrid className="w-4 h-4" />
-              Grid
+              <span className="hidden sm:inline">Grid</span>
             </button>
           </div>
         </div>
@@ -267,98 +263,154 @@ export default function BlogsPage() {
           )}
         </div>
       ) : viewMode === "table" ? (
-        <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-neutral-50 border-b border-neutral-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Author
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Likes
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-neutral-200">
-                {filteredBlogs.map((blog) => (
-                  <tr key={blog._id} className="hover:bg-neutral-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-neutral-900 line-clamp-1">
-                          {blog.title}
-                        </div>
-                        <div className="text-sm text-neutral-500 line-clamp-1">
-                          {blog.description}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-neutral-900">{blog.author_name}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {getStatusBadge(blog.status)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-sm text-neutral-600">
-                        <FiHeart className="w-4 h-4 mr-1 text-red-500" />
-                        {blog.total_likes}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-sm text-neutral-600">
-                        <FiCalendar className="w-4 h-4 mr-1" />
-                        {formatDate(blog.createdAt)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Link href={`/blogs/${blog._id}`} target="_blank">
-                          <Button variant="ghost" size="sm">
-                            <FiEye className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                          <Button variant="ghost" size="sm">
-                            <FiEdit3 className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleStatus(blog._id, blog.status)}
-                          className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
-                        >
-                          {blog.status === "published" ? "Unpublish" : "Publish"}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(blog._id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <FiTrash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile card list — avoids page-level horizontal overflow */}
+          <div className="md:hidden space-y-3">
+            {filteredBlogs.map((blog) => (
+              <div key={blog._id} className="bg-white rounded-lg border border-neutral-200 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-neutral-900 break-words">{blog.title}</p>
+                    <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{blog.description}</p>
+                  </div>
+                  {getStatusBadge(blog.status)}
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600">
+                  <span className="inline-flex items-center gap-1">
+                    <FiHeart className="w-4 h-4 text-red-500" />
+                    {blog.total_likes}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <FiCalendar className="w-4 h-4" />
+                    {formatDate(blog.createdAt)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Link href={`/blogs/${blog._id}`} target="_blank">
+                    <Button variant="ghost" size="sm" aria-label="View post">
+                      <FiEye className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/blogs/edit/${blog._id}`}>
+                    <Button variant="ghost" size="sm" aria-label="Edit post">
+                      <FiEdit3 className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleToggleStatus(blog._id, blog.status)}
+                    className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
+                  >
+                    {blog.status === "published" ? "Unpublish" : "Publish"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(blog._id)}
+                    className="text-red-600 hover:text-red-700"
+                    aria-label="Delete post"
+                  >
+                    <FiTrash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          <div className="hidden md:block bg-white rounded-lg border border-neutral-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[40rem]">
+                <thead className="bg-neutral-50 border-b border-neutral-200">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Author
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Likes
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-neutral-200">
+                  {filteredBlogs.map((blog) => (
+                    <tr key={blog._id} className="hover:bg-neutral-50 transition-colors">
+                      <td className="px-4 lg:px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-neutral-900 line-clamp-1">
+                            {blog.title}
+                          </div>
+                          <div className="text-sm text-neutral-500 line-clamp-1">
+                            {blog.description}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4">
+                        <div className="text-sm text-neutral-900">{blog.author_name}</div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4">
+                        {getStatusBadge(blog.status)}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4">
+                        <div className="flex items-center text-sm text-neutral-600">
+                          <FiHeart className="w-4 h-4 mr-1 text-red-500" />
+                          {blog.total_likes}
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4">
+                        <div className="flex items-center text-sm text-neutral-600">
+                          <FiCalendar className="w-4 h-4 mr-1" />
+                          {formatDate(blog.createdAt)}
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <Link href={`/blogs/${blog._id}`} target="_blank">
+                            <Button variant="ghost" size="sm">
+                              <FiEye className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                          <Link href={`/dashboard/blogs/edit/${blog._id}`}>
+                            <Button variant="ghost" size="sm">
+                              <FiEdit3 className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleStatus(blog._id, blog.status)}
+                            className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
+                          >
+                            {blog.status === "published" ? "Unpublish" : "Publish"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(blog._id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       ) : (
         // Grid View
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -55,7 +55,7 @@ export function Input({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-600"
+            className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center text-neutral-400 hover:text-neutral-600 min-w-11 justify-center touch-manipulation"
             disabled={disabled}
             tabIndex={-1}
           >

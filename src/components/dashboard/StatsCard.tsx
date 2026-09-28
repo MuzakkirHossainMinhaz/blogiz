@@ -47,14 +47,14 @@ const StatsCard = ({
 
   return (
     <div className={cn(
-      "p-6 rounded-lg border shadow-sm card-hover",
+      "p-4 sm:p-6 rounded-lg border shadow-sm card-hover",
       variants[variant],
       className
     )}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-neutral-600">{title}</p>
-          <p className="text-2xl font-bold text-neutral-900 mt-1">{value}</p>
+          <p className="text-xl sm:text-2xl font-bold text-neutral-900 mt-1 break-words">{value}</p>
           {change && (
             <div className="flex items-center mt-2">
               <span className={cn(
