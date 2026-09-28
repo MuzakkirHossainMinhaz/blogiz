@@ -56,20 +56,29 @@ export function CommentSection({ blogId }: { blogId: string }) {
     setIsSubmitting(true);
     setError("");
     setMessage("");
-    const response = await fetch("/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ blogId, content: trimmed }),
-    });
-    const result = await response.json().catch(() => ({}));
-    setIsSubmitting(false);
-    if (!response.ok) {
-      setError(typeof result.error === "string" ? result.error : "Could not post comment");
-      return;
+    try {
+      let response: Response;
+      try {
+        response = await fetch("/api/comments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ blogId, content: trimmed }),
+        });
+      } catch {
+        setError("Could not post comment");
+        return;
+      }
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof result.error === "string" ? result.error : "Could not post comment");
+        return;
+      }
+      setContent("");
+      setMessage(typeof result.message === "string" ? result.message : "Comment submitted for approval");
+      await loadComments();
+    } finally {
+      setIsSubmitting(false);
     }
-    setContent("");
-    setMessage(typeof result.message === "string" ? result.message : "Comment submitted for approval");
-    await loadComments();
   };
 
   return (

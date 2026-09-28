@@ -44,5 +44,6 @@ Sign in at `/auth/login`.
 | `npm run typecheck` | TypeScript |
 | `npm test` | Vitest |
 | `npm run seed:admin` | Create one superadmin from `ADMIN_EMAIL` and `ADMIN_PASSWORD` |
+| `npm run backfill:likes` | Set a missing reaction `type` to `like` on older like rows |
 
 Setup, roles, auth, uploads, rate limits, and how to run the checks are in [GUIDE.md](GUIDE.md).
