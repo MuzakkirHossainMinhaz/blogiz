@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-// Middleware for auth check using NextAuth v5
+// Proxy for auth check using NextAuth v5.
+// Next.js 16 replaced middleware.ts with proxy.ts (Node.js runtime).
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
@@ -19,7 +20,7 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
-// Configure which routes the middleware applies to
+// Configure which routes the proxy applies to
 export const config = {
   matcher: ["/dashboard/:path*"],
 };
