@@ -99,10 +99,10 @@ The register IP limit applies only when `TRUSTED_PROXY_HEADER` is set and that h
 ```bash
 npm run lint
 npm run typecheck
-REDIS_URL=redis://127.0.0.1:6379 npm test
+npm test
 npm run build
 ```
 
-`npm test` includes a Redis integration test, so `REDIS_URL` must point at a running Redis. CI starts MongoDB 7 and Redis 7, then runs lint, typecheck, tests, and the production build.
+Without `REDIS_URL`, the Redis sliding-window test is skipped and the rest of the suite still runs. To exercise Redis locally, start Redis and run `REDIS_URL=redis://127.0.0.1:6379 npm test`. CI starts MongoDB 7 and Redis 7, then runs lint, typecheck, tests, and the production build.
 
 `GET /api/health` with header `x-health-token: <HEALTH_CHECK_SECRET>` returns `{ "ok": true }` when MongoDB is connected. Any other caller gets 404.

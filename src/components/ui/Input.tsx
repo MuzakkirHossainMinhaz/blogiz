@@ -1,11 +1,11 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { fieldErrorClassName, fieldLabelClassName, controlClassName } from "@/lib/field-styles";
 import { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
   error?: string;
   icon?: React.ReactNode;
   showTogglePassword?: boolean;
@@ -20,35 +20,38 @@ export function Input({
   className,
   disabled,
   required,
+  id,
+  name,
   ...props
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   const isPassword = type === "password";
   const inputType = isPassword && showTogglePassword ? (showPassword ? "text" : "password") : type;
+  const fieldId = id || name;
 
   return (
     <div className={className}>
-      <label htmlFor={props.id || props.name} className="block text-sm font-medium text-neutral-700 mb-2">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
+      {label ? (
+        <label htmlFor={fieldId} className={fieldLabelClassName}>
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      ) : null}
       <div className="relative">
-        {icon && <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400">{icon}</span>}
+        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">{icon}</span>}
         <input
+          id={fieldId}
+          name={name}
           type={inputType}
           disabled={disabled}
-          className={cn(
-            "w-full border rounded-lg font-medium transition-all duration-200",
-            "focus:outline-none focus:ring-2 focus:border-transparent",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            icon ? "pl-10" : "pl-4",
-            isPassword && showTogglePassword ? "pr-12" : "pr-4",
-            "py-3",
-            error
-              ? "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500"
-              : "border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:ring-primary-500"
-          )}
+          required={required}
+          className={controlClassName({
+            error: Boolean(error),
+            withIcon: Boolean(icon),
+            withTrailing: isPassword && showTogglePassword,
+            className: type === "date" ? "scheme-light" : undefined,
+          })}
           {...props}
         />
         {isPassword && showTogglePassword && (
@@ -58,12 +61,13 @@ export function Input({
             className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center text-neutral-400 hover:text-neutral-600 min-w-11 justify-center touch-manipulation"
             disabled={disabled}
             tabIndex={-1}
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <FiEyeOff className="h-5 w-5" /> : <FiEye className="h-5 w-5" />}
           </button>
         )}
       </div>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className={fieldErrorClassName}>{error}</p>}
     </div>
   );
 }

@@ -106,6 +106,15 @@ a, button {
   @apply outline-2 outline-offset-2 outline-primary-500;
 }
 
+/* Native control accents (date picker chrome, etc.) follow the brand */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="search"] {
+  color-scheme: light;
+  accent-color: var(--color-primary-600);
+}
+
 /* Custom Animations */
 @keyframes fadeIn {
   from {

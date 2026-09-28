@@ -2,6 +2,8 @@
 
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { renderMarkdown } from "@/lib/sanitize";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -77,18 +79,14 @@ export default function EditBlogPage() {
         </div>
       ) : (
         <div className="space-y-4 bg-white p-4 sm:p-6 rounded-xl border border-neutral-200">
-          <label className="block text-sm font-medium text-neutral-700">
-            Title
-            <input className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-3 text-base" value={title} onChange={(event) => setTitle(event.target.value)} />
-          </label>
-          <label className="block text-sm font-medium text-neutral-700">
-            Description
-            <textarea className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-3 text-base" value={description} onChange={(event) => setDescription(event.target.value)} />
-          </label>
-          <label className="block text-sm font-medium text-neutral-700">
-            Author name
-            <input className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-3 text-base" value={authorName} onChange={(event) => setAuthorName(event.target.value)} />
-          </label>
+          <Input label="Title" value={title} onChange={(event) => setTitle(event.target.value)} />
+          <Textarea
+            label="Description"
+            rows={3}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+          <Input label="Author name" value={authorName} onChange={(event) => setAuthorName(event.target.value)} />
           <RichTextEditor value={content} onChange={setContent} />
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <Button type="button" variant="outline" onClick={() => setPreview(true)} className="w-full sm:w-auto">

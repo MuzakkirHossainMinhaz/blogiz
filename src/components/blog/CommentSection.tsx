@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/Textarea";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -87,16 +88,14 @@ export function CommentSection({ blogId }: { blogId: string }) {
 
       {status === "authenticated" ? (
         <form onSubmit={submit} className="mb-8 space-y-3">
-          <label htmlFor="comment" className="block text-sm font-medium text-neutral-700">
-            Add a comment
-          </label>
-          <textarea
+          <Textarea
             id="comment"
+            label="Add a comment"
             value={content}
             onChange={(event) => setContent(event.target.value)}
             maxLength={1000}
             rows={4}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-3 text-base text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="Share your thoughts..."
           />
           <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
             Post comment

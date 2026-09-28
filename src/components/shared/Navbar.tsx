@@ -54,7 +54,14 @@ export default function Navbar() {
           {/* Logo */}
           <Link href={ROUTES.HOME} className="flex items-center gap-2 md:gap-3 group min-w-0 shrink">
             <div className="relative w-8 h-8 md:w-10 md:h-10 shrink-0 transition-transform group-hover:scale-110 motion-reduce:group-hover:scale-100">
-              <Image src="/logo.png" fill alt={`${APP_CONFIG.SITE_NAME} logo`} className="object-contain" priority />
+              <Image
+                src="/logo.png"
+                fill
+                sizes="40px"
+                alt={`${APP_CONFIG.SITE_NAME} logo`}
+                className="object-contain"
+                priority
+              />
             </div>
             <span className="text-lg sm:text-xl md:text-2xl font-bold gradient-text truncate">{APP_CONFIG.SITE_NAME}</span>
           </Link>

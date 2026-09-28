@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { Container } from "@/components/ui/Container";
 import { Input } from "@/components/ui/Input";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -138,18 +139,7 @@ export default function LoginPage() {
             />
 
             {/* Remember Me */}
-            <div className="flex items-center">
-              <input
-                {...register("remember")}
-                type="checkbox"
-                id="remember"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
-                disabled={isLoading}
-              />
-              <label htmlFor="remember" className="ml-2 block text-sm text-neutral-700">
-                Remember me
-              </label>
-            </div>
+            <Checkbox {...register("remember")} id="remember" label="Remember me" disabled={isLoading} />
 
             {/* Submit Button */}
             <Button

@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { FiEdit3, FiLock, FiMail, FiUser, FiUsers } from "react-icons/fi";
 import { passwordSchema } from "@/lib/validation";
 import { z } from "zod";
@@ -40,7 +40,7 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
+    control,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -48,7 +48,7 @@ export default function RegisterPage() {
     },
   });
 
-  const selectedRole = watch("role");
+  const selectedRole = useWatch({ control, name: "role" });
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);

@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { 
   FiFileText, 
   FiEdit3, 
@@ -29,69 +32,70 @@ interface Blog {
   author_name: string;
 }
 
+type PendingAction =
+  | { type: "delete"; blogId: string }
+  | { type: "toggle"; blogId: string; currentStatus: string }
+  | null;
+
 export default function BlogsPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   useEffect(() => {
-    fetchBlogs();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/blogs?scope=mine&limit=50");
+        if (cancelled) return;
+        if (response.ok) {
+          const data = await response.json();
+          setBlogs(data.blogs || []);
+        }
+      } catch (error) {
+        if (!cancelled) console.error("Failed to fetch blogs:", error);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    filterBlogs();
-  }, [blogs, searchTerm, statusFilter]);
-
-  const fetchBlogs = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/blogs?scope=mine&limit=50");
-      if (response.ok) {
-        const data = await response.json();
-        setBlogs(data.blogs || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch blogs:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filterBlogs = () => {
+  const filteredBlogs = useMemo(() => {
     let filtered = blogs;
 
-    // Filter by status
     if (statusFilter !== "all") {
-      filtered = filtered.filter(blog => blog.status === statusFilter);
+      filtered = filtered.filter((blog) => blog.status === statusFilter);
     }
 
-    // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(blog =>
-        blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.author_name.toLowerCase().includes(searchTerm.toLowerCase())
+      const query = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (blog) =>
+          blog.title.toLowerCase().includes(query) ||
+          blog.description.toLowerCase().includes(query) ||
+          blog.author_name.toLowerCase().includes(query)
       );
     }
 
-    setFilteredBlogs(filtered);
-  };
+    return filtered;
+  }, [blogs, searchTerm, statusFilter]);
 
   const handleDelete = async (blogId: string) => {
-    if (!confirm("Are you sure you want to delete this blog? This action cannot be undone.")) {
-      return;
-    }
-
     try {
       const response = await fetch(`/api/blogs/${blogId}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        setBlogs(blogs.filter(blog => blog._id !== blogId));
+        setBlogs((current) => current.filter((blog) => blog._id !== blogId));
       } else {
         alert("Failed to delete blog");
       }
@@ -105,10 +109,6 @@ export default function BlogsPage() {
     const newStatus = currentStatus === "published" ? "draft" : "published";
     const action = newStatus === "published" ? "publish" : "unpublish";
 
-    if (!confirm(`Are you sure you want to ${action} this blog?`)) {
-      return;
-    }
-
     try {
       const response = await fetch(`/api/blogs/${blogId}/publish`, {
         method: "POST",
@@ -121,9 +121,9 @@ export default function BlogsPage() {
       if (response.ok) {
         const data = await response.json();
         const status = data.blog?.status || newStatus;
-        setBlogs(blogs.map(blog =>
-          blog._id === blogId ? { ...blog, status } : blog
-        ));
+        setBlogs((current) =>
+          current.map((blog) => (blog._id === blogId ? { ...blog, status } : blog))
+        );
       } else {
         alert(`Failed to ${action} blog`);
       }
@@ -131,6 +131,14 @@ export default function BlogsPage() {
       console.error(`Failed to ${action} blog:`, error);
       alert(`Failed to ${action} blog`);
     }
+  };
+
+  const confirmPendingAction = async () => {
+    const action = pendingAction;
+    setPendingAction(null);
+    if (!action) return;
+    if (action.type === "delete") await handleDelete(action.blogId);
+    else await handleToggleStatus(action.blogId, action.currentStatus);
   };
 
   const getStatusBadge = (status: string) => {
@@ -180,30 +188,30 @@ export default function BlogsPage() {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
-            <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search blogs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
+            <Input
+              type="search"
+              aria-label="Search blogs"
+              placeholder="Search blogs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              icon={<FiSearch className="w-4 h-4" />}
+            />
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <FiFilter className="text-neutral-400 w-4 h-4" />
-            <select
+          <div className="flex items-center gap-2 lg:w-56">
+            <FiFilter className="text-neutral-400 w-4 h-4 shrink-0" />
+            <Select
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "all" | "published" | "draft")}
-              className="px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="all">All Status</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-            </select>
+              className="flex-1"
+              options={[
+                { value: "all", label: "All Status" },
+                { value: "published", label: "Published" },
+                { value: "draft", label: "Draft" },
+              ]}
+            />
           </div>
 
           {/* View Mode Toggle */}
@@ -299,7 +307,7 @@ export default function BlogsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleToggleStatus(blog._id, blog.status)}
+                    onClick={() => setPendingAction({ type: "toggle", blogId: blog._id, currentStatus: blog.status })}
                     className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
                   >
                     {blog.status === "published" ? "Unpublish" : "Publish"}
@@ -307,7 +315,7 @@ export default function BlogsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(blog._id)}
+                    onClick={() => setPendingAction({ type: "delete", blogId: blog._id })}
                     className="text-red-600 hover:text-red-700"
                     aria-label="Delete post"
                   >
@@ -389,7 +397,7 @@ export default function BlogsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleToggleStatus(blog._id, blog.status)}
+                            onClick={() => setPendingAction({ type: "toggle", blogId: blog._id, currentStatus: blog.status })}
                             className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
                           >
                             {blog.status === "published" ? "Unpublish" : "Publish"}
@@ -397,7 +405,7 @@ export default function BlogsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(blog._id)}
+                            onClick={() => setPendingAction({ type: "delete", blogId: blog._id })}
                             className="text-red-600 hover:text-red-700"
                           >
                             <FiTrash2 className="w-4 h-4" />
@@ -451,7 +459,7 @@ export default function BlogsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleToggleStatus(blog._id, blog.status)}
+                      onClick={() => setPendingAction({ type: "toggle", blogId: blog._id, currentStatus: blog.status })}
                       className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
                     >
                       {blog.status === "published" ? "Unpublish" : "Publish"}
@@ -459,7 +467,7 @@ export default function BlogsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(blog._id)}
+                      onClick={() => setPendingAction({ type: "delete", blogId: blog._id })}
                       className="text-red-600 hover:text-red-700"
                     >
                       <FiTrash2 className="w-4 h-4" />
@@ -471,6 +479,28 @@ export default function BlogsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingAction?.type === "delete"}
+        title="Delete blog post"
+        message="Are you sure you want to delete this blog? This action cannot be undone."
+        confirmLabel="Delete"
+        tone="danger"
+        onConfirm={confirmPendingAction}
+        onCancel={() => setPendingAction(null)}
+      />
+      <ConfirmDialog
+        open={pendingAction?.type === "toggle"}
+        title={pendingAction?.type === "toggle" && pendingAction.currentStatus === "published" ? "Unpublish post" : "Publish post"}
+        message={
+          pendingAction?.type === "toggle" && pendingAction.currentStatus === "published"
+            ? "Are you sure you want to unpublish this blog?"
+            : "Are you sure you want to publish this blog?"
+        }
+        confirmLabel={pendingAction?.type === "toggle" && pendingAction.currentStatus === "published" ? "Unpublish" : "Publish"}
+        onConfirm={confirmPendingAction}
+        onCancel={() => setPendingAction(null)}
+      />
     </div>
   );
 }

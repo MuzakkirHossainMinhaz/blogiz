@@ -96,7 +96,7 @@ export default function RichTextEditor({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full min-h-60 sm:min-h-75 p-3 sm:p-4 resize-y focus:outline-none font-sans text-base leading-relaxed"
+          className="w-full min-h-60 sm:min-h-75 p-3 sm:p-4 resize-y bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 font-sans text-base leading-relaxed"
         />
       ) : (
         <div

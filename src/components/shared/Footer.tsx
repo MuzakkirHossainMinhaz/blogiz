@@ -45,7 +45,13 @@ export default function Footer() {
             <div className="col-span-2 lg:col-span-2">
               <Link href={ROUTES.HOME} className="flex items-center gap-3 mb-4 group">
                 <div className="relative w-12 h-12 transition-transform group-hover:scale-110">
-                  <Image src="/logo.png" fill alt={`${APP_CONFIG.SITE_NAME} logo`} className="object-contain" />
+                  <Image
+                    src="/logo.png"
+                    fill
+                    sizes="48px"
+                    alt={`${APP_CONFIG.SITE_NAME} logo`}
+                    className="object-contain"
+                  />
                 </div>
                 <span className="text-2xl font-bold gradient-text">{APP_CONFIG.SITE_NAME}</span>
               </Link>

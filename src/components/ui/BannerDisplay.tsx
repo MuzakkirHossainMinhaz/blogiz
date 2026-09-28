@@ -35,39 +35,43 @@ export default function BannerDisplay({ type = "all", limit = 5, className = "" 
   const [carouselSettings, setCarouselSettings] = useState<any>(null);
 
   useEffect(() => {
-    fetchBanners();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+
+        if (type !== "all") {
+          params.append("type", type);
+        }
+
+        if (type === "featured" || type === "hero") {
+          params.append("carousel", "true");
+        }
+
+        params.append("limit", limit.toString());
+
+        const response = await fetch(`/api/banners?${params.toString()}`);
+        if (cancelled) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          setBanners(data.banners);
+          setCarouselSettings(data.carouselSettings);
+        } else {
+          console.error("Failed to fetch banners");
+        }
+      } catch (error) {
+        if (!cancelled) console.error("Error fetching banners:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [type, limit]);
-
-  const fetchBanners = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-
-      if (type !== "all") {
-        params.append("type", type);
-      }
-
-      if (type === "featured" || type === "hero") {
-        params.append("carousel", "true");
-      }
-
-      params.append("limit", limit.toString());
-
-      const response = await fetch(`/api/banners?${params.toString()}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setBanners(data.banners);
-        setCarouselSettings(data.carouselSettings);
-      } else {
-        console.error("Failed to fetch banners");
-      }
-    } catch (error) {
-      console.error("Error fetching banners:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

@@ -1,14 +1,20 @@
 export function contentSecurityPolicy(nonce: string): string {
   const storageHost = storageHostSource();
   const imgSrc = ["'self'", "data:", "blob:", storageHost].filter(Boolean).join(" ");
+  const isDev = process.env.NODE_ENV !== "production";
+  // React reconstruction / Turbopack HMR need eval in development only.
+  const scriptSrc = ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", isDev ? "'unsafe-eval'" : null]
+    .filter(Boolean)
+    .join(" ");
+  const connectSrc = isDev ? "'self' ws: wss:" : "'self'";
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src ${imgSrc}`,
     "font-src 'self'",
-    "connect-src 'self'",
+    `connect-src ${connectSrc}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

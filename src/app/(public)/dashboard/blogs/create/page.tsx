@@ -2,17 +2,21 @@
 
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
+import { controlClassName, fieldErrorClassName, fieldLabelClassName } from "@/lib/field-styles";
 import { hasPermission, UserRole } from "@/lib/permissions";
 import { renderMarkdown } from "@/lib/sanitize";
 import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 import { BLOG_CONTENT_MAX } from "@/lib/validation";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { FiCalendar, FiEye, FiLock, FiSave, FiUpload, FiUser } from "react-icons/fi";
 import { z } from "zod";
 
@@ -49,7 +53,8 @@ export default function CreateBlogPage() {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
+    getValues,
+    control,
     trigger,
   } = useForm<BlogFormData>({
     resolver: zodResolver(blogSchema),
@@ -64,18 +69,21 @@ export default function CreateBlogPage() {
     },
   });
 
-  const watchedStatus = watch("status");
-  const watchedContent = watch("content");
+  const watchedStatus = useWatch({ control, name: "status" });
+  const watchedTitle = useWatch({ control, name: "title" });
+  const watchedAuthorName = useWatch({ control, name: "author_name" });
+  const watchedPublishDate = useWatch({ control, name: "publish_date" });
+  const watchedBlogImage = useWatch({ control, name: "blog_image" });
 
   useEffect(() => {
     setValue("content", content);
   }, [content, setValue]);
 
   useEffect(() => {
-    if (watchedStatus === "published" && !watch("publish_date")) {
+    if (watchedStatus === "published" && !watchedPublishDate) {
       setValue("publish_date", new Date().toISOString().split("T")[0]);
     }
-  }, [watchedStatus, setValue, watch]);
+  }, [watchedStatus, watchedPublishDate, setValue]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -160,7 +168,7 @@ export default function CreateBlogPage() {
     setIsSavingDraft(true);
     const isValid = await trigger();
     if (isValid) {
-      const currentData = watch();
+      const currentData = getValues();
       onSubmit({ ...currentData, status: "draft" }, true);
     } else {
       setIsSavingDraft(false);
@@ -176,7 +184,7 @@ export default function CreateBlogPage() {
 
     const isValid = await trigger();
     if (isValid) {
-      const currentData = watch();
+      const currentData = getValues();
       onSubmit({ ...currentData, status: "published" });
     }
   };
@@ -228,23 +236,27 @@ export default function CreateBlogPage() {
 
         <div className="bg-white rounded-lg border border-neutral-200 p-4 sm:p-6 md:p-8 overflow-hidden">
           <div className="max-w-4xl mx-auto min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-4 break-words">{watch("title")}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-4 break-words">{watchedTitle}</h1>
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-neutral-600 mb-6">
               <div className="flex items-center gap-1">
                 <FiUser className="w-4 h-4" />
-                {watch("author_name")}
+                {watchedAuthorName}
               </div>
               <div className="flex items-center gap-1">
                 <FiCalendar className="w-4 h-4" />
-                {watch("publish_date") || new Date().toLocaleDateString()}
+                {watchedPublishDate || new Date().toLocaleDateString()}
               </div>
             </div>
-            {watch("blog_image") && (
-              <img
-                src={watch("blog_image")}
-                alt={watch("title")}
-                className="w-full h-48 sm:h-64 object-cover rounded-lg mb-6"
-              />
+            {watchedBlogImage && (
+              <div className="relative w-full h-48 sm:h-64 mb-6 overflow-hidden rounded-lg">
+                <Image
+                  src={watchedBlogImage}
+                  alt={watchedTitle || "Blog preview"}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 896px"
+                />
+              </div>
             )}
             <div className="prose max-w-none break-words">
               <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
@@ -292,83 +304,46 @@ export default function CreateBlogPage() {
       {/* Form */}
       <div className="bg-white rounded-lg border border-neutral-200">
         <div className="p-4 sm:p-6 space-y-6">
-          {/* Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-2">
-              Title *
-            </label>
-            <input
-              {...register("title")}
-              type="text"
-              id="title"
-              placeholder="Enter your blog title"
-              className={cn(
-                "w-full px-4 py-2 border rounded-lg font-medium transition-all duration-200",
-                "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
-                errors.title
-                  ? "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500"
-                  : "border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-primary-500"
-              )}
-            />
-            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
-          </div>
+          <Input
+            {...register("title")}
+            id="title"
+            label="Title"
+            placeholder="Enter your blog title"
+            error={errors.title?.message}
+            required
+          />
 
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-2">
-              Description *
-            </label>
-            <textarea
-              {...register("description")}
-              id="description"
-              rows={3}
-              placeholder="Write a brief description of your blog post"
-              className={cn(
-                "w-full px-4 py-2 border rounded-lg font-medium transition-all duration-200",
-                "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
-                errors.description
-                  ? "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500"
-                  : "border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-primary-500"
-              )}
-            />
-            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
-          </div>
+          <Textarea
+            {...register("description")}
+            id="description"
+            label="Description"
+            rows={3}
+            placeholder="Write a brief description of your blog post"
+            error={errors.description?.message}
+            required
+          />
 
-          {/* Content */}
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">Content *</label>
+            <label className={fieldLabelClassName}>
+              Content <span className="text-red-500">*</span>
+            </label>
             <RichTextEditor value={content} onChange={setContent} placeholder="Write your blog content here..." />
-            {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>}
+            {errors.content && <p className={fieldErrorClassName}>{errors.content.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Author Name */}
-            <div>
-              <label htmlFor="author_name" className="block text-sm font-medium text-neutral-700 mb-2">
-                Author Name *
-              </label>
-              <div className="relative">
-                <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-                <input
-                  {...register("author_name")}
-                  type="text"
-                  id="author_name"
-                  placeholder="Your name"
-                  className={cn(
-                    "w-full pl-10 pr-4 py-2 border rounded-lg font-medium transition-all duration-200",
-                    "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
-                    errors.author_name
-                      ? "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500"
-                      : "border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-primary-500"
-                  )}
-                />
-              </div>
-              {errors.author_name && <p className="mt-1 text-sm text-red-600">{errors.author_name.message}</p>}
-            </div>
+            <Input
+              {...register("author_name")}
+              id="author_name"
+              label="Author Name"
+              placeholder="Your name"
+              icon={<FiUser className="w-4 h-4" />}
+              error={errors.author_name?.message}
+              required
+            />
 
-            {/* Blog Image URL */}
             <div>
-              <label htmlFor="blog_image" className="block text-sm font-medium text-neutral-700 mb-2">
+              <label htmlFor="blog_image" className={fieldLabelClassName}>
                 Featured Image URL
               </label>
               <div className="flex gap-2">
@@ -377,54 +352,40 @@ export default function CreateBlogPage() {
                   type="url"
                   id="blog_image"
                   placeholder="https://example.com/image.jpg"
-                  className={cn(
-                    "flex-1 px-4 py-2 border rounded-lg font-medium transition-all duration-200",
-                    "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
-                    errors.blog_image
-                      ? "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500"
-                      : "border-neutral-300 text-neutral-900 placeholder-neutral-400 focus:border-primary-500"
-                  )}
+                  className={controlClassName({
+                    error: Boolean(errors.blog_image),
+                    className: "flex-1",
+                  })}
                 />
-                <label className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors">
+                <label className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-neutral-300 bg-white text-neutral-600 hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 cursor-pointer transition-colors touch-manipulation">
                   <FiUpload className="w-4 h-4" />
+                  <span className="sr-only">Upload image</span>
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </label>
               </div>
-              {errors.blog_image && <p className="mt-1 text-sm text-red-600">{errors.blog_image.message}</p>}
+              {errors.blog_image && <p className={fieldErrorClassName}>{errors.blog_image.message}</p>}
             </div>
           </div>
 
-          {/* Status and Publish Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="status" className="block text-sm font-medium text-neutral-700 mb-2">
-                Status
-              </label>
-              <select
-                {...register("status")}
-                id="status"
-                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
-            </div>
+            <Select
+              {...register("status")}
+              id="status"
+              label="Status"
+              options={[
+                { value: "draft", label: "Draft" },
+                { value: "published", label: "Published" },
+              ]}
+            />
 
             {watchedStatus === "published" && (
-              <div>
-                <label htmlFor="publish_date" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Publish Date
-                </label>
-                <div className="relative">
-                  <FiCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
-                  <input
-                    {...register("publish_date")}
-                    type="date"
-                    id="publish_date"
-                    className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
-              </div>
+              <Input
+                {...register("publish_date")}
+                id="publish_date"
+                type="date"
+                label="Publish Date"
+                icon={<FiCalendar className="w-4 h-4" />}
+              />
             )}
           </div>
         </div>

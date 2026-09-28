@@ -44,37 +44,47 @@ export default function DashboardPage() {
   const canViewAdminDashboard = hasPermission(userRole, "viewAdminDashboard");
   const canViewUsers = hasPermission(userRole, "viewUsers");
 
-  const [stats, setStats] = useState<DashboardStats>({
-    totalBlogs: 0,
-    publishedBlogs: 0,
-    draftBlogs: 0,
-    totalLikes: 0,
-    recentBlogs: [],
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const isLoading = canCreateBlog && stats === null;
 
   useEffect(() => {
-    if (canCreateBlog) {
-      fetchDashboardStats();
-    } else {
-      setIsLoading(false);
-    }
-  }, [canCreateBlog]);
+    if (!canCreateBlog) return;
 
-  const fetchDashboardStats = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/blogs/stats");
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/blogs/stats");
+        if (cancelled) return;
+        if (response.ok) {
+          setStats(await response.json());
+        } else {
+          setStats({
+            totalBlogs: 0,
+            publishedBlogs: 0,
+            draftBlogs: 0,
+            totalLikes: 0,
+            recentBlogs: [],
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to fetch dashboard stats:", error);
+          setStats({
+            totalBlogs: 0,
+            publishedBlogs: 0,
+            draftBlogs: 0,
+            totalLikes: 0,
+            recentBlogs: [],
+          });
+        }
       }
-    } catch (error) {
-      console.error("Failed to fetch dashboard stats:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canCreateBlog]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -238,7 +248,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatsCard
               title="Total Posts"
-              value={isLoading ? "--" : stats.totalBlogs}
+              value={isLoading ? "--" : stats?.totalBlogs ?? 0}
               icon={FiFileText}
               variant="primary"
               change={{
@@ -248,7 +258,7 @@ export default function DashboardPage() {
             />
             <StatsCard
               title="Published"
-              value={isLoading ? "--" : stats.publishedBlogs}
+              value={isLoading ? "--" : stats?.publishedBlogs ?? 0}
               icon={FiEye}
               variant="success"
               change={{
@@ -258,7 +268,7 @@ export default function DashboardPage() {
             />
             <StatsCard
               title="Drafts"
-              value={isLoading ? "--" : stats.draftBlogs}
+              value={isLoading ? "--" : stats?.draftBlogs ?? 0}
               icon={FiEdit3}
               variant="warning"
               change={{
@@ -268,7 +278,7 @@ export default function DashboardPage() {
             />
             <StatsCard
               title="Total Likes"
-              value={isLoading ? "--" : stats.totalLikes}
+              value={isLoading ? "--" : stats?.totalLikes ?? 0}
               icon={FiHeart}
               variant="accent"
               change={{
@@ -289,7 +299,7 @@ export default function DashboardPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
                 <p className="mt-2 text-sm text-neutral-600">Loading recent posts...</p>
               </div>
-            ) : stats.recentBlogs.length > 0 ? (
+            ) : stats && stats.recentBlogs.length > 0 ? (
               <>
                 <div className="md:hidden divide-y divide-neutral-200">
                   {stats.recentBlogs.map((blog) => (
