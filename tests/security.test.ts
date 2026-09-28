@@ -13,7 +13,7 @@ import {
 import { renderMarkdown } from "@/lib/sanitize";
 import { canSignIn, evaluateSession } from "@/lib/session-policy";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT } from "@/lib/uploads";
-import { isSafeNavigationUrl, safeCallbackUrl } from "@/lib/urls";
+import { cloudinaryPublicId, isCloudinaryDeliveryUrl, isSafeNavigationUrl, isStoredImageUrl, safeCallbackUrl } from "@/lib/urls";
 import { passwordSchema } from "@/lib/validation";
 
 describe("authorization policy", () => {
@@ -101,6 +101,22 @@ describe("input guards", () => {
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
     expect(sniffImage(png)?.mime).toBe("image/png");
     expect(sniffImage(Buffer.from("<html></html>"))).toBeNull();
+  });
+
+  it("accepts only this app's Cloudinary delivery URLs", () => {
+    const previous = process.env.CLOUDINARY_CLOUD_NAME;
+    process.env.CLOUDINARY_CLOUD_NAME = "blogizdemo";
+    const ok = "https://res.cloudinary.com/blogizdemo/image/upload/v1710000000/blogiz/abc.png";
+    expect(isStoredImageUrl(ok)).toBe(true);
+    expect(cloudinaryPublicId(ok)).toBe("blogiz/abc");
+    expect(isStoredImageUrl("https://res.cloudinary.com/other/image/upload/v1/blogiz/abc.png")).toBe(false);
+    expect(isStoredImageUrl("https://evil.example/blogizdemo/image/upload/v1/a.png")).toBe(false);
+    expect(isStoredImageUrl(`${ok}?x=1`)).toBe(false);
+    expect(isStoredImageUrl("https://res.cloudinary.com/blogizdemo/image/upload/v1/../etc/passwd.png")).toBe(false);
+    expect(isCloudinaryDeliveryUrl("https://res.cloudinary.com/other/image/upload/v1/a.jpg")).toBe(true);
+    expect(isCloudinaryDeliveryUrl("/api/media/aaaaaaaaaaaaaaaaaaaaaaaa")).toBe(false);
+    if (previous === undefined) delete process.env.CLOUDINARY_CLOUD_NAME;
+    else process.env.CLOUDINARY_CLOUD_NAME = previous;
   });
 
   it("raises the password policy", () => {

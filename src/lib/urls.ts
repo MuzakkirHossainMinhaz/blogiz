@@ -1,4 +1,45 @@
-const STORED_MEDIA_PATH = /^\/api\/media\/[a-f0-9]{24}$/i;
+const CLOUD_NAME = /^[a-z0-9_-]+$/i;
+
+export function configuredCloudName(): string {
+  return process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "";
+}
+
+/**
+ * HTTPS image delivered by Cloudinary. Does not check which cloud it belongs to.
+ * Write paths use isStoredImageUrl, which requires this app's cloud name.
+ */
+export function isCloudinaryDeliveryUrl(value: string): boolean {
+  return cloudinaryPublicId(value, "*") !== null;
+}
+
+/** This app's Cloudinary secure URL only. */
+export function isStoredImageUrl(value: string, cloudName = configuredCloudName()): boolean {
+  if (!cloudName || !CLOUD_NAME.test(cloudName)) return false;
+  return cloudinaryPublicId(value, cloudName) !== null;
+}
+
+/**
+ * Public id (folder + name, no extension) for a secure URL we issued.
+ * Pass "*" to accept any Cloudinary cloud name.
+ */
+export function cloudinaryPublicId(value: string, cloudName = configuredCloudName()): string | null {
+  const cloud = cloudName === "*" ? "[a-z0-9_-]+" : cloudName;
+  if (!cloud || (cloudName !== "*" && !CLOUD_NAME.test(cloudName))) return null;
+
+  let url: URL;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" || url.hostname !== "res.cloudinary.com") return null;
+  if (url.username || url.password || url.search || url.hash) return null;
+
+  const match = url.pathname.match(new RegExp(`^/${cloud}/image/upload/v\\d+/(.+)\\.(jpg|jpeg|png|webp)$`, "i"));
+  const publicId = match?.[1];
+  if (!publicId || publicId.includes("..") || publicId.includes("\\") || publicId.startsWith("/")) return null;
+  return publicId;
+}
 
 /**
  * Same-site relative path, or an explicit http(s) URL.
@@ -33,22 +74,6 @@ export function isHttpsUrl(value: string): boolean {
     return false;
   }
   return url.protocol === "https:" && !url.username && !url.password && url.hostname.length > 0;
-}
-
-export function isStoredImageUrl(value: string): boolean {
-  const trimmed = value.trim();
-  if (STORED_MEDIA_PATH.test(trimmed)) return true;
-
-  const base = process.env.S3_PUBLIC_BASE_URL?.trim();
-  if (!base || !trimmed.startsWith(`${base.replace(/\/$/, "")}/`)) return false;
-
-  try {
-    const url = new URL(trimmed);
-    const baseUrl = new URL(base);
-    return url.protocol === "https:" && url.host === baseUrl.host && !url.username && !url.password;
-  } catch {
-    return false;
-  }
 }
 
 /** Post-login redirect. Only a same-site path is accepted. */

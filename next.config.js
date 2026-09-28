@@ -1,18 +1,19 @@
 /** @type {import('next').NextConfig} */
 
 function storagePattern() {
-  const base = process.env.S3_PUBLIC_BASE_URL;
-  if (!base) return [];
-  try {
-    const url = new URL(base);
-    if (url.protocol !== "https:") return [];
-    return [{ protocol: "https", hostname: url.hostname, pathname: "/**" }];
-  } catch {
-    return [];
-  }
+  const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  if (!cloud || !/^[a-z0-9_-]+$/i.test(cloud)) return [];
+  return [
+    {
+      protocol: "https",
+      hostname: "res.cloudinary.com",
+      pathname: `/${cloud}/**`,
+    },
+  ];
 }
 
 const nextConfig = {
+  serverExternalPackages: ["cloudinary", "ioredis", "sliding-window-rate-limiter"],
   images: {
     remotePatterns: storagePattern(),
   },

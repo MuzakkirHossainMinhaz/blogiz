@@ -1,15 +1,27 @@
 import { randomUUID } from "crypto";
-import { GridFSBucket, ObjectId } from "mongodb";
-import mongoose from "mongoose";
-import { connectDB } from "@/lib/mongodb";
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT, UploadError, type SniffedImage } from "@/lib/uploads";
+import { cloudinaryPublicId, isStoredImageUrl } from "@/lib/urls";
 
-const BUCKET = "images";
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const FOLDER = "blogiz";
+
+export function requireCloudinaryConfig(): { cloud_name: string; api_key: string; api_secret: string } {
+  const cloud_name = process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "";
+  const api_key = process.env.CLOUDINARY_API_KEY?.trim() ?? "";
+  const api_secret = process.env.CLOUDINARY_API_SECRET?.trim() ?? "";
+  if (!cloud_name || !api_key || !api_secret) {
+    throw new UploadError("CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required");
+  }
+  if (!/^[a-z0-9_-]+$/i.test(cloud_name)) {
+    throw new UploadError("CLOUDINARY_CLOUD_NAME is invalid");
+  }
+  cloudinary.config({ cloud_name, api_key, api_secret, secure: true });
+  return { cloud_name, api_key, api_secret };
+}
 
 /**
- * Images are stored in GridFS and served only from /api/media with an image content type.
- * The filename is generated here. assertInsideUploadRoot still rejects traversal before the write.
+ * Server-side Cloudinary upload. The client filename is ignored.
+ * Magic bytes choose the format, and the object name cannot leave the upload root.
  */
 export async function saveImage(bytes: Buffer): Promise<{ url: string; contentType: SniffedImage["mime"] }> {
   const sniffed = sniffImage(bytes);
@@ -17,44 +29,49 @@ export async function saveImage(bytes: Buffer): Promise<{ url: string; contentTy
     throw new UploadError("Only JPEG, PNG, and WebP images are allowed");
   }
 
-  const filename = `${randomUUID()}.${sniffed.ext}`;
+  const id = randomUUID();
+  const filename = `${id}.${sniffed.ext}`;
   assertInsideUploadRoot(UPLOAD_ROOT, filename);
+  const { cloud_name } = requireCloudinaryConfig();
 
-  await connectDB();
-  const db = mongoose.connection.db;
-  if (!db) {
-    throw new UploadError("Storage is unavailable");
-  }
-
-  const bucket = new GridFSBucket(db, { bucketName: BUCKET });
-  const id = new ObjectId();
-
-  await new Promise<void>((resolve, reject) => {
-    const stream = bucket.openUploadStreamWithId(id, filename, {
-      metadata: { contentType: sniffed.mime },
-    });
-    stream.on("error", reject);
-    stream.on("finish", () => resolve());
+  const uploaded = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: FOLDER,
+        public_id: id,
+        resource_type: "image",
+        format: sniffed.ext,
+        unique_filename: false,
+        overwrite: false,
+        use_filename: false,
+      },
+      (error, result) => {
+        if (error || !result?.secure_url) {
+          reject(error instanceof Error ? error : new UploadError("Upload failed"));
+          return;
+        }
+        resolve(result);
+      }
+    );
     stream.end(bytes);
   });
 
-  return { url: `/api/media/${id.toHexString()}`, contentType: sniffed.mime };
+  if (!isStoredImageUrl(uploaded.secure_url, cloud_name)) {
+    throw new UploadError("Upload failed");
+  }
+
+  return { url: uploaded.secure_url, contentType: sniffed.mime };
 }
 
-export async function openStoredImage(id: string): Promise<{ stream: NodeJS.ReadableStream; contentType: string } | null> {
-  if (!/^[a-f0-9]{24}$/i.test(id)) return null;
+/** Deletes a previously stored image. Missing objects are ignored. */
+export async function deleteStoredImage(url: string | null | undefined): Promise<void> {
+  if (!url?.trim()) return;
+  const publicId = cloudinaryPublicId(url);
+  if (!publicId) return;
 
-  await connectDB();
-  const db = mongoose.connection.db;
-  if (!db) return null;
-
-  const bucket = new GridFSBucket(db, { bucketName: BUCKET });
-  const files = await bucket.find({ _id: new ObjectId(id) }).toArray();
-  const file = files[0];
-  if (!file) return null;
-
-  const contentType = String(file.metadata?.contentType || "");
-  if (!ALLOWED_TYPES.has(contentType)) return null;
-
-  return { stream: bucket.openDownloadStream(file._id), contentType };
+  requireCloudinaryConfig();
+  const result = await cloudinary.uploader.destroy(publicId, { resource_type: "image", invalidate: true });
+  if (result.result !== "ok" && result.result !== "not found") {
+    throw new UploadError("Could not delete the stored image");
+  }
 }

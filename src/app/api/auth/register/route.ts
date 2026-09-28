@@ -3,7 +3,7 @@ import User from "@/models/User";
 import { isDuplicateKey } from "@/lib/engagement";
 import { jsonError, serverError } from "@/lib/http";
 import { accountLink, sendAccountEmail } from "@/lib/mail";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
 import { readTrustedClientAddress, hashIdentifier } from "@/lib/request-utils";
 import { createSecretToken } from "@/lib/tokens";
 import { passwordSchema } from "@/lib/validation";
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
 
     const email = validation.data.email.toLowerCase();
     const ip = readTrustedClientAddress((name) => request.headers.get(name));
-    const emailLimit = rateLimit(`register:${email}`, 5, 60 * 60 * 1000);
-    const ipLimit = ip ? rateLimit(`register-ip:${hashIdentifier(ip)}`, 20, 60 * 60 * 1000) : { ok: true as const };
+    const emailLimit = await rateLimit(`register:${email}`, 5, 60 * 60 * 1000);
+    const ipLimit = ip ? await rateLimit(`register-ip:${hashIdentifier(ip)}`, 20, 60 * 60 * 1000) : { ok: true as const };
     if (!emailLimit.ok || !ipLimit.ok) {
       return jsonError("Too many requests", 429);
     }
@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
   } catch (error) {
+    if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
     return serverError("Registration error:", error);
   }
 }

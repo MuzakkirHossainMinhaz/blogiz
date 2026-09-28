@@ -4,7 +4,7 @@ import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { Button } from "@/components/ui/Button";
 import { hasPermission, UserRole } from "@/lib/permissions";
 import { renderMarkdown } from "@/lib/sanitize";
-import { isStoredImageUrl } from "@/lib/urls";
+import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 import { BLOG_CONTENT_MAX } from "@/lib/validation";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,7 +23,7 @@ const blogSchema = z.object({
   author_name: z.string().min(1, "Author name is required").max(50, "Author name must be less than 50 characters"),
   blog_image: z
     .string()
-    .refine((value) => value === "" || isStoredImageUrl(value), "Upload an image")
+    .refine((value) => value === "" || isCloudinaryDeliveryUrl(value), "Upload an image")
     .optional()
     .or(z.literal("")),
   status: z.enum(["draft", "published"]),

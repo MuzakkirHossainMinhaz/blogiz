@@ -2,7 +2,7 @@ import NextAuth, { type Session, type User } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { requireAuthSecret, requireAuthUrl } from "@/lib/env";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
 import { canSignIn, evaluateSession } from "@/lib/session-policy";
 
 const authSecret = requireAuthSecret();
@@ -30,9 +30,16 @@ const authConfig = {
           throw new Error("Invalid email or password");
         }
 
-        const attempt = rateLimit(`login:${email}`, 10, 15 * 60 * 1000);
-        if (!attempt.ok) {
-          throw new Error("Invalid email or password");
+        try {
+          const attempt = await rateLimit(`login:${email}`, 10, 15 * 60 * 1000);
+          if (!attempt.ok) {
+            throw new Error("Invalid email or password");
+          }
+        } catch (error) {
+          if (error instanceof RateLimitUnavailable) {
+            throw new Error(error.message);
+          }
+          throw error;
         }
 
         await connectDB();
