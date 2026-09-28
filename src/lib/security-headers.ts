@@ -18,15 +18,9 @@ export function contentSecurityPolicy(nonce: string): string {
 }
 
 function storageHostSource(): string {
-  const base = process.env.S3_PUBLIC_BASE_URL?.trim();
-  if (!base) return "";
-  try {
-    const url = new URL(base);
-    if (url.protocol !== "https:") return "";
-    return url.host;
-  } catch {
-    return "";
-  }
+  const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  if (!cloud || !/^[a-z0-9_-]+$/i.test(cloud)) return "";
+  return "https://res.cloudinary.com";
 }
 
 export function applySecurityHeaders(headers: Headers, csp: string) {

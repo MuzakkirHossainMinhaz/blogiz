@@ -13,6 +13,35 @@ vi.mock("@/lib/auth", () => ({
   authConfig: {},
 }));
 
+vi.mock("cloudinary", async () => {
+  const { Writable } = await import("node:stream");
+  return {
+    v2: {
+      config: () => undefined,
+      uploader: {
+        upload_stream: (
+          options: { public_id: string; format: string },
+          callback: (error: null, result: { secure_url: string }) => void
+        ) => {
+          const stream = new Writable({
+            write(_chunk, _encoding, done) {
+              done();
+            },
+          });
+          stream.on("finish", () => {
+            const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+            callback(null, {
+              secure_url: `https://res.cloudinary.com/${cloud}/image/upload/v1/blogiz/${options.public_id}.${options.format}`,
+            });
+          });
+          return stream;
+        },
+        destroy: async () => ({ result: "ok" }),
+      },
+    },
+  };
+});
+
 let mongo: MongoMemoryServer;
 
 function sessionFor(user: { _id: { toString(): string }; role: string; email: string; name: string; isApproved: boolean; emailVerified: boolean }) {
@@ -164,13 +193,27 @@ describe("upload and admin actions", () => {
     authMock.mockResolvedValue(sessionFor(author));
     const { POST } = await import("@/app/api/upload/route");
 
+    delete process.env.CLOUDINARY_CLOUD_NAME;
+    delete process.env.CLOUDINARY_API_KEY;
+    delete process.env.CLOUDINARY_API_SECRET;
+
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+    const missing = new FormData();
+    missing.set("file", new File([png], "../../evil.html", { type: "text/html" }));
+    const unconfigured = await POST(new NextRequest("http://localhost:3000/api/upload", { method: "POST", body: missing }));
+    const unconfiguredBody = await unconfigured.json();
+    expect(unconfigured.status).toBe(400);
+    expect(unconfiguredBody.error).toMatch(/CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required/);
+
+    process.env.CLOUDINARY_CLOUD_NAME = "blogiztest";
+    process.env.CLOUDINARY_API_KEY = "test-key";
+    process.env.CLOUDINARY_API_SECRET = "test-secret";
     const good = new FormData();
     good.set("file", new File([png], "../../evil.html", { type: "text/html" }));
     const saved = await POST(new NextRequest("http://localhost:3000/api/upload", { method: "POST", body: good }));
     const savedBody = await saved.json();
     expect(saved.status).toBe(200);
-    expect(savedBody.url).toMatch(/^\/api\/media\/[a-f0-9]{24}$/i);
+    expect(savedBody.url).toMatch(/^https:\/\/res\.cloudinary\.com\/blogiztest\/image\/upload\/v1\/blogiz\/[0-9a-f-]+\.png$/i);
     expect(savedBody.url).not.toContain("evil");
 
     const bad = new FormData();
@@ -201,7 +244,11 @@ describe("upload and admin actions", () => {
     const banner = await POST(
       new NextRequest("http://localhost:3000/api/admin/banners", {
         method: "POST",
-        body: JSON.stringify({ title: "Hi", image: "/api/media/aaaaaaaaaaaaaaaaaaaaaaaa", ctaLink: "javascript:alert(1)" }),
+        body: JSON.stringify({
+          title: "Hi",
+          image: "https://res.cloudinary.com/blogiztest/image/upload/v1/blogiz/aaaaaaaaaaaaaaaaaaaaaaaa.png",
+          ctaLink: "javascript:alert(1)",
+        }),
       })
     );
     expect(banner.status).toBe(403);

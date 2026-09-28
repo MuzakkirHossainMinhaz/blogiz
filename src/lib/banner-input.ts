@@ -47,7 +47,9 @@ export function parseBannerWrite(body: unknown, { requireImage }: { requireImage
     return { error: "Banner image is required" };
   }
 
-  if (input.backgroundImage !== undefined && input.backgroundImage !== "") {
+  if (input.backgroundImage === "") {
+    result.backgroundImage = "";
+  } else if (input.backgroundImage !== undefined) {
     if (typeof input.backgroundImage !== "string" || !isStoredImageUrl(input.backgroundImage)) {
       return { error: "Invalid background image" };
     }

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import { isSafeNavigationUrl, isStoredImageUrl } from "@/lib/urls";
+import { isCloudinaryDeliveryUrl, isSafeNavigationUrl } from "@/lib/urls";
 
 interface Banner {
   id: string;
@@ -182,14 +182,13 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
 
                   {/* Image */}
                   <div className="relative h-64 md:h-80">
-                    {isStoredImageUrl(banner.image) && (
+                    {isCloudinaryDeliveryUrl(banner.image) && (
                     <Image
                       src={banner.image}
                       alt={banner.title}
                       fill
                       className="object-contain"
                       priority={index === 0}
-                      unoptimized={banner.image.startsWith("/api/media/")}
                     />
                     )}
                   </div>
@@ -299,14 +298,13 @@ export function HeroBanner({ banner, className = "" }: { banner: Banner; classNa
 
             {/* Image */}
             <div className="relative h-64 md:h-80">
-              {isStoredImageUrl(banner.image) && (
+              {isCloudinaryDeliveryUrl(banner.image) && (
                 <Image
                   src={banner.image}
                   alt={banner.title}
                   fill
                   className="object-contain"
                   priority
-                  unoptimized={banner.image.startsWith("/api/media/")}
                 />
               )}
             </div>

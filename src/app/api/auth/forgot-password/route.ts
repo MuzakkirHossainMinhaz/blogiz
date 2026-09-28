@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { jsonError, serverError } from "@/lib/http";
 import { accountLink, sendAccountEmail } from "@/lib/mail";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
 import { createSecretToken } from "@/lib/tokens";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const email = typeof body?.email === "string" ? body.email.toLowerCase().trim() : "";
     if (!email || !email.includes("@")) return jsonError("Invalid input", 400);
 
-    const attempt = rateLimit(`reset:${email}`, 5, 60 * 60 * 1000);
+    const attempt = await rateLimit(`reset:${email}`, 5, 60 * 60 * 1000);
     if (!attempt.ok) return jsonError("Too many requests", 429);
 
     await connectDB();
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: GENERIC });
   } catch (error) {
+    if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
     return serverError("Password reset request failed:", error);
   }
 }

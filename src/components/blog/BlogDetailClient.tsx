@@ -7,7 +7,7 @@ import Image from "next/image";
 import { FaCalendar } from "react-icons/fa";
 import { formatDate } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/sanitize";
-import { isStoredImageUrl } from "@/lib/urls";
+import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 
 interface BlogDetailClientProps {
   blog: Blog;
@@ -62,11 +62,10 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
       </header>
 
       {/* Featured Image */}
-      {blog.blog_image && isStoredImageUrl(blog.blog_image) && (
+      {blog.blog_image && isCloudinaryDeliveryUrl(blog.blog_image) && (
         <figure className="mb-8 md:mb-12 rounded-2xl overflow-hidden shadow-soft-lg">
           <Image
             src={blog.blog_image}
-            unoptimized={blog.blog_image.startsWith("/api/media/")}
             width={1200}
             height={600}
             alt={blog.title}

@@ -4,14 +4,14 @@ import { denied } from "@/lib/authz";
 import { requireAiUser } from "@/lib/ai-guard";
 import { huggingFaceAI } from "@/lib/huggingface";
 import { jsonError, serverError } from "@/lib/http";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
 
 async function generate(actorId: string, prompt: string) {
   const quota = imageDailyQuota();
   if (!quota) return jsonError("Image generation is disabled until a quota is configured", 503);
 
   const day = new Date().toISOString().slice(0, 10);
-  const attempt = rateLimit(`image:${actorId}:${day}`, quota, 24 * 60 * 60 * 1000);
+  const attempt = await rateLimit(`image:${actorId}:${day}`, quota, 24 * 60 * 60 * 1000);
   if (!attempt.ok) return jsonError("Too many requests", 429);
 
   const imageData = await huggingFaceAI.generateImage(prompt);
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
 
     return await generate(actor.id, finalPrompt);
   } catch (error) {
+    if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
     return serverError("Image generation failed:", error);
   }
 }
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     if (!title) return jsonError("Title is required", 400);
     return await generate(actor.id, `Blog cover: ${title}`);
   } catch (error) {
+    if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
     return serverError("Blog cover generation failed:", error);
   }
 }

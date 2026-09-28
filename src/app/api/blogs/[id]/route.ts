@@ -10,6 +10,8 @@ import { withOptionalTransaction } from "@/lib/engagement";
 import { jsonError, serverError } from "@/lib/http";
 import { canPerformAction } from "@/lib/permissions";
 import { PUBLIC_AUTHOR_FIELDS, canViewPost, resolveUpdateStatus } from "@/lib/public-posts";
+import { deleteStoredImage } from "@/lib/object-storage";
+import { UploadError } from "@/lib/uploads";
 import { isStoredImageUrl } from "@/lib/urls";
 import { blogWriteSchema } from "@/lib/validation";
 
@@ -65,8 +67,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!parsed.success) return jsonError("Invalid input", 400);
 
     const { title, description, content, author_name, blog_image, publish_date } = parsed.data;
-    if (blog_image && !isStoredImageUrl(blog_image)) {
-      return jsonError("Image must be an uploaded file", 400);
+    let nextImage: string | undefined;
+    if (blog_image !== undefined) {
+      nextImage = blog_image.trim();
+      if (nextImage && !isStoredImageUrl(nextImage)) {
+        return jsonError("Image must be an uploaded file", 400);
+      }
+      if (existingBlog.blog_image && existingBlog.blog_image !== nextImage) {
+        await deleteStoredImage(existingBlog.blog_image);
+      }
     }
 
     const statusUpdate = resolveUpdateStatus(actor.role, body.status);
@@ -78,7 +87,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(description && { description }),
         ...(content && { content }),
         ...(author_name && { author_name }),
-        ...(blog_image && { blog_image }),
+        ...(nextImage !== undefined && { blog_image: nextImage }),
         ...(publish_date && { publish_date }),
         ...(statusUpdate
           ? {
@@ -96,6 +105,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       blog: updatedBlog,
     });
   } catch (error) {
+    if (error instanceof UploadError) return jsonError(error.message, 400);
     return serverError("Error updating blog:", error);
   }
 }
@@ -118,6 +128,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       canPerformAction(actor.role, "deleteAnyBlog");
     if (!canDelete) return jsonError("Forbidden", 403);
 
+    await deleteStoredImage(existingBlog.blog_image);
+
     await withOptionalTransaction(async (session) => {
       await Like.deleteMany({ blogId: id }, { session: session ?? undefined });
       await Comment.deleteMany({ blogId: id }, { session: session ?? undefined });
@@ -129,6 +141,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       message: "Blog and associated likes deleted successfully",
     });
   } catch (error) {
+    if (error instanceof UploadError) return jsonError(error.message, 400);
     return serverError("Error deleting blog:", error);
   }
 }
