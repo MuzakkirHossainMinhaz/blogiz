@@ -21,3 +21,10 @@ export const blogWriteSchema = z.object({
 });
 
 export type BlogWriteInput = z.infer<typeof blogWriteSchema>;
+
+export const reactionSchema = z.object({
+  blogId: z.string().regex(/^[a-fA-F0-9]{24}$/, "Invalid blog ID"),
+  reaction: z.enum(["like", "dislike"]),
+});
+
+export type ReactionKind = z.infer<typeof reactionSchema>["reaction"];

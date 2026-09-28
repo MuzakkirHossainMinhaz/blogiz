@@ -1,11 +1,14 @@
 "use client";
 
-import { LikeButton } from "@/components/ui/LikeButton";
+import { CommentSection } from "@/components/blog/CommentSection";
+import { ReactionButtons } from "@/components/ui/ReactionButtons";
 import { ShareButtons } from "@/components/ui/ShareButtons";
+import { ROUTES } from "@/config/constants";
 import { Blog } from "@/types";
 import Image from "next/image";
+import Link from "next/link";
 import { FaCalendar } from "react-icons/fa";
-import { formatDate } from "@/lib/utils";
+import { authorProfileId, formatDate } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/sanitize";
 import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 
@@ -17,6 +20,7 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
   const currentUrl = typeof window !== 'undefined' 
     ? window.location.href 
     : `https://your-domain.com/blogs/${blog._id}`;
+  const profileId = authorProfileId(blog.authorId);
 
   return (
     <article className="max-w-4xl mx-auto">
@@ -32,7 +36,7 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
         </h1>
 
         {/* Author Info */}
-        <div className="flex items-center justify-center gap-4 mb-6">
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full ring-2 ring-primary-100 bg-primary-100 flex items-center justify-center">
               <span className="text-primary-700 font-semibold text-lg">
@@ -40,24 +44,26 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
               </span>
             </div>
             <div className="text-left">
-              <p className="font-semibold text-neutral-900">
-                {blog.author_name}
-              </p>
+              {profileId ? (
+                <Link href={ROUTES.AUTHOR(profileId)} className="font-semibold text-neutral-900 hover:text-primary-600">
+                  {blog.author_name}
+                </Link>
+              ) : (
+                <p className="font-semibold text-neutral-900">{blog.author_name}</p>
+              )}
               <p className="text-sm text-neutral-600">Author</p>
             </div>
           </div>
 
-          <div className="h-8 w-px bg-neutral-200" />
+          <div className="h-8 w-px bg-neutral-200 hidden sm:block" />
 
-          <div className="flex items-center gap-2 text-neutral-600">
-            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center">
-              <span className="text-red-600 text-xs">♥</span>
-            </div>
-            <span className="font-semibold">
-              {blog.total_likes}
-            </span>
-            <span className="text-sm">likes</span>
-          </div>
+          <ReactionButtons
+            blogId={blog._id}
+            initialLikes={blog.total_likes}
+            initialDislikes={blog.total_dislikes ?? 0}
+            size="md"
+            showSignInHint
+          />
         </div>
       </header>
 
@@ -83,25 +89,9 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
         />
       </div>
 
-      {/* Footer Actions */}
       <footer className="pt-8 border-t border-neutral-200">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-          {/* Like Button */}
-          <LikeButton 
-            blogId={blog._id}
-            initialLikeCount={blog.total_likes}
-            size="lg"
-            variant="default"
-          />
-
-          {/* Share Buttons */}
-          <ShareButtons 
-            title={blog.title}
-            url={currentUrl}
-            size="md"
-            variant="compact"
-          />
-        </div>
+        <ShareButtons title={blog.title} url={currentUrl} size="md" variant="compact" />
+        <CommentSection blogId={blog._id} />
       </footer>
     </article>
   );

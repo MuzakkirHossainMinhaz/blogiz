@@ -29,6 +29,7 @@ export const ROUTES = {
   HOME: "/",
   BLOGS: "/blogs",
   BLOG_DETAIL: (id: string) => `/blogs/${id}`,
+  AUTHOR: (id: string) => `/authors/${id}`,
   CREATE_BLOG: "/blogs/create",
   ABOUT: "/about",
   SUPPORT: "/support",

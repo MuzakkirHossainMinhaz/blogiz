@@ -21,18 +21,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     await connectDB();
 
-    const [likes, total] = await Promise.all([
+    const [reactions, total] = await Promise.all([
       Like.find({ blogId })
         .sort({ createdAt: -1 })
         .skip(paging.skip)
         .limit(paging.limit)
-        .select("userId createdAt")
+        .select("userId type createdAt")
         .lean(),
       Like.countDocuments({ blogId }),
     ]);
 
     return NextResponse.json({
-      likes,
+      reactions,
       pagination: {
         page: paging.page,
         limit: paging.limit,
@@ -41,6 +41,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
   } catch (error) {
-    return serverError("Error fetching likes:", error);
+    return serverError("Error fetching reactions:", error);
   }
 }

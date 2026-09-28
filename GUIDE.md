@@ -45,10 +45,20 @@ A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET`
 | --- | --- | --- |
 | Superadmin | Everything, including changing roles, deactivating accounts, and managing banners | Manage an equal or higher role |
 | Admin | Approve and reject posts and comments, approve users, manage banners, open the admin dashboard | Deactivate accounts, change roles, or act on an equal or higher role |
-| Author | Create, edit, and delete their own posts; open the author dashboard | Approve posts or manage banners. Sign-in requires `isApproved` |
-| User | Comment and edit their own profile | Create posts or open a dashboard |
+| Author | Create, edit, and delete their own posts; comment and react on published posts, including posts they did not write; open the author dashboard | Approve posts or comments, edit someone else's post, or manage banners. Sign-in requires `isApproved` |
+| User | Comment, like or dislike a published post, and edit their own profile | Create posts or open a dashboard |
 
-An author who asks to publish a post gets `pending` and the post stays unapproved until someone with `approveBlog` approves it. Comments are public only after someone with `approveComment` approves them. Admin and superadmin comments are approved immediately.
+An author who asks to publish a post gets `pending` and the post stays unapproved until someone with `approveBlog` approves it. Comments are public only after someone with `approveComment` approves them. Admin and superadmin comments are approved immediately. An author's comment on someone else's post uses that same approval rule.
+
+## Reactions
+
+A published post has two reactions, like and dislike. A signed-in user has one reaction on a post. Choosing the other reaction replaces the first. Choosing the same reaction again removes it. The public post shows both counts. A visitor who is not signed in sees the counts and cannot react.
+
+`POST /api/likes` with `{ "blogId", "reaction": "like" | "dislike" }` is that single reaction flow.
+
+## Public author profiles
+
+The byline on a post links to `/authors/[authorId]`. Anyone, including a visitor who is not signed in, can open it. The page shows that author's public profile and their published posts, with each post's like and dislike counts. It does not show an email address, and it does not list drafts or other unpublished posts.
 
 ## Auth
 

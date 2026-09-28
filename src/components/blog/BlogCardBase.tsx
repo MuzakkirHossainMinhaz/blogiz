@@ -1,10 +1,10 @@
 import { Blog } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
-import { LikeButton } from "@/components/ui/LikeButton";
+import { ReactionButtons } from "@/components/ui/ReactionButtons";
 import { FaCalendar } from "react-icons/fa";
 import { Badge } from "@/components/ui/Badge";
-import { cn, truncateText, formatDate } from "@/lib/utils";
+import { authorProfileId, cn, truncateText, formatDate } from "@/lib/utils";
 import { ROUTES, UI_CONFIG } from "@/config/constants";
 import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 
@@ -16,6 +16,7 @@ interface BlogCardBaseProps {
 
 export function BlogCardBase({ blog, variant = "default", className }: BlogCardBaseProps) {
   const isFeatured = variant === "featured";
+  const profileId = authorProfileId(blog.authorId);
   const maxDescLength = isFeatured
     ? UI_CONFIG.MAX_DESCRIPTION_LENGTH_LATEST
     : UI_CONFIG.MAX_DESCRIPTION_LENGTH_CARD;
@@ -107,18 +108,20 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
                 />
               </div>
             </div>
-            <span className="text-sm text-neutral-700 font-medium">
-              {blog.author_name}
-            </span>
+            {profileId ? (
+              <Link href={ROUTES.AUTHOR(profileId)} className="text-sm text-neutral-700 font-medium hover:text-primary-600">
+                {blog.author_name}
+              </Link>
+            ) : (
+              <span className="text-sm text-neutral-700 font-medium">{blog.author_name}</span>
+            )}
           </div>
 
-          {/* Likes */}
-          <LikeButton 
+          <ReactionButtons
             blogId={blog._id}
-            initialLikeCount={blog.total_likes}
+            initialLikes={blog.total_likes}
+            initialDislikes={blog.total_dislikes ?? 0}
             size="sm"
-            variant="ghost"
-            showCount={true}
           />
         </div>
       </div>

@@ -59,3 +59,15 @@ export function isValidUrl(url: string): boolean {
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
+
+export function authorProfileId(authorId: unknown): string | null {
+  if (typeof authorId === "string" && /^[a-fA-F0-9]{24}$/.test(authorId)) return authorId;
+  if (!authorId || typeof authorId !== "object" || !("_id" in authorId)) return null;
+  const id = (authorId as { _id?: unknown })._id;
+  if (typeof id === "string" && /^[a-fA-F0-9]{24}$/.test(id)) return id;
+  if (id && typeof id === "object" && "toString" in id) {
+    const value = String(id);
+    return /^[a-fA-F0-9]{24}$/.test(value) ? value : null;
+  }
+  return null;
+}

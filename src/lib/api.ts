@@ -1,4 +1,7 @@
 import { Blog } from "@/types";
+import type { ReactionKind } from "@/lib/validation";
+
+export type { ReactionKind };
 
 /**
  * Generic fetch wrapper with error handling
@@ -79,24 +82,54 @@ export async function deleteBlog(id: string): Promise<void> {
   });
 }
 
-/**
- * Toggle like on a blog
- */
-export async function toggleLike(blogId: string): Promise<{ liked: boolean; count: number }> {
-  return fetchAPI<{ liked: boolean; count: number }>("/likes", {
-    method: "POST",
-    body: JSON.stringify({ blogId }),
-    cache: "no-store",
-  });
+export interface ReactionState {
+  reaction: ReactionKind | null;
+  total_likes: number;
+  total_dislikes: number;
+}
+
+async function readJson(response: Response): Promise<Record<string, unknown>> {
+  const data = await response.json().catch(() => ({}));
+  return data && typeof data === "object" ? (data as Record<string, unknown>) : {};
 }
 
 /**
- * Check if user has liked a blog
+ * Save a like or dislike. Sending the current reaction again removes it.
  */
-export async function checkLikeStatus(blogId: string): Promise<{ liked: boolean }> {
-  return fetchAPI<{ liked: boolean }>(`/likes/check?blogId=${blogId}`, {
+export async function setReaction(blogId: string, reaction: ReactionKind): Promise<ReactionState> {
+  const response = await fetch("/api/likes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ blogId, reaction }),
     cache: "no-store",
   });
+  const data = await readJson(response);
+  if (!response.ok) {
+    throw new Error(typeof data.error === "string" ? data.error : "Could not save reaction");
+  }
+  return {
+    reaction: data.reaction === "like" || data.reaction === "dislike" ? data.reaction : null,
+    total_likes: typeof data.total_likes === "number" ? data.total_likes : 0,
+    total_dislikes: typeof data.total_dislikes === "number" ? data.total_dislikes : 0,
+  };
+}
+
+/**
+ * The signed-in user's reaction on a blog, plus both counts.
+ */
+export async function getReaction(blogId: string): Promise<ReactionState> {
+  const response = await fetch(`/api/likes/check?blogId=${encodeURIComponent(blogId)}`, {
+    cache: "no-store",
+  });
+  const data = await readJson(response);
+  if (!response.ok) {
+    throw new Error(typeof data.error === "string" ? data.error : "Could not load reaction");
+  }
+  return {
+    reaction: data.reaction === "like" || data.reaction === "dislike" ? data.reaction : null,
+    total_likes: typeof data.total_likes === "number" ? data.total_likes : 0,
+    total_dislikes: typeof data.total_dislikes === "number" ? data.total_dislikes : 0,
+  };
 }
 
 /**

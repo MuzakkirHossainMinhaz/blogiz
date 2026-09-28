@@ -5,7 +5,12 @@ export const PUBLIC_POST_FILTER = { status: "published" as const, isApproved: tr
 export const PUBLIC_AUTHOR_FIELDS = "name profile.fullName profile.avatar profile.bio";
 
 export const PUBLIC_CARD_FIELDS =
-  "title description author_name authorId blog_image publish_date tags readingTime total_likes total_comments total_views createdAt status isApproved";
+  "title description author_name authorId blog_image publish_date tags readingTime total_likes total_dislikes total_comments total_views createdAt status isApproved";
+
+export const PUBLIC_PROFILE_FIELDS = "name role profile createdAt";
+
+export const PUBLIC_PROFILE_BLOG_FIELDS =
+  "title description author_name blog_image publish_date tags readingTime total_likes total_dislikes";
 
 const STATUSES = ["draft", "pending", "published", "rejected"] as const;
 export type BlogStatus = (typeof STATUSES)[number];

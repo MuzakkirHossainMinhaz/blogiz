@@ -14,6 +14,7 @@ export interface IBlog extends Document {
   approvedAt?: Date;
   rejectionReason?: string;
   total_likes: number;
+  total_dislikes: number;
   total_comments: number;
   total_views: number;
   tags: string[];
@@ -84,6 +85,10 @@ const BlogSchema = new Schema<IBlog>(
       default: "",
     },
     total_likes: {
+      type: Number,
+      default: 0,
+    },
+    total_dislikes: {
       type: Number,
       default: 0,
     },
