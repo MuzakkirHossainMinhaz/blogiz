@@ -69,7 +69,7 @@ const authConfig = {
   trustHost: true,
 };
 
-// Export the auth function for API routes and middleware
+// Export the auth function for API routes and proxy
 export const { handlers, auth } = NextAuth(authConfig);
 
 // Export authConfig for other components

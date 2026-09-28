@@ -60,6 +60,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The guards above leave only user→author and author→admin. Mongoose's
+    // create() input is narrower than User.role, so record that pair explicitly.
+    const currentRole: "user" | "author" = requestedRole === "author" ? "user" : "author";
+
     // Check if there's already a pending request
     const existingRequest = await RoleUpgradeRequest.findOne({
       userId,
@@ -77,7 +81,7 @@ export async function POST(request: NextRequest) {
     const upgradeRequest = await RoleUpgradeRequest.create({
       userId,
       requestedRole,
-      currentRole: user.role,
+      currentRole,
       reason: reason.trim(),
     });
 
