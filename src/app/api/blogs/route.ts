@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
       readingTime,
       createdBy: actor.id,
       total_likes: 0,
+      total_dislikes: 0,
       total_comments: 0,
       total_views: 0,
     });

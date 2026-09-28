@@ -1,6 +1,6 @@
 # Blogiz
 
-Blogiz is a multi-user blog. Readers can comment, authors can draft posts, and admins approve posts, comments, and author accounts. Images are stored in Cloudinary. Sign-in, registration, password reset, and the AI routes are rate limited in Redis.
+Blogiz is a multi-user blog. Signed-in readers and authors can comment on published posts and leave one like or dislike. Authors draft their own posts, and they can also comment and react on posts they did not write. Admins approve posts, comments, and author accounts. Each author has a public profile at `/authors/[authorId]`, linked from the byline. Images are stored in Cloudinary. Sign-in, registration, password reset, and the AI routes are rate limited in Redis.
 
 Optional Hugging Face helpers can draft text, analyze a post, or generate an image. Those routes stay off until their environment variables are set. Search matches published post text. Content moderation is not configured and that route returns 503.
 

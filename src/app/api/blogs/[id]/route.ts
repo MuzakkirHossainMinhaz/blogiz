@@ -138,7 +138,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     return NextResponse.json({
-      message: "Blog and associated likes deleted successfully",
+      message: "Blog and associated reactions deleted successfully",
     });
   } catch (error) {
     if (error instanceof UploadError) return jsonError(error.message, 400);

@@ -1,54 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Blog from "@/models/Blog";
+import { getPublicAuthorProfile } from "@/lib/db";
 import { denied, requireUser } from "@/lib/authz";
 import { jsonError, serverError } from "@/lib/http";
 import { canPerformAction } from "@/lib/permissions";
-import { publicPostFilter } from "@/lib/public-posts";
 import { isHttpsUrl, isStoredImageUrl } from "@/lib/urls";
 import bcrypt from "bcryptjs";
+import Blog from "@/models/Blog";
 import BlogView from "@/models/BlogView";
+import User from "@/models/User";
 import Comment from "@/models/Comment";
 import Like from "@/models/Like";
 import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
 
 // GET /api/users/[userId] - Get user profile (public information)
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    await connectDB();
     const { userId } = await params;
-
-    const user = await User.findById(userId)
-      .select("name role profile.fullName profile.bio profile.avatar profile.website profile.socialLinks profile.location profile.expertise createdAt isApproved")
-      .lean();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    // Get user's published blogs count
-    const publishedBlogsCount = await Blog.countDocuments(publicPostFilter({ authorId: userId }));
-
-    const recentBlogs = await Blog.find(publicPostFilter({ authorId: userId }))
-      .select("title description blog_image publish_date total_likes total_comments tags readingTime")
-      .sort({ publish_date: -1 })
-      .limit(5)
-      .lean();
+    const profile = await getPublicAuthorProfile(userId);
+    if (!profile) return jsonError("User not found", 404);
 
     return NextResponse.json({
       user: {
-        ...user,
+        _id: profile.id,
+        name: profile.name,
+        role: profile.role,
+        createdAt: profile.createdAt,
+        profile: profile.profile,
         stats: {
-          publishedBlogsCount,
+          publishedBlogsCount: profile.blogs.length,
         },
-        recentBlogs,
+        recentBlogs: profile.blogs,
       },
     });
   } catch (error) {
