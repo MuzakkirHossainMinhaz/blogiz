@@ -1,31 +1,29 @@
+import { createHash } from "crypto";
 import { headers } from "next/headers";
+import { requireAuthSecret } from "@/lib/env";
 
-export async function getClientIP(): Promise<string> {
-  const headersList = await headers();
-
-  // Try different headers in order of preference
-  const forwardedFor = headersList.get("x-forwarded-for");
-  const realIP = headersList.get("x-real-ip");
-  const cfConnectingIP = headersList.get("cf-connecting-ip");
-
-  if (forwardedFor) {
-    // x-forwarded-for can contain multiple IPs, get the first one
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  if (realIP) {
-    return realIP.trim();
-  }
-
-  if (cfConnectingIP) {
-    return cfConnectingIP.trim();
-  }
-
-  // Fallback to a default IP for development
-  return "127.0.0.1";
+/**
+ * Raw client IPs are not stored.
+ * A hash is derived only when TRUSTED_PROXY_HEADER names a proxy header this deployment trusts.
+ * View documents that keep that hash expire after 90 days (see BlogView).
+ */
+export function hashIdentifier(value: string): string {
+  return createHash("sha256").update(`${requireAuthSecret()}:${value}`).digest("hex");
 }
 
-export async function getUserAgent(): Promise<string> {
-  const headersList = await headers();
-  return headersList.get("user-agent") || "Unknown";
+export function readTrustedClientAddress(headerGetter: (name: string) => string | null): string | null {
+  const headerName = process.env.TRUSTED_PROXY_HEADER?.trim().toLowerCase();
+  if (!headerName) return null;
+  const raw = headerGetter(headerName);
+  if (!raw) return null;
+  const ip = headerName === "x-forwarded-for" ? raw.split(",")[0]?.trim() : raw.trim();
+  if (!ip) return null;
+  return ip;
+}
+
+export async function trustedClientHash(): Promise<string | null> {
+  const headerList = await headers();
+  const ip = readTrustedClientAddress((name) => headerList.get(name));
+  if (!ip) return null;
+  return hashIdentifier(ip);
 }

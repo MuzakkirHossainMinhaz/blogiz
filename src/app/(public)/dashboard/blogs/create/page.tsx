@@ -3,6 +3,9 @@
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { Button } from "@/components/ui/Button";
 import { hasPermission, UserRole } from "@/lib/permissions";
+import { renderMarkdown } from "@/lib/sanitize";
+import { isStoredImageUrl } from "@/lib/urls";
+import { BLOG_CONTENT_MAX } from "@/lib/validation";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
@@ -16,71 +19,24 @@ import { z } from "zod";
 const blogSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
   description: z.string().min(1, "Description is required").max(500, "Description must be less than 500 characters"),
-  content: z.string().min(1, "Content is required"),
+  content: z.string().min(1, "Content is required").max(BLOG_CONTENT_MAX, "Content is too long"),
   author_name: z.string().min(1, "Author name is required").max(50, "Author name must be less than 50 characters"),
-  blog_image: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  blog_image: z
+    .string()
+    .refine((value) => value === "" || isStoredImageUrl(value), "Upload an image")
+    .optional()
+    .or(z.literal("")),
   status: z.enum(["draft", "published"]),
   publish_date: z.string().optional(),
 });
 
 type BlogFormData = z.infer<typeof blogSchema>;
 
-// Extend session user type
-declare module "next-auth" {
-  interface User {
-    role?: string;
-  }
-}
-
 export default function CreateBlogPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const userRole = (session?.user?.role as UserRole) || "user";
   const canCreateBlog = hasPermission(userRole, "createBlog");
-
-  // Redirect if user doesn't have permission
-  useEffect(() => {
-    if (status === "loading") return;
-    if (!canCreateBlog) {
-      router.push("/dashboard");
-    }
-  }, [canCreateBlog, router, status]);
-
-  // Show loading state while checking session
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  // Show access denied for users without permission
-  if (!canCreateBlog) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
-          <FiLock className="w-10 h-10 text-red-600" />
-        </div>
-        <h1 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h1>
-        <p className="text-neutral-600 mb-6 max-w-md">
-          You don't have permission to create blog posts. This feature is only available to authors, admins, and
-          superadmins.
-        </p>
-        <div className="space-y-3">
-          <Link href="/dashboard">
-            <Button variant="primary">Go to Dashboard</Button>
-          </Link>
-          <div className="text-sm text-neutral-500 mt-4">
-            Want to become an author?{" "}
-            <Link href="/dashboard/settings" className="text-primary-600 hover:underline">
-              Request author role
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -121,6 +77,49 @@ export default function CreateBlogPage() {
     }
   }, [watchedStatus, setValue, watch]);
 
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!canCreateBlog) {
+      router.push("/dashboard");
+    }
+  }, [canCreateBlog, router, status]);
+
+  // Show loading state while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  // Show access denied for users without permission
+  if (!canCreateBlog) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+          <FiLock className="w-10 h-10 text-red-600" />
+        </div>
+        <h1 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h1>
+        <p className="text-neutral-600 mb-6 max-w-md">
+          You don&apos;t have permission to create blog posts. This feature is only available to authors, admins, and
+          superadmins.
+        </p>
+        <div className="space-y-3">
+          <Link href="/dashboard">
+            <Button variant="primary">Go to Dashboard</Button>
+          </Link>
+          <div className="text-sm text-neutral-500 mt-4">
+            Want to become an author?{" "}
+            <Link href="/dashboard/settings" className="text-primary-600 hover:underline">
+              Request author role
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const onSubmit = async (data: BlogFormData, isDraft: boolean = false) => {
     setIsSubmitting(true);
     setError(null);
@@ -141,12 +140,12 @@ export default function CreateBlogPage() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         router.push("/dashboard/blogs");
         router.refresh();
       } else {
         const errorData = await response.json();
-        setError(errorData.message || "Failed to create blog");
+        setError(errorData.error || errorData.message || "Failed to create blog");
       }
     } catch (error) {
       console.error("Failed to create blog:", error);
@@ -248,7 +247,7 @@ export default function CreateBlogPage() {
               />
             )}
             <div className="prose max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: content }} />
+              <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
             </div>
           </div>
         </div>

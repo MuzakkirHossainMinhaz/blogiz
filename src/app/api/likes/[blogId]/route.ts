@@ -1,61 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Like from "@/models/Like";
-import mongoose from "mongoose";
+import { jsonError, serverError } from "@/lib/http";
+import { parsePageLimit } from "@/lib/pagination";
 
-// GET /api/likes/[blogId] - Get all likes for a blog
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ blogId: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ blogId: string }> }) {
   try {
     const { blogId } = await params;
-
-    // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(blogId)) {
-      return NextResponse.json({ error: "Invalid blog ID" }, { status: 400 });
+      return jsonError("Invalid blog ID", 400);
     }
+
+    const paging = parsePageLimit(
+      new URL(request.url).searchParams.get("page"),
+      new URL(request.url).searchParams.get("limit"),
+      20
+    );
+    if ("error" in paging) return jsonError(paging.error, 400);
 
     await connectDB();
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-
-    const skip = (page - 1) * limit;
-
-    // Get likes with pagination
-    const likes = await Like.find({ blogId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .select("-ipAddress") // Don't expose full IP addresses
-      .lean();
-
-    // Get total count
-    const total = await Like.countDocuments({ blogId });
-
-    // Anonymize IP addresses (show only first 2 octets)
-    const anonymizedLikes = likes.map((like) => ({
-      ...like,
-      ipAddress: "xxx.xxx.xxx.xxx", // Fully anonymized for privacy
-      createdAt: like.createdAt,
-    }));
+    const [likes, total] = await Promise.all([
+      Like.find({ blogId })
+        .sort({ createdAt: -1 })
+        .skip(paging.skip)
+        .limit(paging.limit)
+        .select("userId createdAt")
+        .lean(),
+      Like.countDocuments({ blogId }),
+    ]);
 
     return NextResponse.json({
-      likes: anonymizedLikes,
+      likes,
       pagination: {
-        page,
-        limit,
+        page: paging.page,
+        limit: paging.limit,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / paging.limit),
       },
     });
-  } catch (error: any) {
-    console.error("Error fetching likes:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch likes", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching likes:", error);
   }
 }

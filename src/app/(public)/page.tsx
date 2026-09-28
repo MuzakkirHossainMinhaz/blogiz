@@ -7,7 +7,7 @@ import { APP_CONFIG } from "@/config/constants";
 import { getBlogs } from "@/lib/db";
 
 export default async function HomePage() {
-  const blogs = await getBlogs();
+  const blogs = await getBlogs(APP_CONFIG.LATEST_BLOGS_COUNT);
 
   const latestBlogs = blogs.slice(0, 2);
   const recentBlogs = blogs.slice(2, APP_CONFIG.LATEST_BLOGS_COUNT);

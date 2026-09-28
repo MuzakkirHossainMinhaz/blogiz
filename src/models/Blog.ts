@@ -40,6 +40,7 @@ const BlogSchema = new Schema<IBlog>(
     content: {
       type: String,
       required: [true, "Content is required"],
+      maxlength: [100000, "Content cannot exceed 100000 characters"],
     },
     author_name: {
       type: String,

@@ -16,7 +16,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (status === "loading") return; // Still loading
     if (!session) {
-      router.push("/auth/secure/login?callbackUrl=/dashboard");
+      router.push("/auth/login?callbackUrl=/dashboard");
     }
   }, [session, status, router]);
 

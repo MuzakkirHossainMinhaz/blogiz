@@ -11,13 +11,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FiEdit3, FiLock, FiMail, FiUser, FiUsers } from "react-icons/fi";
+import { passwordSchema } from "@/lib/validation";
 import { z } from "zod";
 
 const registerSchema = z
   .object({
     name: z.string().min(1, "Username is required"),
     email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: passwordSchema,
     confirmPassword: z.string().min(1, "Confirm password is required"),
     fullName: z.string().min(1, "Full name is required"),
     role: z.enum(["user", "author"]),

@@ -21,6 +21,12 @@ export interface IUser extends Document {
   isActive: boolean;
   isApproved: boolean;
   emailVerified: boolean;
+  sessionVersion: number;
+  emailVerificationTokenHash?: string;
+  emailVerificationExpires?: Date;
+  passwordResetTokenHash?: string;
+  passwordResetExpires?: Date;
+  pendingEmail?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,7 +43,7 @@ const UserSchema = new Schema<IUser>(
     password: {
       type: String,
       required: [true, "Password is required"],
-      minlength: 6,
+      minlength: 10,
     },
     name: {
       type: String,
@@ -96,6 +102,15 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    sessionVersion: {
+      type: Number,
+      default: 0,
+    },
+    emailVerificationTokenHash: String,
+    emailVerificationExpires: Date,
+    passwordResetTokenHash: String,
+    passwordResetExpires: Date,
+    pendingEmail: String,
   },
   {
     timestamps: true,

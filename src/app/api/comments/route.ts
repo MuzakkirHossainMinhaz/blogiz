@@ -2,186 +2,112 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Comment from "@/models/Comment";
 import Blog from "@/models/Blog";
-import { auth } from "@/lib/auth";
+import { denied, requirePermission } from "@/lib/authz";
+import { syncCommentCount } from "@/lib/engagement";
+import { jsonError, serverError } from "@/lib/http";
+import { parsePageLimit } from "@/lib/pagination";
 import { hasPermission } from "@/lib/permissions";
-import { tensorflowAI } from "@/lib/tensorflow";
+import { publicPostFilter } from "@/lib/public-posts";
+import mongoose from "mongoose";
 
-// GET /api/comments - Get comments for a blog
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
     const { searchParams } = new URL(request.url);
-    const blogId = searchParams.get("blogId");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-
-    if (!blogId) {
-      return NextResponse.json(
-        { error: "Blog ID is required" },
-        { status: 400 }
-      );
+    const blogId = searchParams.get("blogId") || "";
+    if (!mongoose.Types.ObjectId.isValid(blogId)) {
+      return jsonError("Blog ID is required", 400);
     }
 
-    const skip = (page - 1) * limit;
+    const paging = parsePageLimit(searchParams.get("page"), searchParams.get("limit"));
+    if ("error" in paging) return jsonError(paging.error, 400);
 
-    // Get approved comments (top-level only)
-    const comments = await Comment.find({ 
-      blogId, 
-      parentId: null, 
-      isApproved: true 
-    })
-      .populate("userId", "profile.fullName profile.avatar name")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    await connectDB();
 
-    // Get replies for each comment
+    const filter = { blogId, parentId: null, isApproved: true };
+    const [comments, total] = await Promise.all([
+      Comment.find(filter)
+        .populate("userId", "profile.fullName profile.avatar name")
+        .sort({ createdAt: -1 })
+        .skip(paging.skip)
+        .limit(paging.limit)
+        .lean(),
+      Comment.countDocuments(filter),
+    ]);
+
     const commentsWithReplies = await Promise.all(
-      comments.map(async (comment: any) => {
-        const replies = await Comment.find({ 
-          parentId: comment._id, 
-          isApproved: true 
-        })
+      comments.map(async (comment) => {
+        const replies = await Comment.find({ parentId: comment._id, isApproved: true })
           .populate("userId", "profile.fullName profile.avatar name")
           .sort({ createdAt: 1 })
           .lean();
-
-        return {
-          ...comment,
-          replies,
-        };
+        return { ...comment, replies };
       })
     );
-
-    // Get total count
-    const total = await Comment.countDocuments({ 
-      blogId, 
-      parentId: null, 
-      isApproved: true 
-    });
 
     return NextResponse.json({
       comments: commentsWithReplies,
       pagination: {
-        page,
-        limit,
+        page: paging.page,
+        limit: paging.limit,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / paging.limit),
       },
     });
-  } catch (error: any) {
-    console.error("Error fetching comments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch comments", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching comments:", error);
   }
 }
 
-// POST /api/comments - Create a new comment
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requirePermission("createComment", { verified: true });
+    if (denied(actor)) return actor;
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please login to comment" },
-        { status: 401 }
-      );
+    const body = await request.json().catch(() => null);
+    const blogId = typeof body?.blogId === "string" ? body.blogId : "";
+    const content = typeof body?.content === "string" ? body.content.trim() : "";
+    const parentId = typeof body?.parentId === "string" ? body.parentId : "";
+
+    if (!mongoose.Types.ObjectId.isValid(blogId) || content.length < 1 || content.length > 1000) {
+      return jsonError("Blog ID and content are required", 400);
     }
 
     await connectDB();
 
-    const body = await request.json();
-    const { blogId, content, parentId } = body;
+    const blog = await Blog.findOne({ _id: blogId, ...publicPostFilter() }).select("_id");
+    if (!blog) return jsonError("Blog not found", 404);
 
-    // Validation
-    if (!blogId || !content) {
-      return NextResponse.json(
-        { error: "Blog ID and content are required" },
-        { status: 400 }
-      );
-    }
-
-    // Check if blog exists
-    const blog = await Blog.findById(blogId);
-    if (!blog) {
-      return NextResponse.json(
-        { error: "Blog not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if parent comment exists (if it's a reply)
     if (parentId) {
-      const parentComment = await Comment.findById(parentId);
-      if (!parentComment) {
-        return NextResponse.json(
-          { error: "Parent comment not found" },
-          { status: 404 }
-        );
-      }
+      if (!mongoose.Types.ObjectId.isValid(parentId)) return jsonError("Parent comment not found", 404);
+      const parentComment = await Comment.findOne({ _id: parentId, blogId }).select("_id");
+      if (!parentComment) return jsonError("Parent comment not found", 404);
     }
 
-    const userId = (session.user as any).id;
-    const userRole = (session.user as any).role;
-
-    // AI Content Moderation
-    let moderationResult: any = null;
-    let autoApproved = false;
-
-    try {
-      // Initialize TensorFlow.js models
-      await tensorflowAI.initializeModels();
-      
-      // Validate comment content
-      moderationResult = await tensorflowAI.validateComment(content);
-      
-      // Auto-approve if content is clean and user has permission
-      if (moderationResult.isValid && hasPermission(userRole, "approveComment")) {
-        autoApproved = true;
-      }
-    } catch (error) {
-      console.error("AI moderation failed:", error);
-      // Continue without moderation if it fails
-    }
-
-    // Create comment
+    const isApproved = hasPermission(actor.role, "approveComment");
     const comment = await Comment.create({
       blogId,
-      userId,
-      content: content.trim(),
+      userId: actor.id,
+      content,
       parentId: parentId || null,
-      isApproved: autoApproved || moderationResult?.isValid || false,
+      isApproved,
     });
 
-    // Update blog comment count
-    await Blog.findByIdAndUpdate(blogId, {
-      $inc: { total_comments: 1 },
-    });
+    if (isApproved) {
+      await syncCommentCount(blogId);
+    }
 
-    // Populate user info
     const populatedComment = await Comment.findById(comment._id)
       .populate("userId", "profile.fullName profile.avatar name")
       .lean();
 
     return NextResponse.json(
-      { 
-        message: comment.isApproved 
-          ? "Comment posted successfully" 
-          : "Comment submitted for approval", 
+      {
+        message: isApproved ? "Comment posted successfully" : "Comment submitted for approval",
         comment: populatedComment,
-        moderation: moderationResult, // Include moderation results
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error("Error creating comment:", error);
-    return NextResponse.json(
-      { error: "Failed to create comment", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error creating comment:", error);
   }
 }

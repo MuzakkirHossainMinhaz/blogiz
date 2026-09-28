@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "node -r ./scripts/register-ts6.cjs ./node_modules/eslint/bin/eslint.js .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seed:admin": "node --experimental-strip-types scripts/seed-admin.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -16,6 +19,7 @@
     "mongoose": "^9.10.2",
     "next": "^16.3.6",
     "next-auth": "^5.0.0-beta.32",
+    "nodemailer": "^7.0.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",
@@ -33,14 +37,18 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.3",
+    "@types/nodemailer": "^6.4.17",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@typescript/typescript6": "^6.0.2",
     "autoprefixer": "^10.6.1",
     "daisyui": "^5.7.46",
     "eslint": "^10.11.0",
     "eslint-config-next": "^16.3.6",
+    "mongodb-memory-server": "^10.2.3",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.4"
   }
 }

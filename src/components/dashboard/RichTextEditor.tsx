@@ -1,5 +1,6 @@
 "use client";
 
+import { renderMarkdown } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { FiBold, FiCode, FiImage, FiItalic, FiLink, FiList } from "react-icons/fi";
@@ -44,21 +45,7 @@ export default function RichTextEditor({
     { icon: FiImage, label: "Image", action: () => insertMarkdown("![alt text](", ")") },
   ];
 
-  const renderPreview = () => {
-    // Simple markdown to HTML conversion
-    let html = value
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      .replace(/`(.*?)`/g, "<code class='bg-neutral-100 px-1 py-0.5 rounded text-sm font-mono'>$1</code>")
-      .replace(
-        /\[(.*?)\]\((.*?)\)/g,
-        '<a href="$2" class="text-primary-600 underline" target="_blank" rel="noopener">$1</a>'
-      )
-      .replace(/^- (.*$)/gim, "<li class='ml-4'>$1</li>")
-      .replace(/\n/g, "<br />");
-
-    return { __html: html };
-  };
+  const previewHtml = { __html: renderMarkdown(value) };
 
   return (
     <div className={cn("border border-neutral-300 rounded-lg overflow-hidden", className)}>
@@ -113,7 +100,7 @@ export default function RichTextEditor({
           className="w-full min-h-75 p-2 resize-y focus:outline-none font-sans text-base leading-relaxed"
         />
       ) : (
-        <div className="w-full min-h-75 p-2 prose prose-neutral max-w-none" dangerouslySetInnerHTML={renderPreview()} />
+        <div className="w-full min-h-75 p-2 prose prose-neutral max-w-none" dangerouslySetInnerHTML={previewHtml} />
       )}
 
       {/* Footer */}

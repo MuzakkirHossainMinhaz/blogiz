@@ -18,7 +18,7 @@ export default function AboutPage() {
               About <span className="gradient-text">Blogiz</span>
             </h1>
             <p className="text-xl text-neutral-600 mb-8">
-              This page is currently under construction. We're working hard to bring you something amazing!
+              This page is currently under construction. We&apos;re working hard to bring you something amazing!
             </p>
 
             {/* Coming Soon Badge */}

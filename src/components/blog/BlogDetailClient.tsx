@@ -6,7 +6,8 @@ import { Blog } from "@/types";
 import Image from "next/image";
 import { FaCalendar } from "react-icons/fa";
 import { formatDate } from "@/lib/utils";
-import { UI_CONFIG } from "@/config/constants";
+import { renderMarkdown } from "@/lib/sanitize";
+import { isStoredImageUrl } from "@/lib/urls";
 
 interface BlogDetailClientProps {
   blog: Blog;
@@ -61,10 +62,11 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
       </header>
 
       {/* Featured Image */}
-      {blog.blog_image && (
+      {blog.blog_image && isStoredImageUrl(blog.blog_image) && (
         <figure className="mb-8 md:mb-12 rounded-2xl overflow-hidden shadow-soft-lg">
           <Image
             src={blog.blog_image}
+            unoptimized={blog.blog_image.startsWith("/api/media/")}
             width={1200}
             height={600}
             alt={blog.title}
@@ -76,9 +78,9 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
 
       {/* Content */}
       <div className="prose prose-lg max-w-none mb-12">
-        <div 
+        <div
           className="text-neutral-700 leading-relaxed text-lg"
-          dangerouslySetInnerHTML={{ __html: blog.content || blog.description }}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(blog.content || blog.description) }}
         />
       </div>
 

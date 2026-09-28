@@ -127,11 +127,11 @@ npm install
 
 ```env
 # Database
-MONGODB_URI="mongodb://localhost:27017/blogiz"
+MONGODB_URI="mongodb://127.0.0.1:27017/blogiz"
 
-# NextAuth
-NEXTAUTH_SECRET="your-secret-key-here"
-NEXTAUTH_URL="http://localhost:3000"
+# Auth.js (required; no defaults)
+AUTH_SECRET="generate-with-openssl-rand-base64-32"
+AUTH_URL="http://localhost:3000"
 
 # HuggingFace AI (Free)
 HUGGINGFACE_API_KEY="your-huggingface-api-key"
@@ -157,17 +157,11 @@ npm run dev
 
 ### 1. Create Superadmin Account
 
+The admin account is created by a one-off command. It refuses to run when `NODE_ENV=production` and it never prints the password. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the environment yourself (do not commit them), then run:
+
 ```bash
-# Run the seed endpoint to create superadmin
-curl -X POST http://localhost:3000/api/seed \
-  -H "Content-Type: application/json" \
-  -d '{"email": "superadmin@blogiz.com", "password": "superadmin123"}'
+npm run seed:admin
 ```
-
-**Default Superadmin Credentials:**
-
-- Email: `superadmin@blogiz.com`
-- Password: `superadmin123`
 
 ### 2. Configure HuggingFace API
 
@@ -203,9 +197,8 @@ src/
 │   ├── auth.ts           # NextAuth configuration
 │   ├── mongodb.ts        # Database connection
 │   ├── huggingface.ts    # AI integration
-│   ├── tensorflow.ts     # Client-side AI
 │   ├── permissions.ts    # Role-based permissions
-│   └── env-config.ts     # Environment validation
+│   └── env.ts            # Required environment validation
 ├── models/               # Database models
 │   ├── User.ts           # User schema
 │   ├── Blog.ts           # Blog schema

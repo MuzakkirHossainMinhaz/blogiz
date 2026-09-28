@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { isSafeNavigationUrl, isStoredImageUrl } from "@/lib/urls";
 
 interface Banner {
   id: string;
@@ -51,18 +52,7 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
     ...carouselSettings,
   };
 
-  // Auto-slide functionality
-  useEffect(() => {
-    if (!settings.autoSlide || banners.length <= 1) return;
-
-    const interval = setInterval(() => {
-      handleNext();
-    }, settings.slideInterval);
-
-    return () => clearInterval(interval);
-  }, [currentIndex, settings.autoSlide, settings.slideInterval, banners.length]);
-
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (isAnimating) return;
 
     setIsAnimating(true);
@@ -72,9 +62,9 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
       );
       setIsAnimating(false);
     }, 300);
-  };
+  }, [banners.length, isAnimating, settings.infinite]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (isAnimating) return;
 
     setIsAnimating(true);
@@ -84,7 +74,17 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
       );
       setIsAnimating(false);
     }, 300);
-  };
+  }, [banners.length, isAnimating, settings.infinite]);
+
+  useEffect(() => {
+    if (!settings.autoSlide || banners.length <= 1) return;
+
+    const interval = setInterval(() => {
+      handleNext();
+    }, settings.slideInterval);
+
+    return () => clearInterval(interval);
+  }, [banners.length, currentIndex, handleNext, settings.autoSlide, settings.slideInterval]);
 
   const goToSlide = (index: number) => {
     if (isAnimating) return;
@@ -165,29 +165,33 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
 
                     {banner.description && <p className="text-lg opacity-80 max-w-lg">{banner.description}</p>}
 
-                    {banner.ctaText && banner.ctaLink && (
-                      <button
-                        onClick={() => (window.location.href = banner.ctaLink!)}
+                    {banner.ctaText && banner.ctaLink && isSafeNavigationUrl(banner.ctaLink) && (
+                      <a
+                        href={banner.ctaLink}
+                        rel="noopener noreferrer"
                         className="inline-block px-6 py-3 font-semibold rounded-lg transition-colors hover:opacity-90"
                         style={{
-                          backgroundColor: banner.metadata?.buttonColor || "#3b82f6",
+                          backgroundColor: banner.metadata?.buttonColor || "#8b5cf6",
                           color: "#ffffff",
                         }}
                       >
                         {banner.ctaText}
-                      </button>
+                      </a>
                     )}
                   </div>
 
                   {/* Image */}
                   <div className="relative h-64 md:h-80">
+                    {isStoredImageUrl(banner.image) && (
                     <Image
                       src={banner.image}
                       alt={banner.title}
                       fill
                       className="object-contain"
                       priority={index === 0}
+                      unoptimized={banner.image.startsWith("/api/media/")}
                     />
+                    )}
                   </div>
                 </div>
               </div>
@@ -278,23 +282,33 @@ export function HeroBanner({ banner, className = "" }: { banner: Banner; classNa
 
               {banner.description && <p className="text-lg opacity-80 max-w-lg">{banner.description}</p>}
 
-              {banner.ctaText && banner.ctaLink && (
-                <button
-                  onClick={() => (window.location.href = banner.ctaLink!)}
+              {banner.ctaText && banner.ctaLink && isSafeNavigationUrl(banner.ctaLink) && (
+                <a
+                  href={banner.ctaLink}
+                  rel="noopener noreferrer"
                   className="inline-block px-6 py-3 font-semibold rounded-lg transition-colors hover:opacity-90"
                   style={{
-                    backgroundColor: banner.metadata?.buttonColor || "#3b82f6",
+                    backgroundColor: banner.metadata?.buttonColor || "#8b5cf6",
                     color: "#ffffff",
                   }}
                 >
                   {banner.ctaText}
-                </button>
+                </a>
               )}
             </div>
 
             {/* Image */}
             <div className="relative h-64 md:h-80">
-              <Image src={banner.image} alt={banner.title} fill className="object-contain" priority />
+              {isStoredImageUrl(banner.image) && (
+                <Image
+                  src={banner.image}
+                  alt={banner.title}
+                  fill
+                  className="object-contain"
+                  priority
+                  unoptimized={banner.image.startsWith("/api/media/")}
+                />
+              )}
             </div>
           </div>
         </div>

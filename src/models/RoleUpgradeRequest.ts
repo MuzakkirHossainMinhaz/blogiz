@@ -62,6 +62,10 @@ const RoleUpgradeRequestSchema = new Schema<IRoleUpgradeRequest>(
 
 // Index for better query performance
 RoleUpgradeRequestSchema.index({ userId: 1 });
+RoleUpgradeRequestSchema.index(
+  { userId: 1 },
+  { unique: true, partialFilterExpression: { status: "pending" }, name: "unique_pending_role_upgrade" }
+);
 RoleUpgradeRequestSchema.index({ status: 1 });
 RoleUpgradeRequestSchema.index({ requestedRole: 1, status: 1 });
 RoleUpgradeRequestSchema.index({ createdAt: -1 });

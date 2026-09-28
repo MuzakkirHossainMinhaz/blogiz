@@ -1,82 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import Like from "@/models/Like";
-import { getClientIP, getUserAgent } from "@/lib/request-utils";
-import mongoose from "mongoose";
+import { denied, requireUser } from "@/lib/authz";
+import { isDuplicateKey } from "@/lib/engagement";
+import { jsonError, serverError } from "@/lib/http";
+import { publicPostFilter } from "@/lib/public-posts";
 
-// POST /api/likes - Toggle like on a blog (IP-based)
 export async function POST(request: NextRequest) {
   try {
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
+
+    const body = await request.json().catch(() => null);
+    const blogId = typeof body?.blogId === "string" ? body.blogId : "";
+    if (!mongoose.Types.ObjectId.isValid(blogId)) {
+      return jsonError("Invalid blog ID", 400);
+    }
+
     await connectDB();
 
-    const body = await request.json();
-    const { blogId } = body;
+    const blog = await Blog.findOne({ _id: blogId, ...publicPostFilter() }).select("_id");
+    if (!blog) return jsonError("Blog not found", 404);
 
-    if (!blogId) {
-      return NextResponse.json(
-        { error: "Blog ID is required" },
-        { status: 400 }
+    const removed = await Like.findOneAndDelete({ blogId, userId: actor.id });
+    if (removed) {
+      const updated = await Blog.findOneAndUpdate(
+        { _id: blogId, total_likes: { $gt: 0 } },
+        { $inc: { total_likes: -1 } },
+        { returnDocument: "after" }
       );
+      const total = updated?.total_likes ?? 0;
+      return NextResponse.json({ message: "Blog unliked successfully", liked: false, total_likes: total, count: total });
     }
 
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(blogId)) {
-      return NextResponse.json({ error: "Invalid blog ID" }, { status: 400 });
+    try {
+      await Like.create({ blogId, userId: actor.id });
+    } catch (error) {
+      if (!isDuplicateKey(error)) throw error;
+      const current = await Blog.findById(blogId).select("total_likes");
+      const total = current?.total_likes ?? 0;
+      return NextResponse.json({ message: "Blog liked successfully", liked: true, total_likes: total, count: total });
     }
 
-    // Check if blog exists
-    const blog = await Blog.findById(blogId);
-    if (!blog) {
-      return NextResponse.json({ error: "Blog not found" }, { status: 404 });
-    }
-
-    // Get user's IP address and user agent
-    const ipAddress = await getClientIP();
-    const userAgent = await getUserAgent();
-
-    // Check if user already liked this blog
-    const existingLike = await Like.findOne({ blogId, ipAddress });
-
-    if (existingLike) {
-      // Unlike: Remove like and decrement count
-      await Like.deleteOne({ _id: existingLike._id });
-      await Blog.findByIdAndUpdate(blogId, {
-        $inc: { total_likes: -1 },
-      });
-
-      const updatedBlog = await Blog.findById(blogId);
-
-      return NextResponse.json({
-        message: "Blog unliked successfully",
-        liked: false,
-        total_likes: updatedBlog?.total_likes || 0,
-      });
-    } else {
-      // Like: Add like and increment count
-      await Like.create({
-        blogId,
-        ipAddress,
-        userAgent,
-      });
-
-      await Blog.findByIdAndUpdate(blogId, {
-        $inc: { total_likes: 1 },
-      });
-
-      const updatedBlog = await Blog.findById(blogId);
-
-      return NextResponse.json({
-        message: "Blog liked successfully",
-        liked: true,
-        total_likes: updatedBlog?.total_likes || 0,
-      });
-    }
-  } catch (error: any) {
-    console.error("Error toggling like:", error);
-    return NextResponse.json(
-      { error: "Failed to toggle like", message: error.message },
-      { status: 500 }
-    );
+    const updated = await Blog.findByIdAndUpdate(blogId, { $inc: { total_likes: 1 } }, { returnDocument: "after" });
+    const total = updated?.total_likes ?? 0;
+    return NextResponse.json({ message: "Blog liked successfully", liked: true, total_likes: total, count: total });
+  } catch (error) {
+    return serverError("Error toggling like:", error);
   }
 }

@@ -11,11 +11,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { FiLock, FiMail } from "react-icons/fi";
+import { safeCallbackUrl } from "@/lib/urls";
 import { z } from "zod";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
   remember: z.boolean(),
 });
 
@@ -60,7 +61,7 @@ export default function LoginPage() {
         setError("Invalid email or password");
       } else {
         const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
-        router.push(callbackUrl || "/dashboard");
+        router.push(safeCallbackUrl(callbackUrl));
         router.refresh();
       }
     } catch (error) {
@@ -162,6 +163,12 @@ export default function LoginPage() {
               {isLoading ? "Logging in..." : "Sign In"}
             </Button>
           </form>
+
+          <p className="mt-4 text-center text-sm">
+            <Link href="/auth/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+              Forgot password?
+            </Link>
+          </p>
 
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-neutral-600">

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
-import { auth } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { denied, requirePermission } from "@/lib/authz";
+import { serverError } from "@/lib/http";
 
 // POST /api/admin/blogs/[blogId]/approve - Approve a blog
 export async function POST(
@@ -10,22 +10,8 @@ export async function POST(
   { params }: { params: Promise<{ blogId: string }> }
 ) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const userRole = (session.user as any).role;
-    if (!hasPermission(userRole, "approveBlog")) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const actor = await requirePermission("approveBlog", { verified: true });
+    if (denied(actor)) return actor;
 
     await connectDB();
     const { blogId } = await params;
@@ -38,7 +24,7 @@ export async function POST(
       );
     }
 
-    const adminId = (session.user as any).id;
+    const adminId = actor.id;
 
     // Approve blog
     const updatedBlog = await Blog.findByIdAndUpdate(
@@ -50,18 +36,14 @@ export async function POST(
         approvedAt: new Date(),
         rejectionReason: "",
       },
-      { new: true }
+      { returnDocument: "after" }
     ).populate("approvedBy", "name profile.fullName");
 
     return NextResponse.json({
       message: "Blog approved successfully",
       blog: updatedBlog,
     });
-  } catch (error: any) {
-    console.error("Error approving blog:", error);
-    return NextResponse.json(
-      { error: "Failed to approve blog", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error approving blog:", error);
   }
 }

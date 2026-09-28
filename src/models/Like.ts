@@ -2,8 +2,7 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface ILike extends Document {
   blogId: mongoose.Types.ObjectId;
-  ipAddress: string;
-  userAgent?: string;
+  userId: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -14,12 +13,10 @@ const LikeSchema = new Schema<ILike>(
       ref: "Blog",
       required: true,
     },
-    ipAddress: {
-      type: String,
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       required: true,
-    },
-    userAgent: {
-      type: String,
     },
   },
   {
@@ -27,8 +24,7 @@ const LikeSchema = new Schema<ILike>(
   }
 );
 
-// Compound index to ensure one like per IP per blog
-LikeSchema.index({ blogId: 1, ipAddress: 1 }, { unique: true });
+LikeSchema.index({ blogId: 1, userId: 1 }, { unique: true });
 
 const Like: Model<ILike> = mongoose.models.Like || mongoose.model<ILike>("Like", LikeSchema);
 

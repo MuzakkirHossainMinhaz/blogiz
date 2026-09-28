@@ -1,44 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Like from "@/models/Like";
-import { getClientIP } from "@/lib/request-utils";
-import mongoose from "mongoose";
+import { denied, requireUser } from "@/lib/authz";
+import { jsonError, serverError } from "@/lib/http";
 
-// GET /api/likes/check?blogId=xxx - Check if user liked a blog
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
-    const { searchParams } = new URL(request.url);
-    const blogId = searchParams.get("blogId");
-
-    if (!blogId) {
-      return NextResponse.json(
-        { error: "Blog ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Validate MongoDB ObjectId
+    const blogId = new URL(request.url).searchParams.get("blogId") || "";
     if (!mongoose.Types.ObjectId.isValid(blogId)) {
-      return NextResponse.json({ error: "Invalid blog ID" }, { status: 400 });
+      return jsonError("Invalid blog ID", 400);
     }
 
-    // Get user's IP address
-    const ipAddress = await getClientIP();
-
-    // Check if like exists
-    const like = await Like.findOne({ blogId, ipAddress });
-
-    return NextResponse.json({
-      liked: !!like,
-      likeId: like?._id || null,
-    });
-  } catch (error: any) {
-    console.error("Error checking like status:", error);
-    return NextResponse.json(
-      { error: "Failed to check like status", message: error.message },
-      { status: 500 }
-    );
+    await connectDB();
+    const like = await Like.findOne({ blogId, userId: actor.id }).select("_id");
+    return NextResponse.json({ liked: Boolean(like) });
+  } catch (error) {
+    return serverError("Error checking like status:", error);
   }
 }

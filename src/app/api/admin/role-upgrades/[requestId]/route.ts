@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
-import { auth } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { denied, requirePermission } from "@/lib/authz";
+import { serverError } from "@/lib/http";
 
 // PUT /api/admin/role-upgrades/[requestId] - Approve or reject role upgrade request
 export async function PUT(
@@ -11,22 +11,8 @@ export async function PUT(
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const userRole = (session.user as any).role;
-    if (!hasPermission(userRole, "changeUserRole")) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const actor = await requirePermission("changeUserRole", { verified: true });
+    if (denied(actor)) return actor;
 
     await connectDB();
     const { requestId } = await params;
@@ -56,7 +42,7 @@ export async function PUT(
       );
     }
 
-    const adminId = (session.user as any).id;
+    const adminId = actor.id;
 
     // Update request
     const updateData: any = {
@@ -72,14 +58,15 @@ export async function PUT(
     const updatedRequest = await RoleUpgradeRequest.findByIdAndUpdate(
       requestId,
       updateData,
-      { new: true }
+      { returnDocument: "after" }
     ).populate("reviewedBy", "name profile.fullName");
 
     // If approved, update user role
     if (action === "approve") {
       await User.findByIdAndUpdate(upgradeRequest.userId, {
         role: upgradeRequest.requestedRole,
-        isApproved: upgradeRequest.requestedRole === "author" ? true : undefined,
+        isApproved: true,
+        $inc: { sessionVersion: 1 },
       });
     }
 
@@ -87,11 +74,7 @@ export async function PUT(
       message: `Role upgrade request ${action}d successfully`,
       request: updatedRequest,
     });
-  } catch (error: any) {
-    console.error("Error processing role upgrade request:", error);
-    return NextResponse.json(
-      { error: "Failed to process request", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error processing role upgrade request:", error);
   }
 }

@@ -1,26 +1,38 @@
 import { auth } from "@/lib/auth";
+import { dashboardAccess, isUserRole } from "@/lib/permissions";
+import { applySecurityHeaders, contentSecurityPolicy } from "@/lib/security-headers";
 import { NextResponse } from "next/server";
 
-// Proxy for auth check using NextAuth v5.
-// Next.js 16 replaced middleware.ts with proxy.ts (Node.js runtime).
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = contentSecurityPolicy(nonce);
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
 
-  // Check if accessing dashboard routes
-  if (pathname.startsWith("/dashboard")) {
-    // Check if user is authenticated
-    if (!req.auth) {
-      // Redirect to login if no session
-      const loginUrl = new URL("/auth/secure/login", req.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  const role = isUserRole(req.auth?.user?.role) ? req.auth?.user?.role : undefined;
+  const access = dashboardAccess(role, pathname);
+
+  if (access === "login") {
+    const loginUrl = new URL("/auth/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    const redirect = NextResponse.redirect(loginUrl);
+    applySecurityHeaders(redirect.headers, csp);
+    return redirect;
   }
 
-  return NextResponse.next();
+  if (access === "forbidden") {
+    const redirect = NextResponse.redirect(new URL("/dashboard", req.url));
+    applySecurityHeaders(redirect.headers, csp);
+    return redirect;
+  }
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  applySecurityHeaders(response.headers, csp);
+  return response;
 });
 
-// Configure which routes the proxy applies to
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

@@ -62,7 +62,7 @@ function DefaultErrorFallback({ error, reset }: { error?: Error; reset: () => vo
         <h1 className="text-2xl font-bold text-neutral-900 mb-4">Oops! Something went wrong</h1>
 
         <p className="text-neutral-600 mb-6">
-          We're sorry, but something unexpected happened. Our team has been notified.
+          We&apos;re sorry, but something unexpected happened. Our team has been notified.
         </p>
 
         {process.env.NODE_ENV === "development" && error && (
@@ -113,7 +113,7 @@ function BlogErrorFallback({ error, reset }: { error?: Error; reset: () => void 
 
       <h3 className="text-lg font-semibold text-neutral-900 mb-2">Unable to load blog</h3>
 
-      <p className="text-neutral-600 text-sm mb-4">This blog couldn't be loaded. Please try again later.</p>
+      <p className="text-neutral-600 text-sm mb-4">This blog couldn&apos;t be loaded. Please try again later.</p>
 
       <button
         onClick={reset}

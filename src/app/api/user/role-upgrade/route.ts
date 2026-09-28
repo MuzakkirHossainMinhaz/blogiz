@@ -2,23 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
-import { auth } from "@/lib/auth";
+import { denied, requireUser } from "@/lib/authz";
+import { isDuplicateKey } from "@/lib/engagement";
+import { jsonError, serverError } from "@/lib/http";
 
 // POST /api/user/role-upgrade - Request role upgrade
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
+    if (!actor.emailVerified) return jsonError("Verify your email before continuing", 403);
 
     await connectDB();
 
-    const userId = (session.user as any).id;
+    const userId = actor.id;
     const body = await request.json();
     const { requestedRole, reason } = body;
 
@@ -78,41 +75,39 @@ export async function POST(request: NextRequest) {
     }
 
     // Create role upgrade request
-    const upgradeRequest = await RoleUpgradeRequest.create({
-      userId,
-      requestedRole,
-      currentRole,
-      reason: reason.trim(),
-    });
+    let upgradeRequest;
+    try {
+      upgradeRequest = await RoleUpgradeRequest.create({
+        userId,
+        requestedRole,
+        currentRole,
+        reason: reason.trim(),
+      });
+    } catch (error) {
+      if (isDuplicateKey(error)) {
+        return jsonError("You already have a pending role upgrade request", 409);
+      }
+      throw error;
+    }
 
     return NextResponse.json({
       message: "Role upgrade request submitted successfully",
       request: upgradeRequest,
     });
-  } catch (error: any) {
-    console.error("Error creating role upgrade request:", error);
-    return NextResponse.json(
-      { error: "Failed to submit request", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error creating role upgrade request:", error);
   }
 }
 
 // GET /api/user/role-upgrade - Get user's role upgrade requests
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
     await connectDB();
 
-    const userId = (session.user as any).id;
+    const userId = actor.id;
 
     const requests = await RoleUpgradeRequest.find({ userId })
       .populate("reviewedBy", "name profile.fullName")
@@ -120,11 +115,7 @@ export async function GET(request: NextRequest) {
       .lean();
 
     return NextResponse.json({ requests });
-  } catch (error: any) {
-    console.error("Error fetching role upgrade requests:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch requests", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching role upgrade requests:", error);
   }
 }

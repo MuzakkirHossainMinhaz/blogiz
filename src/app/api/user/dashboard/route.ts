@@ -6,24 +6,19 @@ import Comment from "@/models/Comment";
 import Like from "@/models/Like";
 import BlogView from "@/models/BlogView";
 import Banner from "@/models/Banner";
-import { auth } from "@/lib/auth";
+import { denied, requireUser } from "@/lib/authz";
+import { serverError } from "@/lib/http";
 
 // GET /api/user/dashboard - Get comprehensive user dashboard data
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const actor = await requireUser();
+    if (denied(actor)) return actor;
 
     await connectDB();
 
-    const userId = (session.user as any).id;
-    const userRole = (session.user as any).role;
+    const userId = actor.id;
+    const userRole = actor.role;
 
     // Get user info
     const user = await User.findById(userId).select("-password");
@@ -271,11 +266,7 @@ export async function GET(request: NextRequest) {
     dashboardData.recentActivity = timeline.slice(0, 5);
 
     return NextResponse.json(dashboardData);
-  } catch (error: any) {
-    console.error("Error fetching dashboard data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch dashboard data", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Error fetching dashboard data:", error);
   }
 }

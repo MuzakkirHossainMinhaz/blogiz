@@ -1,108 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
+import { huggingFaceConfigured } from "@/lib/ai-provider";
+import { denied } from "@/lib/authz";
+import { requireAiUser } from "@/lib/ai-guard";
 import { huggingFaceAI } from "@/lib/huggingface";
-import { auth } from "@/lib/auth";
+import { jsonError, serverError } from "@/lib/http";
+import { BLOG_CONTENT_MAX } from "@/lib/validation";
 
-// POST /api/ai/analyze-content - Analyze blog content and generate metadata
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requireAiUser();
+    if (denied(actor)) return actor;
+    if (!huggingFaceConfigured()) return jsonError("Writing assistant is unavailable", 503);
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const body = await request.json().catch(() => null);
+    const content = typeof body?.content === "string" ? body.content.slice(0, BLOG_CONTENT_MAX) : "";
+    const title = typeof body?.title === "string" ? body.title.slice(0, 200) : "";
+    if (!content) return jsonError("Content is required", 400);
 
-    const body = await request.json();
-    const { title, content, generateSEO = true, generateTags = true, generateSummary = true } = body;
-
-    if (!content) {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400 }
-      );
-    }
-
-    const analysis: any = {};
-
-    // Generate tags
-    if (generateTags) {
-      const tags = await huggingFaceAI.generateTags(content);
-      analysis.tags = tags;
-    }
-
-    // Generate SEO metadata
-    if (generateSEO) {
-      const seoData = await huggingFaceAI.generateSEOMetadata(title || "", content);
-      analysis.seo = seoData;
-    }
-
-    // Generate summary
-    if (generateSummary) {
-      const summary = await huggingFaceAI.generateBlogSummary(content);
-      analysis.summary = summary;
-    }
-
-    // Analyze sentiment
-    const sentiment = await huggingFaceAI.analyzeSentiment(content);
-    analysis.sentiment = sentiment;
-
-    // Extract keywords
-    const keywords = await huggingFaceAI.extractKeywords(content);
-    analysis.keywords = keywords;
-
-    // Calculate reading time (improved with AI)
-    const wordCount = content.split(/\s+/).length;
-    const readingTime = Math.ceil(wordCount / 200); // 200 words per minute
-    analysis.readingTime = readingTime;
-    analysis.wordCount = wordCount;
+    const [tags, seo, summary, sentiment] = await Promise.all([
+      huggingFaceAI.generateTags(content),
+      huggingFaceAI.generateSEOMetadata(title, content),
+      huggingFaceAI.generateBlogSummary(content),
+      huggingFaceAI.analyzeSentiment(content),
+    ]);
 
     return NextResponse.json({
-      analysis,
+      analysis: {
+        tags,
+        seo,
+        summary,
+        sentiment,
+        wordCount: content.split(/\s+/).filter(Boolean).length,
+        readingTime: Math.max(1, Math.ceil(content.split(/\s+/).filter(Boolean).length / 200)),
+      },
     });
-  } catch (error: any) {
-    console.error("Content analysis failed:", error);
-    return NextResponse.json(
-      { error: "Failed to analyze content", message: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return serverError("Content analysis failed:", error);
   }
 }
 
-// PUT /api/ai/analyze-content/improve - Improve writing quality
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
+    const actor = await requireAiUser();
+    if (denied(actor)) return actor;
+    if (!huggingFaceConfigured()) return jsonError("Writing assistant is unavailable", 503);
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const body = await request.json().catch(() => null);
+    const text = typeof body?.text === "string" ? body.text.slice(0, 8000) : "";
+    if (!text) return jsonError("Text is required", 400);
 
-    const body = await request.json();
-    const { text } = body;
-
-    if (!text) {
-      return NextResponse.json(
-        { error: "Text is required" },
-        { status: 400 }
-      );
-    }
-
-    const improvedText = await huggingFaceAI.improveWriting(text);
-    
-    return NextResponse.json({
-      original: text,
-      improved: improvedText,
-    });
-  } catch (error: any) {
-    console.error("Writing improvement failed:", error);
-    return NextResponse.json(
-      { error: "Failed to improve writing", message: error.message },
-      { status: 500 }
-    );
+    const improved = await huggingFaceAI.improveWriting(text);
+    if (!improved || improved === text) return jsonError("Writing assistant is unavailable", 502);
+    return NextResponse.json({ original: text, improved });
+  } catch (error) {
+    return serverError("Writing improvement failed:", error);
   }
 }
