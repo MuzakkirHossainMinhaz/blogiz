@@ -95,7 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex-1 min-w-0">
           <main className="flex-1">
-            <Container size="full" className="py-5 sm:py-6 lg:py-8 max-w-6xl">
+            <Container size="full" className="py-5 sm:py-6 lg:py-8">
               <PageEnter>{children}</PageEnter>
             </Container>
           </main>

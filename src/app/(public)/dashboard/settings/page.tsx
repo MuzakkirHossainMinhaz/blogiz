@@ -112,7 +112,7 @@ export default function SettingsPage() {
         <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{message}</p>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <form
           onSubmit={saveProfile}
           className="space-y-4 rounded-2xl border border-neutral-200 bg-surface p-5 sm:p-6 shadow-soft"
