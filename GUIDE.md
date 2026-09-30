@@ -1,14 +1,14 @@
 # Blogiz operations
 
-This guide covers local services, environment variables, roles, auth, uploads, rate limits, and checks. What the app is, and the short start path, are in [README.md](README.md). Copy [`.env.example`](.env.example) to `.env.local` and fill only the values you need. Do not commit secrets.
+This guide covers local services, environment variables, roles, auth, uploads, rate limits, seeding, and checks. What the app is, and the short start path, are in [README.md](README.md). Copy [`.env.example`](.env.example) to `.env.local` and fill only the values you need. Do not commit secrets.
 
 ## Local services
 
 Run these before `npm run dev` or the checks:
 
 - **MongoDB.** `MONGODB_URI` is required. The app does not fall back to localhost.
-- **Redis.** `REDIS_URL` is required the first time someone registers, signs in, requests a password reset, or calls an AI route. If it is missing or Redis is down, those routes fail with a clear error.
-- **Cloudinary.** `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are required to upload or delete an image. The API secret stays on the server.
+- **Redis.** `REDIS_URL` is required the first time someone registers, signs in, requests a password reset, or calls an AI route. If it is missing or Redis is down, those routes fail with a clear error (login shows that rate limiting is unavailable instead of a fake bad-password message).
+- **Cloudinary.** `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are required to upload or delete an image. The API secret stays on the server. Seed data uses Cloudinary-shaped HTTPS URLs for the configured cloud name (or `demo` when unset) so public cards and banners can render.
 
 A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET` and `AUTH_URL`. It does not call Redis or Cloudinary while pages are prerendered.
 
@@ -16,18 +16,21 @@ A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET`
 
 The UI is light-only (`data-theme="light"`). daisyUI’s light theme is remapped to the logo palette: paper `#F7F6FF`, feather `#C0C8FF`, quill `#7B85F0`, ink `#3F4285`. Display type is Fraunces; UI type is Plus Jakarta Sans, both loaded with `next/font`.
 
+The public marketing site uses the shared Navbar and Footer. The dashboard is a separate app shell with its own top bar (logo, role context, user menu, logout) and does not render the marketing footer.
+
 ## Environment variables
 
 | Variable | Required | What it is |
 | --- | --- | --- |
-| `NODE_ENV` | Set by Next.js | `development`, `test`, or `production`. Leave it empty in `.env.local`. `npm run seed:admin` refuses to run when it is `production`. |
+| `NODE_ENV` | Set by Next.js | `development`, `test`, or `production`. Leave it empty in `.env.local`. `npm run seed` and `npm run seed:admin` refuse to run when it is `production` unless you pass `--force` / `SEED_FORCE=1` for the full seed on a disposable database. |
 | `MONGODB_URI` | Always | MongoDB connection string. |
 | `AUTH_SECRET` | Always | Secret used to sign sessions. |
-| `AUTH_URL` | Always | Canonical site URL, such as `http://localhost:3000` locally. Auth.js does not accept the Host header in its place. |
+| `AUTH_URL` | Always | Canonical site URL, such as `http://localhost:3000` locally. Auth.js does not accept the Host header in its place. Also used for public canonical / Open Graph URLs. |
 | `NEXTAUTH_SECRET` | Only if `AUTH_SECRET` is unset | Alias copied onto `AUTH_SECRET`. |
 | `NEXTAUTH_URL` | Only if `AUTH_URL` is unset | Alias copied onto `AUTH_URL`. |
-| `ADMIN_EMAIL` | Only for `npm run seed:admin` | Email of the superadmin to create. |
-| `ADMIN_PASSWORD` | Only for `npm run seed:admin` | Password for that account. The command does not print it. |
+| `ADMIN_EMAIL` | For `npm run seed` / `seed:admin` | Email of the superadmin to create. |
+| `ADMIN_PASSWORD` | For `npm run seed` / `seed:admin` | Password for that account (min 10 chars, letter + number). The command does not print it. |
+| `SEED_FORCE` | Optional | Set to `1` with `npm run seed -- --force` only on a disposable database when `NODE_ENV=production`. |
 | `HEALTH_CHECK_SECRET` | Only to use `/api/health` | Shared secret. Send it as `x-health-token`. The route returns 404 until this is set and the header matches. |
 | `HUGGINGFACE_API_KEY` | Optional | Enables the Hugging Face writing and analysis routes. |
 | `HF_IMAGE_DAILY_QUOTA` | Optional | Positive integer. Image generation stays off until this is set. |
@@ -43,49 +46,63 @@ The UI is light-only (`data-theme="light"`). daisyUI’s light theme is remapped
 | `CLOUDINARY_API_SECRET` | For uploads and deletes | Cloudinary API secret. |
 | `REDIS_URL` | For rate-limited routes | Redis connection URL, for example `redis://127.0.0.1:6379`. |
 
-## Roles
+## Roles and dashboard routes
 
 | Role | Can | Cannot |
 | --- | --- | --- |
 | Superadmin | Everything, including changing roles, deactivating accounts, and managing banners | Manage an equal or higher role |
 | Admin | Approve and reject posts and comments, approve users, manage banners, open the admin dashboard | Deactivate accounts, change roles, or act on an equal or higher role |
-| Author | Create, edit, and delete their own posts; comment and react on published posts, including posts they did not write; open the author dashboard | Approve posts or comments, edit someone else's post, or manage banners. Sign-in requires `isApproved` |
-| User | Comment, like or dislike a published post, and edit their own profile | Create posts or open a dashboard |
+| Author | Create, edit, and delete their own posts; comment and react on published posts; open authoring tools | Approve posts or comments, edit someone else's post, or manage banners. Sign-in requires `isApproved` |
+| User (reader) | Comment, like or dislike a published post, edit profile, open a simple dashboard (activity + role upgrade) | Create posts or open authoring / admin routes |
 
-An author who asks to publish a post gets `pending` and the post stays unapproved until someone with `approveBlog` approves it. Comments are public only after someone with `approveComment` approves them. Admin and superadmin comments are approved immediately. An author's comment on someone else's post uses that same approval rule.
+An author who asks to publish a post gets `pending` and the post stays unapproved until someone with `approveBlog` approves it. Comments are public only after someone with `approveComment` approves them. Admin and superadmin comments are approved immediately.
 
-## Dashboard routes
+### Route matrix
 
-Signed-in users open `/dashboard` behind the shared site navbar. Authors and admins also use `/dashboard/blogs`, `/dashboard/analytics`, and `/dashboard/settings`. Admins and superadmins with `viewAdminDashboard` open:
+| Route | Reader | Author | Admin / Superadmin |
+| --- | --- | --- | --- |
+| `/dashboard` | Overview, activity, upgrade CTA | Author overview + stats | Same + admin shortcuts |
+| `/dashboard/settings` | Profile, password, email, role upgrade | Profile + admin upgrade request | Profile settings |
+| `/dashboard/blogs`, `/create`, `/edit/*` | Forbidden | Yes | Yes |
+| `/dashboard/analytics` | Forbidden | Yes | Yes |
+| `/dashboard/admin`, `/dashboard/admin/users` | Forbidden | Forbidden | Yes (`viewAdminDashboard` / `viewUsers`) |
 
-| Route | Purpose |
-| --- | --- |
-| `/dashboard/admin` | Pending post review, role-upgrade queue (when allowed), and links into user management |
-| `/dashboard/admin/users` | Search and manage users through `/api/admin/users` |
+Sidebar links match these permissions. Dead marketing chrome is not reused inside the dashboard shell.
 
-Those admin pages use the existing admin APIs and permission checks. Authors who lack `viewAdminDashboard` are redirected away from `/dashboard/admin*`.
+## Seeding
 
-## Reactions
+Fixtures live under `scripts/seed-data/`.
 
-A published post has two reactions, like and dislike. A signed-in user has one reaction on a post. Choosing the other reaction replaces the first. Choosing the same reaction again removes it. The public post shows both counts. A visitor who is not signed in sees the counts and cannot react.
+```bash
+# Full truncate + seed (every collection the app uses)
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='choose-a-long-password1' npm run seed
 
-`POST /api/likes` with `{ "blogId", "reaction": "like" | "dislike" }` is that single reaction flow.
+# Superadmin upsert only (does not wipe other data)
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='choose-a-long-password1' npm run seed:admin
+```
 
-Like counts include rows whose `type` is `like`, and also older rows with a missing `type`. On database connect, the app sets each missing `type` to `like` once per process.
+`npm run seed`:
 
-## Public author profiles
+1. Refuses when `NODE_ENV=production` unless `--force` or `SEED_FORCE=1` (documented for disposable DBs only).
+2. Truncates users, blogs, comments, likes, banners, blog views, and role-upgrade requests.
+3. Seeds users (superadmin from env, plus admin / authors / readers / a pending unapproved author), blogs, comments, likes/dislikes, banners, views, and a pending role upgrade.
+4. Verifies the superadmin password hash and `canSignIn` flags (`isActive`, `isApproved`, `emailVerified`, `role=superadmin`) before exiting.
 
-The byline on a post links to `/authors/[authorId]`. Anyone, including a visitor who is not signed in, can open it. The page shows that author's public profile and the first 10 published posts, newest first, with each post's like and dislike counts. Later pages are `/authors/[authorId]?page=2`. It does not show an email address, and it does not list drafts or other unpublished posts.
+After seed, sign in at `/auth/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Redis must be running.
 
 ## Auth
 
 Sign in at `/auth/login` with email and password. Sessions last one hour. Each request reloads the user and drops the session if the account is inactive, the author is no longer approved, or `sessionVersion` has changed.
 
-Passwords are at least 10 characters and include a letter and a number. Registration accepts the `user` and `author` roles. New accounts must verify their email before uploads and other verified actions. Authors also need an admin to approve the account before they can sign in. Inactive accounts cannot sign in.
+Passwords are at least 10 characters and include a letter and a number. Registration accepts the `user` and `author` roles. New accounts must verify their email before uploads and other verified actions. Authors also need an admin to approve the account before they can sign in. Inactive accounts cannot sign in. Readers, admins, and superadmins do not need `isApproved` to sign in. `emailVerified` is not required for login.
 
 A wrong password and a login rate-limit block both return “Invalid email or password”. If Redis is missing or down, login reports that rate limiting is unavailable instead of signing the user in.
 
-`npm run seed:admin` creates one superadmin from `ADMIN_EMAIL` and `ADMIN_PASSWORD`. It exits immediately when `NODE_ENV=production` and does not print the password. Verification and reset mail go out only when SMTP is configured. Without SMTP, those links are not sent.
+Verification and reset mail go out only when SMTP is configured. Without SMTP, those links are not sent.
+
+## Public SEO
+
+Public pages set title, description, Open Graph, canonical URL (from `AUTH_URL`), and robots. Blog detail and author profile metadata are generated from published data. Do not put secrets or private emails into meta tags.
 
 ## Uploads
 
@@ -108,6 +125,18 @@ One Redis sliding window covers every limited route. A missing `REDIS_URL` or a 
 | Image generation | `HF_IMAGE_DAILY_QUOTA` per user per day |
 
 The register IP limit applies only when `TRUSTED_PROXY_HEADER` is set and that header is present.
+
+## Reactions
+
+A published post has two reactions, like and dislike. A signed-in user has one reaction on a post. Choosing the other reaction replaces the first. Choosing the same reaction again removes it. The public post shows both counts. A visitor who is not signed in sees the counts and cannot react.
+
+`POST /api/likes` with `{ "blogId", "reaction": "like" | "dislike" }` is that single reaction flow.
+
+Like counts include rows whose `type` is `like`, and also older rows with a missing `type`. On database connect, the app sets each missing `type` to `like` once per process.
+
+## Public author profiles
+
+The byline on a post links to `/authors/[authorId]`. Anyone, including a visitor who is not signed in, can open it. The page shows that author's public profile and the first 10 published posts, newest first, with each post's like and dislike counts. Later pages are `/authors/[authorId]?page=2`. It does not show an email address, and it does not list drafts or other unpublished posts.
 
 ## Checks
 

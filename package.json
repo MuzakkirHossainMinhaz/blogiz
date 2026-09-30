@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "seed": "node --experimental-strip-types scripts/seed.mjs",
     "seed:admin": "node --experimental-strip-types scripts/seed-admin.mjs"
   },
   "dependencies": {

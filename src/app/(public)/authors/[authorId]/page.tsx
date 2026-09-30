@@ -3,11 +3,15 @@ import { Section } from "@/components/ui/Section";
 import { ROUTES } from "@/config/constants";
 import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
 import { parsePageLimit } from "@/lib/pagination";
+import { buildPageMetadata } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
 import { isCloudinaryDeliveryUrl, isHttpsUrl } from "@/lib/urls";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 interface AuthorProfilePageProps {
   params: Promise<{
@@ -16,6 +20,34 @@ interface AuthorProfilePageProps {
   searchParams: Promise<{
     page?: string;
   }>;
+}
+
+export async function generateMetadata({ params }: AuthorProfilePageProps): Promise<Metadata> {
+  const { authorId } = await params;
+  const profile = await getPublicAuthorProfile(authorId, { page: 1, limit: 1, skip: 0 });
+  if (!profile) {
+    return buildPageMetadata({
+      title: "Author not found",
+      description: "This Blogiz author profile could not be found.",
+      path: `/authors/${authorId}`,
+      noIndex: true,
+    });
+  }
+
+  const displayName = profile.profile.fullName || profile.name;
+  const bio = profile.profile.bio || `Published writer on Blogiz.`;
+  const image =
+    profile.profile.avatar && isCloudinaryDeliveryUrl(profile.profile.avatar)
+      ? profile.profile.avatar
+      : undefined;
+
+  return buildPageMetadata({
+    title: displayName,
+    description: bio,
+    path: `/authors/${authorId}`,
+    image,
+    type: "profile",
+  });
 }
 
 export default async function AuthorProfilePage({ params, searchParams }: AuthorProfilePageProps) {

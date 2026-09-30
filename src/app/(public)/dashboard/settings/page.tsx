@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { hasPermission, UserRole } from "@/lib/permissions";
 import { passwordSchema } from "@/lib/validation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -9,6 +11,8 @@ import { useEffect, useState } from "react";
 export default function SettingsPage() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
+  const userRole = (session?.user?.role as UserRole) || "user";
+  const emailVerified = Boolean(session?.user?.emailVerified);
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [website, setWebsite] = useState("");
@@ -18,6 +22,11 @@ export default function SettingsPage() {
   const [nextPassword, setNextPassword] = useState("");
   const [nextEmail, setNextEmail] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
+  const [upgradeReason, setUpgradeReason] = useState("");
+  const [upgradeStatus, setUpgradeStatus] = useState<string | null>(null);
+
+  const canRequestAuthor = userRole === "user";
+  const canRequestAdmin = userRole === "author" && hasPermission(userRole, "createBlog");
 
   useEffect(() => {
     if (!userId) return;
@@ -30,6 +39,21 @@ export default function SettingsPage() {
       })
       .catch(() => setError("Could not load profile"));
   }, [userId]);
+
+  useEffect(() => {
+    if (!canRequestAuthor && !canRequestAdmin) return;
+    fetch("/api/user/role-upgrade")
+      .then((response) => response.json())
+      .then((data) => {
+        const pending = Array.isArray(data.requests)
+          ? data.requests.find((r: { status: string }) => r.status === "pending")
+          : null;
+        setUpgradeStatus(pending ? `Pending ${pending.requestedRole} request` : null);
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [canRequestAuthor, canRequestAdmin]);
 
   const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -96,6 +120,29 @@ export default function SettingsPage() {
     else await signOut({ callbackUrl: "/" });
   };
 
+  const requestUpgrade = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    if (!emailVerified) {
+      setError("Verify your email before requesting a role upgrade.");
+      return;
+    }
+    const requestedRole = canRequestAuthor ? "author" : "admin";
+    const response = await fetch("/api/user/role-upgrade", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestedRole, reason: upgradeReason }),
+    });
+    const result = await response.json();
+    if (!response.ok) setError(result.error || "Could not submit request");
+    else {
+      setMessage("Role upgrade request submitted.");
+      setUpgradeStatus(`Pending ${requestedRole} request`);
+      setUpgradeReason("");
+    }
+  };
+
   return (
     <div className="w-full space-y-8">
       <header className="space-y-1">
@@ -130,7 +177,7 @@ export default function SettingsPage() {
             onChange={(event) => setWebsite(event.target.value)}
             placeholder="https://"
           />
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" className="min-h-11">
             Save profile
           </Button>
         </form>
@@ -157,7 +204,7 @@ export default function SettingsPage() {
             value={nextPassword}
             onChange={(event) => setNextPassword(event.target.value)}
           />
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" className="min-h-11">
             Change password
           </Button>
         </form>
@@ -184,10 +231,39 @@ export default function SettingsPage() {
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
           />
-          <Button type="submit" variant="outline">
+          <Button type="submit" variant="outline" className="min-h-11">
             Send confirmation
           </Button>
         </form>
+
+        {(canRequestAuthor || canRequestAdmin) && (
+          <form
+            id="role-upgrade"
+            onSubmit={requestUpgrade}
+            className="space-y-4 rounded-2xl border border-primary-200 bg-primary-50/40 p-5 sm:p-6 scroll-mt-24"
+          >
+            <div>
+              <h2 className="font-display text-lg font-semibold text-ink">Role upgrade</h2>
+              <p className="mt-1 text-sm text-accent-500">
+                {canRequestAuthor
+                  ? "Request the author role to draft and publish posts."
+                  : "Request the admin role for moderation tools."}
+              </p>
+              {upgradeStatus && <p className="mt-2 text-sm font-medium text-primary-800">{upgradeStatus}</p>}
+            </div>
+            <Textarea
+              id="upgradeReason"
+              label="Why should we upgrade you?"
+              value={upgradeReason}
+              onChange={(event) => setUpgradeReason(event.target.value)}
+              rows={4}
+              required
+            />
+            <Button type="submit" variant="primary" className="min-h-11" disabled={Boolean(upgradeStatus)}>
+              {canRequestAuthor ? "Request author role" : "Request admin role"}
+            </Button>
+          </form>
+        )}
 
         <form
           onSubmit={deleteAccount}
@@ -204,7 +280,7 @@ export default function SettingsPage() {
             value={deletePassword}
             onChange={(event) => setDeletePassword(event.target.value)}
           />
-          <Button type="submit" variant="outline">
+          <Button type="submit" variant="outline" className="min-h-11">
             Delete account
           </Button>
         </form>

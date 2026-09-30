@@ -22,18 +22,19 @@ Use Node.js 22. You need a MongoDB server and a Redis server before the app can 
 ```bash
 cp .env.example .env.local
 npm install
+npm run seed
 npm run dev
 ```
 
 Fill in `.env.local` from `.env.example`. Every value there is empty on purpose. [GUIDE.md](GUIDE.md) says what each variable is and when it is required.
 
-Create the first superadmin only on a non-production machine:
+`npm run seed` truncates all collections and loads realistic fixtures, including a superadmin from `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Sign in at `/auth/login` with those credentials (Redis must be up).
+
+Admin-only upsert without wiping data:
 
 ```bash
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='choose-a-long-password1' npm run seed:admin
 ```
-
-Sign in at `/auth/login`.
 
 ## Scripts
 
@@ -45,6 +46,7 @@ Sign in at `/auth/login`.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript |
 | `npm test` | Vitest |
-| `npm run seed:admin` | Create one superadmin from `ADMIN_EMAIL` and `ADMIN_PASSWORD` |
+| `npm run seed` | Truncate all collections and seed fixtures + superadmin |
+| `npm run seed:admin` | Upsert one superadmin from `ADMIN_EMAIL` / `ADMIN_PASSWORD` |
 
 Setup, roles, auth, uploads, rate limits, and how to run the checks are in [GUIDE.md](GUIDE.md).

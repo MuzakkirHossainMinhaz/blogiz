@@ -1,4 +1,4 @@
-import NextAuth, { type Session, type User } from "next-auth";
+import NextAuth, { CredentialsSignin, type Session, type User } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { requireAuthSecret, requireAuthUrl } from "@/lib/env";
@@ -9,6 +9,15 @@ const authSecret = requireAuthSecret();
 requireAuthUrl();
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60;
+
+/** Surfaces Redis / rate-limit outages instead of a fake bad-password message. */
+class RateLimitSigninError extends CredentialsSignin {
+  code = "rate_limit_unavailable";
+}
+
+class InvalidCredentialsError extends CredentialsSignin {
+  code = "invalid_credentials";
+}
 
 const authConfig = {
   providers: [
@@ -27,17 +36,17 @@ const authConfig = {
         const password = typeof credentials?.password === "string" ? credentials.password : "";
 
         if (!email || !password) {
-          throw new Error("Invalid email or password");
+          throw new InvalidCredentialsError();
         }
 
         try {
           const attempt = await rateLimit(`login:${email}`, 10, 15 * 60 * 1000);
           if (!attempt.ok) {
-            throw new Error("Invalid email or password");
+            throw new InvalidCredentialsError();
           }
         } catch (error) {
           if (error instanceof RateLimitUnavailable) {
-            throw new Error(error.message);
+            throw new RateLimitSigninError();
           }
           throw error;
         }
@@ -46,12 +55,12 @@ const authConfig = {
 
         const user = await User.findOne({ email });
         if (!user) {
-          throw new Error("Invalid email or password");
+          throw new InvalidCredentialsError();
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid || !canSignIn(user)) {
-          throw new Error("Invalid email or password");
+          throw new InvalidCredentialsError();
         }
 
         return {

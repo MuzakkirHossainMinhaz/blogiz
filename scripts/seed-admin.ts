@@ -2,7 +2,13 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "../src/lib/mongodb";
 import User from "../src/models/User";
 import { passwordSchema } from "../src/lib/validation";
+import { canSignIn } from "../src/lib/session-policy";
 
+/**
+ * Upsert a single superadmin from ADMIN_EMAIL / ADMIN_PASSWORD.
+ * Prefer `npm run seed` for a full truncate + fixture load.
+ * Flags match authorize + canSignIn: isActive, isApproved, emailVerified, role=superadmin.
+ */
 async function main() {
   if (process.env.NODE_ENV === "production") {
     console.error("Refusing to seed while NODE_ENV=production");
@@ -32,18 +38,25 @@ async function main() {
     existing.isApproved = true;
     existing.isActive = true;
     existing.emailVerified = true;
+    existing.sessionVersion = (existing.sessionVersion ?? 0) + 1;
+    if (!existing.profile?.fullName) {
+      existing.profile = {
+        fullName: "Super Administrator",
+        bio: existing.profile?.bio || "System administrator with full access.",
+      };
+    }
     await existing.save();
+
+    const ok = canSignIn(existing) && (await bcrypt.compare(password, existing.password));
+    if (!ok) {
+      console.error("Updated superadmin failed login alignment check");
+      process.exit(1);
+    }
     console.log(`Superadmin password updated for ${email}`);
     process.exit(0);
   }
 
-  const otherSuperadmin = await User.findOne({ role: "superadmin" }).select("email");
-  if (otherSuperadmin) {
-    console.log(`Superadmin already exists as ${otherSuperadmin.email}. Set ADMIN_EMAIL to that address to reset its password.`);
-    process.exit(0);
-  }
-
-  await User.create({
+  const created = await User.create({
     email,
     password: hashed,
     name: "Super Admin",
@@ -55,7 +68,14 @@ async function main() {
     isApproved: true,
     isActive: true,
     emailVerified: true,
+    sessionVersion: 0,
   });
+
+  const ok = canSignIn(created) && (await bcrypt.compare(password, created.password));
+  if (!ok) {
+    console.error("Created superadmin failed login alignment check");
+    process.exit(1);
+  }
 
   console.log(`Superadmin created for ${email}`);
   process.exit(0);

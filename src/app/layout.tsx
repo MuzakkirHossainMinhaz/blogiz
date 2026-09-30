@@ -1,5 +1,7 @@
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Providers from "@/lib/Providers";
+import { APP_CONFIG } from "@/config/constants";
+import { buildPageMetadata, DEFAULT_DESCRIPTION } from "@/lib/seo";
 import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -17,9 +19,11 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Blogiz",
-  description:
-    "Welcome to Blogiz – where innovation meets imagination in the dynamic realm of technology, offering a thrilling journey through the latest trends and groundbreaking discoveries in the world of tech!",
+  ...buildPageMetadata({
+    title: APP_CONFIG.SITE_NAME,
+    description: DEFAULT_DESCRIPTION,
+    path: "/",
+  }),
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

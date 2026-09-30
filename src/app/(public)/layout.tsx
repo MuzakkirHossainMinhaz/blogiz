@@ -12,11 +12,16 @@ export default function PublicLayout({
   const pathname = usePathname();
   const isDashboard = pathname.startsWith("/dashboard");
 
+  // Dashboard uses its own app-shell chrome (DashboardNav). Marketing footer stays public-only.
+  if (isDashboard) {
+    return <>{children}</>;
+  }
+
   return (
     <>
       <Navbar />
       {children}
-      {!isDashboard && <Footer />}
+      <Footer />
     </>
   );
 }
