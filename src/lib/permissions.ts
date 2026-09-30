@@ -179,8 +179,8 @@ export const rolePermissions: Record<UserRole, Permission> = {
       deactivateUser: false,
       changeUserRole: false,
 
-      // Dashboard permissions
-      viewDashboard: false,
+      // Dashboard permissions — readers get a simple account dashboard
+      viewDashboard: true,
       viewAdminDashboard: false,
       viewSuperAdminDashboard: false,
 
@@ -242,13 +242,25 @@ export function isUserRole(value: unknown): value is UserRole {
 
 /**
  * Proxy gate. Authentication is required for /dashboard.
- * Admin path prefixes also require viewAdminDashboard.
+ * Admin path prefixes require viewAdminDashboard.
+ * Authoring routes require createBlog.
  */
 export function dashboardAccess(role: UserRole | undefined, pathname: string): "ok" | "login" | "forbidden" {
   if (!pathname.startsWith("/dashboard")) return "ok";
   if (!role) return "login";
+  if (!hasPermission(role, "viewDashboard")) return "forbidden";
+
   if (pathname === "/dashboard/admin" || pathname.startsWith("/dashboard/admin/")) {
     return hasPermission(role, "viewAdminDashboard") ? "ok" : "forbidden";
   }
+
+  const authoring =
+    pathname.startsWith("/dashboard/blogs") ||
+    pathname === "/dashboard/analytics" ||
+    pathname.startsWith("/dashboard/analytics/");
+  if (authoring && !hasPermission(role, "createBlog")) {
+    return "forbidden";
+  }
+
   return "ok";
 }

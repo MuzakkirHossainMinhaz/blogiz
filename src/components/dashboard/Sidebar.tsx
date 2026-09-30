@@ -15,6 +15,7 @@ import {
   FiSettings,
   FiUsers,
   FiShield,
+  FiArrowUpCircle,
 } from "react-icons/fi";
 
 interface NavItem {
@@ -23,9 +24,27 @@ interface NavItem {
   icon: IconType;
   current: (pathname: string) => boolean;
   requiredPermission: keyof Permission["can"];
+  roles?: UserRole[];
 }
 
-const baseNavigation: NavItem[] = [
+const readerNavigation: NavItem[] = [
+  {
+    name: "Overview",
+    href: "/dashboard",
+    icon: FiHome,
+    current: (pathname: string) => pathname === "/dashboard",
+    requiredPermission: "viewDashboard",
+  },
+  {
+    name: "Settings",
+    href: "/dashboard/settings",
+    icon: FiSettings,
+    current: (pathname: string) => pathname === "/dashboard/settings",
+    requiredPermission: "editOwnProfile",
+  },
+];
+
+const authorNavigation: NavItem[] = [
   {
     name: "Dashboard",
     href: "/dashboard",
@@ -34,18 +53,18 @@ const baseNavigation: NavItem[] = [
     requiredPermission: "viewDashboard",
   },
   {
-    name: "Blogs",
+    name: "My posts",
     href: "/dashboard/blogs",
     icon: FiFileText,
     current: (pathname: string) => pathname.startsWith("/dashboard/blogs"),
-    requiredPermission: "viewDashboard",
+    requiredPermission: "createBlog",
   },
   {
     name: "Analytics",
     href: "/dashboard/analytics",
     icon: FiBarChart2,
     current: (pathname: string) => pathname === "/dashboard/analytics",
-    requiredPermission: "viewDashboard",
+    requiredPermission: "createBlog",
   },
   {
     name: "Settings",
@@ -58,27 +77,18 @@ const baseNavigation: NavItem[] = [
 
 const adminNavigation: NavItem[] = [
   {
-    name: "User Management",
-    href: "/dashboard/admin/users",
-    icon: FiUsers,
-    current: (pathname: string) => pathname.startsWith("/dashboard/admin/users"),
-    requiredPermission: "viewUsers",
-  },
-  {
-    name: "Admin Panel",
+    name: "Admin panel",
     href: "/dashboard/admin",
     icon: FiShield,
     current: (pathname: string) => pathname === "/dashboard/admin",
     requiredPermission: "viewAdminDashboard",
   },
-];
-
-const secondaryNavigation = [
   {
-    name: "View Site",
-    href: "/",
-    icon: FiGrid,
-    external: true,
+    name: "Users",
+    href: "/dashboard/admin/users",
+    icon: FiUsers,
+    current: (pathname: string) => pathname.startsWith("/dashboard/admin/users"),
+    requiredPermission: "viewUsers",
   },
 ];
 
@@ -91,14 +101,12 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
   const { data: session } = useSession();
   const userRole = (session?.user?.role as UserRole) || "user";
   const canCreateBlog = hasPermission(userRole, "createBlog");
+  const isReader = userRole === "user";
 
-  // Filter navigation based on permissions
-  const filteredBaseNav = baseNavigation.filter((item) =>
+  const mainNav = (isReader ? readerNavigation : authorNavigation).filter((item) =>
     hasPermission(userRole, item.requiredPermission)
   );
-  const filteredAdminNav = adminNavigation.filter((item) =>
-    hasPermission(userRole, item.requiredPermission)
-  );
+  const adminNav = adminNavigation.filter((item) => hasPermission(userRole, item.requiredPermission));
 
   const linkClass = (isActive: boolean) =>
     cn(
@@ -110,40 +118,36 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
   return (
     <div className="space-y-6">
-      {/* Main Navigation */}
-      {filteredBaseNav.length > 0 && (
-        <div>
-          <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Main Menu</h3>
-          <div className="mt-3 space-y-1">
-            {filteredBaseNav.map((item) => {
-              const isActive = item.current(pathname);
-              const Icon = item.icon;
-
-              return (
-                <Link key={item.name} href={item.href} onClick={onNavigate} className={linkClass(isActive)}>
-                  <Icon
-                    className={cn(
-                      "mr-3 h-5 w-5 shrink-0",
-                      isActive ? "text-primary-600" : "text-neutral-400 group-hover:text-primary-600"
-                    )}
-                  />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </div>
+      <div>
+        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+          {isReader ? "Account" : "Workspace"}
+        </h3>
+        <div className="mt-3 space-y-1">
+          {mainNav.map((item) => {
+            const isActive = item.current(pathname);
+            const Icon = item.icon;
+            return (
+              <Link key={item.name} href={item.href} onClick={onNavigate} className={linkClass(isActive)}>
+                <Icon
+                  className={cn(
+                    "mr-3 h-5 w-5 shrink-0",
+                    isActive ? "text-primary-600" : "text-neutral-400 group-hover:text-primary-600"
+                  )}
+                />
+                {item.name}
+              </Link>
+            );
+          })}
         </div>
-      )}
+      </div>
 
-      {/* Admin Navigation */}
-      {filteredAdminNav.length > 0 && (
+      {adminNav.length > 0 && (
         <div>
           <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Administration</h3>
           <div className="mt-3 space-y-1">
-            {filteredAdminNav.map((item) => {
+            {adminNav.map((item) => {
               const isActive = item.current(pathname);
               const Icon = item.icon;
-
               return (
                 <Link key={item.name} href={item.href} onClick={onNavigate} className={linkClass(isActive)}>
                   <Icon
@@ -160,10 +164,9 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         </div>
       )}
 
-      {/* Quick Actions - Only for authors/admins */}
       {canCreateBlog && (
         <div>
-          <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Quick Actions</h3>
+          <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Quick actions</h3>
           <div className="mt-3 space-y-1">
             <Link
               href="/dashboard/blogs/create"
@@ -171,73 +174,37 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
               className="group flex items-center min-h-11 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors duration-200 bg-primary-500 text-white hover:bg-primary-600 shadow-soft"
             >
               <FiEdit3 className="mr-3 h-5 w-5 shrink-0" />
-              Write New Post
+              Write new post
             </Link>
           </div>
         </div>
       )}
 
-      {/* Secondary Navigation */}
-      <div>
-        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">External</h3>
-        <div className="mt-3 space-y-1">
-          {secondaryNavigation.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={onNavigate}
-                  className={cn(
-                  "group flex items-center min-h-11 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors duration-200",
-                  "text-accent-600 hover:bg-primary-50/70 hover:text-ink"
-                )}
-                {...(item.external && { target: "_blank", rel: "noopener noreferrer" })}
-              >
-                <Icon className="mr-3 h-5 w-5 shrink-0 text-neutral-400 group-hover:text-primary-600" />
-                {item.name}
-                {item.external && (
-                  <svg
-                    className="ml-auto w-4 h-4 text-neutral-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Stats Summary - Only for authors/admins */}
-      {canCreateBlog && (
-        <div className="px-3 py-4 bg-primary-50 rounded-2xl border border-primary-100">
-          <h4 className="text-sm font-medium text-primary-900 mb-2">Quick Stats</h4>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-primary-700">Total Posts</span>
-              <span className="font-medium text-primary-900">--</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-primary-700">Total Likes</span>
-              <span className="font-medium text-primary-900">--</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-primary-700">Drafts</span>
-              <span className="font-medium text-primary-900">--</span>
-            </div>
+      {isReader && (
+        <div>
+          <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Grow</h3>
+          <div className="mt-3 space-y-1">
+            <Link
+              href="/dashboard/settings#role-upgrade"
+              onClick={onNavigate}
+              className={linkClass(false)}
+            >
+              <FiArrowUpCircle className="mr-3 h-5 w-5 shrink-0 text-neutral-400 group-hover:text-primary-600" />
+              Become an author
+            </Link>
           </div>
         </div>
       )}
+
+      <div>
+        <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Site</h3>
+        <div className="mt-3 space-y-1">
+          <Link href="/" onClick={onNavigate} className={linkClass(false)}>
+            <FiGrid className="mr-3 h-5 w-5 shrink-0 text-neutral-400 group-hover:text-primary-600" />
+            View public site
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

@@ -59,13 +59,17 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        if (result.code === "rate_limit_unavailable") {
+          setError("Sign-in is temporarily unavailable. Redis rate limiting must be running (set REDIS_URL).");
+        } else {
+          setError("Invalid email or password");
+        }
       } else {
         const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
         router.push(safeCallbackUrl(callbackUrl));
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
