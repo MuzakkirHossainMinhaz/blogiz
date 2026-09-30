@@ -1,27 +1,58 @@
 @import "tailwindcss";
 
-/* daisyUI 5 is configured in CSS. Tailwind v4 does not load tailwind.config.ts. */
+/*
+  daisyUI 5 as a Tailwind plugin (https://daisyui.com/docs/install/ and Next.js guide).
+  themes: false disables built-ins so the custom theme below is the only palette.
+  Turbopack + Lightning CSS also needs package.json "browserslist": "> 1%".
+*/
 @plugin "daisyui" {
   themes: false;
   logs: false;
 }
 
+/* Custom theme — https://daisyui.com/docs/themes/ */
 @plugin "daisyui/theme" {
   name: "light";
   default: true;
+  prefersdark: false;
   color-scheme: light;
-  --color-primary: #7b85f0;
-  --color-primary-content: #ffffff;
-  --color-secondary: #5b5f7a;
-  --color-secondary-content: #ffffff;
-  --color-accent: #5b5f7a;
-  --color-accent-content: #ffffff;
-  --color-neutral: #3f4285;
-  --color-neutral-content: #ffffff;
+
   --color-base-100: #ffffff;
   --color-base-200: #f7f6ff;
   --color-base-300: #e4e6f5;
   --color-base-content: #3f4285;
+
+  --color-primary: #7b85f0;
+  --color-primary-content: #ffffff;
+
+  --color-secondary: #5b5f7a;
+  --color-secondary-content: #ffffff;
+
+  --color-accent: #5b5f7a;
+  --color-accent-content: #ffffff;
+
+  --color-neutral: #3f4285;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #7b85f0;
+  --color-info-content: #ffffff;
+  --color-success: #3d9a6a;
+  --color-success-content: #ffffff;
+  --color-warning: #c4922a;
+  --color-warning-content: #1f2130;
+  --color-error: #c45c5c;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 1rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
 }
 
 /* Logo-native theme: paper, feather, quill, ink */
@@ -80,12 +111,17 @@
   @apply border-neutral-200;
 }
 
+/*
+  Do not set overflow-x on body — with overflow-x not visible, overflow-y:visible
+  computes to auto and sticky (navbar) sticks to the wrong scrollport, which looks
+  like the nav is floating mid-page in long screenshots / scroll.
+*/
 html {
-  @apply overflow-x-clip;
+  overflow-x: clip;
 }
 
 body {
-  @apply bg-paper text-ink overflow-x-clip font-sans antialiased;
+  @apply bg-paper text-ink font-sans antialiased;
 }
 
 .font-display {

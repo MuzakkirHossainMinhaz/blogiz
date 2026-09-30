@@ -33,4 +33,6 @@ export const ROUTES = {
   CREATE_BLOG: "/blogs/create",
   ABOUT: "/about",
   SUPPORT: "/support",
+  PRIVACY: "/privacy",
+  TERMS: "/terms",
 } as const;

@@ -1,9 +1,8 @@
-import { Container } from "@/components/ui/Container";
-import { Section } from "@/components/ui/Section";
-import { APP_CONFIG } from "@/config/constants";
+import { EditorialDocPage } from "@/components/shared/EditorialDocPage";
+import { APP_CONFIG, ROUTES } from "@/config/constants";
 import { buildPageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { FiInfo } from "react-icons/fi";
+import Link from "next/link";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "About",
@@ -11,56 +10,127 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/about",
 });
 
+const pillars = [
+  {
+    title: "Write with intention",
+    body: "Authors draft on paper-quiet tools, then publish through review so the public feed stays curated rather than noisy.",
+  },
+  {
+    title: "Read without clutter",
+    body: "Stories arrive as finished pieces — clear titles, calm typography, and room to react with a single like or dislike.",
+  },
+  {
+    title: "Moderate with care",
+    body: "Admins approve authors, posts, and comments. The feed stays intentional because someone is accountable for it.",
+  },
+];
+
+const roles = [
+  {
+    name: "Readers",
+    detail:
+      "Browse published posts, leave a reaction, comment after approval, and request an author upgrade from the dashboard.",
+  },
+  {
+    name: "Authors",
+    detail:
+      "Draft and edit their own posts. Publishing goes through review unless the account already has admin privileges.",
+  },
+  {
+    name: "Admins",
+    detail:
+      "Approve posts, comments, and author accounts, manage banners, and keep the public surface coherent.",
+  },
+];
+
+const sections = [
+  {
+    id: "why",
+    title: "Why Blogiz exists",
+    content: (
+      <>
+        <p>
+          Most blogging tools optimize for speed and volume. Blogiz leans the other way: draft carefully, publish through
+          review, and share work that holds up next to other authors on the same shelf.
+        </p>
+        <p>
+          Readers engage with published stories. Authors grow an audience without fighting algorithmic noise. Operators
+          keep the room tidy through clear roles and approvals.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "craft",
+    title: "How the craft comes together",
+    content: (
+      <div className="grid gap-8 sm:grid-cols-3 sm:gap-6">
+        {pillars.map((pillar) => (
+          <div key={pillar.title} className="min-w-0">
+            <h3 className="font-display text-base font-semibold text-ink mb-2">{pillar.title}</h3>
+            <p className="text-sm sm:text-base text-accent-500 leading-relaxed">{pillar.body}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    id: "roles",
+    title: "Who uses Blogiz",
+    content: (
+      <ul className="divide-y divide-neutral-200 border-y border-neutral-200">
+        {roles.map((role) => (
+          <li key={role.name} className="py-5 sm:py-6 grid gap-2 sm:grid-cols-12 sm:gap-6 first:pt-0 last:pb-0">
+            <p className="sm:col-span-3 font-display text-base font-semibold text-ink">{role.name}</p>
+            <p className="sm:col-span-9 text-sm sm:text-base text-accent-500 leading-relaxed">{role.detail}</p>
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    id: "start",
+    title: "Getting started",
+    content: (
+      <>
+        <p>
+          Create an account, explore published stories, or open Support for sign-in tips and author upgrades. Privacy and
+          Terms describe how this instance handles data and community rules.
+        </p>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Link
+            href={ROUTES.SUPPORT}
+            className="inline-flex items-center justify-center min-h-11 px-5 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors"
+          >
+            Visit support
+          </Link>
+          <Link
+            href={ROUTES.BLOGS}
+            className="inline-flex items-center justify-center min-h-11 px-5 rounded-xl text-sm font-semibold text-ink bg-surface border border-primary-200 hover:border-primary-300 transition-colors"
+          >
+            Browse blogs
+          </Link>
+        </div>
+      </>
+    ),
+  },
+];
+
 export default function AboutPage() {
   return (
-    <main className="bg-paper">
-      <Section className="py-12 md:py-16">
-        <Container size="md">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-100 border border-primary-200 mb-6">
-              <FiInfo className="w-7 h-7 text-primary-700" />
-            </div>
-
-            <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-tight text-ink mb-4">
-              About Blogiz
-            </h1>
-            <p className="text-base sm:text-lg text-accent-500 mb-8 leading-relaxed">
-              Blogiz is a multi-user blog platform where readers engage with published stories and authors draft,
-              publish, and grow an audience. Admins approve posts, comments, and author accounts so the public feed
-              stays intentional.
-            </p>
-
-            <div className="space-y-8 text-sm sm:text-base text-neutral-700 leading-relaxed">
-              <section>
-                <h2 className="font-display text-xl font-semibold text-ink mb-2">What you can do</h2>
-                <ul className="list-disc pl-5 space-y-2 text-accent-600">
-                  <li>Read published posts and leave one like or dislike when signed in</li>
-                  <li>Comment after admin approval (admins are approved immediately)</li>
-                  <li>Request an author upgrade from your reader dashboard</li>
-                  <li>Authors draft posts; publishing goes through review unless you are an admin</li>
-                </ul>
-              </section>
-
-              <section id="privacy">
-                <h2 className="font-display text-xl font-semibold text-ink mb-2">Privacy</h2>
-                <p className="text-accent-600">
-                  This is a placeholder privacy notice. Replace it with your operator&apos;s policy before production
-                  use. Blogiz stores account profiles, posts, comments, reactions, and salted view hashes — never put
-                  secrets in public metadata.
-                </p>
-              </section>
-
-              <section id="terms">
-                <h2 className="font-display text-xl font-semibold text-ink mb-2">Terms</h2>
-                <p className="text-accent-600">
-                  This is a placeholder terms section. Replace it with binding terms for your deployment. By using a
-                  Blogiz instance you agree to follow the operator&apos;s content and account rules.
-                </p>
-              </section>
-            </div>
-          </div>
-        </Container>
-      </Section>
-    </main>
+    <EditorialDocPage
+      eyebrow={APP_CONFIG.SITE_NAME}
+      title="An editorial home for multi-author blogs"
+      description="Blogiz is built for writers who want a calm place to publish and readers who want stories worth the time — not a feed that shouts."
+      sections={sections}
+      relatedTitle="Explore next"
+      relatedBlurb="Jump to help, policies, or the public feed."
+      relatedLinks={[
+        { label: "Support", href: ROUTES.SUPPORT },
+        { label: "Privacy", href: ROUTES.PRIVACY },
+        { label: "Terms", href: ROUTES.TERMS },
+        { label: "Blogs", href: ROUTES.BLOGS },
+      ]}
+    />
   );
 }

@@ -145,29 +145,10 @@ describe("input guards", () => {
 describe("seed is not a public route", () => {
   it("removes the seed route and refuses production without printing the password", () => {
     expect(existsSync("src/app/api/seed/route.ts")).toBe(false);
-    const adminSource = readFileSync("scripts/seed-admin.ts", "utf8");
     const seedSource = readFileSync("scripts/seed.ts", "utf8");
-    expect(adminSource).not.toMatch(/console\.(log|error|info|debug)\([\s\S]*\$\{[^}]*password/i);
     expect(seedSource).not.toMatch(/console\.(log|error|info|debug)\([\s\S]*\$\{[^}]*password/i);
 
     const password = "supersecret1";
-    const result = spawnSync(process.execPath, ["--experimental-strip-types", "scripts/seed-admin.mjs"], {
-      env: {
-        ...process.env,
-        NODE_ENV: "production",
-        MONGODB_URI: "mongodb://127.0.0.1:27017/blogiz",
-        AUTH_SECRET: "test-secret-not-for-production",
-        AUTH_URL: "http://localhost:3000",
-        ADMIN_EMAIL: "admin@example.com",
-        ADMIN_PASSWORD: password,
-      },
-      encoding: "utf8",
-    });
-
-    expect(result.status).toBe(1);
-    expect(`${result.stdout}${result.stderr}`).not.toContain(password);
-    expect(result.stderr).toContain("NODE_ENV=production");
-
     const fullSeed = spawnSync(process.execPath, ["--experimental-strip-types", "scripts/seed.mjs"], {
       env: {
         ...process.env,

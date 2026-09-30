@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { Pagination } from "@/components/ui/Pagination";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { canManageRole, hasPermission, type UserRole } from "@/lib/permissions";
@@ -308,24 +309,7 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {pages > 1 && (
-        <div className="flex items-center justify-center gap-3">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            Previous
-          </Button>
-          <span className="text-sm text-accent-500">
-            Page {page} of {pages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= pages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      )}
+      <Pagination page={page} pages={pages} total={total} onPageChange={setPage} />
     </div>
   );
 }

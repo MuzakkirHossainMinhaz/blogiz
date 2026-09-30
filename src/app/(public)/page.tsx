@@ -1,13 +1,11 @@
 import Banner from "@/components/shared/Banner";
-import { HomeHero } from "@/components/shared/HomeHero";
 import BlogCard from "@/components/ui/BlogCard";
-import { Container } from "@/components/ui/Container";
 import LatestBlogCard from "@/components/ui/LatestBlogCard";
-import { Section } from "@/components/ui/Section";
-import { APP_CONFIG } from "@/config/constants";
+import { APP_CONFIG, ROUTES } from "@/config/constants";
 import { getBlogs } from "@/lib/db";
 import { buildPageMetadata, DEFAULT_DESCRIPTION } from "@/lib/seo";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -24,47 +22,55 @@ export default async function HomePage() {
   const recentBlogs = blogs.slice(2, APP_CONFIG.LATEST_BLOGS_COUNT);
 
   return (
-    <main>
-      <HomeHero />
+    <main className="bg-paper">
+      <Banner />
 
-      <div className="border-b border-neutral-200/80 bg-surface">
-        <Banner />
-      </div>
+      <section className="container-custom py-14 sm:py-16 md:py-20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10 md:mb-12">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600 mb-3">Latest</p>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-ink">
+              From the shelf
+            </h2>
+            <p className="mt-3 text-base sm:text-lg text-accent-500 leading-relaxed">
+              {APP_CONFIG.SITE_DESCRIPTION}
+            </p>
+          </div>
+          <Link
+            href={ROUTES.BLOGS}
+            className="inline-flex items-center justify-center min-h-11 px-5 rounded-xl text-sm font-semibold text-ink bg-surface border border-primary-200 hover:border-primary-300 transition-colors shrink-0"
+          >
+            View all blogs
+          </Link>
+        </div>
 
-      <Section
-        title={
+        {blogs.length === 0 ? (
+          <div className="py-14 text-center border-y border-neutral-200">
+            <h3 className="font-display text-xl font-semibold text-ink mb-2">No stories yet</h3>
+            <p className="text-accent-500 max-w-md mx-auto">
+              Published posts will appear here. Authors can draft from the dashboard once they are approved.
+            </p>
+          </div>
+        ) : (
           <>
-            Latest from <span className="text-primary-600">Blogiz</span>
-          </>
-        }
-        subtitle={APP_CONFIG.SITE_DESCRIPTION}
-        className="bg-surface px-4"
-      >
-        <Container>
-          {blogs.length === 0 ? (
-            <div className="text-center py-14 px-4">
-              <h3 className="font-display text-xl font-semibold text-ink mb-2">No stories yet</h3>
-              <p className="text-accent-500 max-w-md mx-auto">
-                Published posts will appear here. Authors can draft from the dashboard once they are approved.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12">
+            {latestBlogs.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-10 md:mb-12">
                 {latestBlogs.map((blog) => (
                   <LatestBlogCard key={blog._id} blog={blog} />
                 ))}
               </div>
+            ) : null}
 
+            {recentBlogs.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {recentBlogs.map((blog) => (
                   <BlogCard key={blog._id} blog={blog} />
                 ))}
               </div>
-            </>
-          )}
-        </Container>
-      </Section>
+            ) : null}
+          </>
+        )}
+      </section>
     </main>
   );
 }

@@ -14,7 +14,7 @@ A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET`
 
 ## Theme and fonts
 
-The UI is light-only (`data-theme="light"`). daisyUI’s light theme is remapped to the logo palette: paper `#F7F6FF`, feather `#C0C8FF`, quill `#7B85F0`, ink `#3F4285`. Display type is Fraunces; UI type is Plus Jakarta Sans, both loaded with `next/font`.
+The UI is light-only (`data-theme="light"`). daisyUI is installed as a Tailwind v4 CSS plugin (`@plugin "daisyui"`) with a custom light theme remapped to the logo palette: paper `#F7F6FF`, feather `#C0C8FF`, quill `#7B85F0`, ink `#3F4285`. Display type is Fraunces; UI type is Plus Jakarta Sans, both loaded with `next/font`. `package.json` sets `"browserslist": "> 1%"` so Turbopack’s Lightning CSS does not polyfill modern CSS in a way that breaks daisyUI layouts (see [daisyUI Next.js install](https://daisyui.com/docs/install/nextjs/)).
 
 The public marketing site uses the shared Navbar and Footer. The dashboard is a separate app shell with its own top bar (logo, role context, user menu, logout) and does not render the marketing footer.
 
@@ -22,14 +22,14 @@ The public marketing site uses the shared Navbar and Footer. The dashboard is a 
 
 | Variable | Required | What it is |
 | --- | --- | --- |
-| `NODE_ENV` | Set by Next.js | `development`, `test`, or `production`. Leave it empty in `.env.local`. `npm run seed` and `npm run seed:admin` refuse to run when it is `production` unless you pass `--force` / `SEED_FORCE=1` for the full seed on a disposable database. |
+| `NODE_ENV` | Set by Next.js | `development`, `test`, or `production`. Leave it empty in `.env.local`. `npm run seed` refuses to run when it is `production` unless you pass `--force` / `SEED_FORCE=1` on a disposable database. |
 | `MONGODB_URI` | Always | MongoDB connection string. |
 | `AUTH_SECRET` | Always | Secret used to sign sessions. |
 | `AUTH_URL` | Always | Canonical site URL, such as `http://localhost:3000` locally. Auth.js does not accept the Host header in its place. Also used for public canonical / Open Graph URLs. |
 | `NEXTAUTH_SECRET` | Only if `AUTH_SECRET` is unset | Alias copied onto `AUTH_SECRET`. |
 | `NEXTAUTH_URL` | Only if `AUTH_URL` is unset | Alias copied onto `AUTH_URL`. |
-| `ADMIN_EMAIL` | For `npm run seed` / `seed:admin` | Email of the superadmin to create. |
-| `ADMIN_PASSWORD` | For `npm run seed` / `seed:admin` | Password for that account (min 10 chars, letter + number). The command does not print it. |
+| `ADMIN_EMAIL` | For `npm run seed` | Email of the superadmin to create. |
+| `ADMIN_PASSWORD` | For `npm run seed` | Password for that account (min 10 chars, letter + number). The command does not print it. |
 | `SEED_FORCE` | Optional | Set to `1` with `npm run seed -- --force` only on a disposable database when `NODE_ENV=production`. |
 | `HEALTH_CHECK_SECRET` | Only to use `/api/health` | Shared secret. Send it as `x-health-token`. The route returns 404 until this is set and the header matches. |
 | `HUGGINGFACE_API_KEY` | Optional | Enables the Hugging Face writing and analysis routes. |
@@ -76,15 +76,12 @@ Fixtures live under `scripts/seed-data/`.
 ```bash
 # Full truncate + seed (every collection the app uses)
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='choose-a-long-password1' npm run seed
-
-# Superadmin upsert only (does not wipe other data)
-ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='choose-a-long-password1' npm run seed:admin
 ```
 
 `npm run seed`:
 
 1. Refuses when `NODE_ENV=production` unless `--force` or `SEED_FORCE=1` (documented for disposable DBs only).
-2. Truncates users, blogs, comments, likes, banners, blog views, and role-upgrade requests.
+2. Truncates users, blogs, comments, likes, banners, blog views, and role-upgrade requests, then syncs indexes to the current schemas.
 3. Seeds users (superadmin from env, plus admin / authors / readers / a pending unapproved author), blogs, comments, likes/dislikes, banners, views, and a pending role upgrade.
 4. Verifies the superadmin password hash and `canSignIn` flags (`isActive`, `isApproved`, `emailVerified`, `role=superadmin`) before exiting.
 

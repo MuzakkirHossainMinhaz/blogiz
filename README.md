@@ -30,12 +30,6 @@ Fill in `.env.local` from `.env.example`. Every value there is empty on purpose.
 
 `npm run seed` truncates all collections and loads realistic fixtures, including a superadmin from `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Sign in at `/auth/login` with those credentials (Redis must be up).
 
-Admin-only upsert without wiping data:
-
-```bash
-ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='choose-a-long-password1' npm run seed:admin
-```
-
 ## Scripts
 
 | Script | What it does |
@@ -47,6 +41,5 @@ ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='choose-a-long-password1' npm run see
 | `npm run typecheck` | TypeScript |
 | `npm test` | Vitest |
 | `npm run seed` | Truncate all collections and seed fixtures + superadmin |
-| `npm run seed:admin` | Upsert one superadmin from `ADMIN_EMAIL` / `ADMIN_PASSWORD` |
 
 Setup, roles, auth, uploads, rate limits, and how to run the checks are in [GUIDE.md](GUIDE.md).

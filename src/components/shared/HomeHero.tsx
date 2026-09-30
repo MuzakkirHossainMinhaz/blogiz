@@ -5,9 +5,10 @@ import { APP_CONFIG, ROUTES } from "@/config/constants";
 import Image from "next/image";
 import Link from "next/link";
 
+/** Brand fallback hero when no admin banners are published. */
 export function HomeHero() {
   return (
-    <section className="relative overflow-hidden border-b border-neutral-200/80">
+    <section className="relative overflow-hidden">
       <div
         className="absolute inset-0 -z-10"
         aria-hidden="true"
@@ -24,22 +25,20 @@ export function HomeHero() {
         className="absolute inset-0 -z-10 opacity-[0.35]"
         aria-hidden="true"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233f4285' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233f4285' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}
       />
 
-      <div className="container-custom flex min-h-[min(88dvh,52rem)] flex-col items-center justify-center py-16 sm:py-20 md:py-24 text-center">
+      <div className="container-custom flex min-h-[min(72dvh,34rem)] sm:min-h-[min(68dvh,36rem)] flex-col items-center justify-center py-16 sm:py-20 md:py-24 text-center">
         <FadeIn className="flex flex-col items-center">
-          <div className="relative mb-6 h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28">
-            <Image
-              src="/logo.png"
-              fill
-              sizes="112px"
-              alt={`${APP_CONFIG.SITE_NAME} logo`}
-              className="object-contain drop-shadow-sm"
-              priority
-            />
-          </div>
+          <Image
+            src="/logo.png"
+            width={112}
+            height={112}
+            alt={`${APP_CONFIG.SITE_NAME} logo`}
+            className="mb-6 h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 object-contain drop-shadow-sm"
+            priority
+          />
           <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold tracking-tight text-ink">
             {APP_CONFIG.SITE_NAME}
           </h1>
@@ -54,7 +53,10 @@ export function HomeHero() {
           </p>
         </FadeIn>
 
-        <FadeIn delay={0.16} className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto max-w-sm sm:max-w-none">
+        <FadeIn
+          delay={0.16}
+          className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto max-w-sm sm:max-w-none"
+        >
           <Link
             href={ROUTES.BLOGS}
             className="inline-flex items-center justify-center min-h-12 px-7 rounded-xl text-base font-semibold text-white bg-primary-500 hover:bg-primary-600 shadow-soft transition-colors"

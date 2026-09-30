@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { isCloudinaryDeliveryUrl, isSafeNavigationUrl } from "@/lib/urls";
 
 interface Banner {
@@ -51,68 +52,81 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-function BannerTypeBadge({ type }: { type: Banner["type"] }) {
+function bannerMediaUrl(banner: Banner): string | null {
+  if (banner.backgroundImage && isCloudinaryDeliveryUrl(banner.backgroundImage)) {
+    return banner.backgroundImage;
+  }
+  if (banner.image && isCloudinaryDeliveryUrl(banner.image)) {
+    return banner.image;
+  }
+  return null;
+}
+
+function BannerSlideContent({ banner }: { banner: Banner }) {
+  const textColor = banner.metadata?.textColor || "#ffffff";
+  const buttonColor = banner.metadata?.buttonColor || "#7B85F0";
+  const ctaOk = Boolean(banner.ctaText && banner.ctaLink && isSafeNavigationUrl(banner.ctaLink));
+
   return (
-    <span
-      className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-lg ${
-        type === "hero"
-          ? "bg-primary-100 text-primary-800"
-          : type === "featured"
-            ? "bg-primary-50 text-primary-700"
-            : type === "announcement"
-              ? "bg-accent-100 text-accent-700"
-              : "bg-neutral-100 text-neutral-700"
-      }`}
-    >
-      {type}
-    </span>
+    <div className="relative z-10 w-full max-w-2xl" style={{ color: textColor }}>
+      {banner.subtitle ? (
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] opacity-90">{banner.subtitle}</p>
+      ) : null}
+      <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-tight break-words">
+        {banner.title}
+      </h1>
+      {banner.description ? (
+        <p className="mt-4 text-base sm:text-lg leading-relaxed opacity-90 max-w-xl break-words">{banner.description}</p>
+      ) : null}
+      {ctaOk ? (
+        <Link
+          href={banner.ctaLink!}
+          className="mt-8 inline-flex items-center justify-center min-h-12 px-7 rounded-xl text-base font-semibold text-white shadow-soft transition-opacity hover:opacity-90"
+          style={{ backgroundColor: buttonColor }}
+        >
+          {banner.ctaText}
+        </Link>
+      ) : null}
+    </div>
   );
 }
 
-function BannerContent({ banner }: { banner: Banner }) {
+function BannerSlideShell({
+  banner,
+  className = "",
+  children,
+}: {
+  banner: Banner;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const media = bannerMediaUrl(banner);
+  const fallbackBg = banner.metadata?.backgroundColor || "#3f4285";
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 items-center py-6 sm:py-8 md:py-0">
-      <div className="space-y-3 sm:space-y-4 z-10" style={{ color: banner.metadata?.textColor || "#000000" }}>
-        <div className="space-y-2">
-          {banner.type && <BannerTypeBadge type={banner.type} />}
-          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold leading-tight break-words tracking-tight">
-            {banner.title}
-          </h1>
-          {banner.subtitle && (
-            <h2 className="text-base sm:text-xl md:text-2xl font-medium opacity-90 break-words">{banner.subtitle}</h2>
-          )}
-        </div>
-
-        {banner.description && (
-          <p className="text-sm sm:text-base md:text-lg opacity-80 max-w-lg break-words">{banner.description}</p>
-        )}
-
-        {banner.ctaText && banner.ctaLink && isSafeNavigationUrl(banner.ctaLink) && (
-          <a
-            href={banner.ctaLink}
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center min-h-11 px-5 sm:px-6 py-3 font-semibold rounded-xl transition-colors hover:opacity-90"
-            style={{
-              backgroundColor: banner.metadata?.buttonColor || "#7B85F0",
-              color: "#ffffff",
-            }}
-          >
-            {banner.ctaText}
-          </a>
-        )}
-      </div>
-
-      <div className="relative h-40 sm:h-56 md:h-80 w-full max-w-md mx-auto md:max-w-none">
-        {isCloudinaryDeliveryUrl(banner.image) && (
-          <Image
-            src={banner.image}
-            alt={banner.title}
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority
-          />
-        )}
+    <div className={`relative w-full overflow-hidden ${className}`} style={{ backgroundColor: fallbackBg }}>
+      {media ? (
+        <Image
+          src={media}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          aria-hidden
+        />
+      ) : null}
+      <div
+        className="absolute inset-0"
+        aria-hidden
+        style={{
+          background: media
+            ? "linear-gradient(105deg, rgba(31,33,48,0.78) 0%, rgba(31,33,48,0.45) 48%, rgba(31,33,48,0.2) 100%)"
+            : "radial-gradient(ellipse 70% 80% at 12% 20%, rgba(192,200,255,0.28), transparent 55%), linear-gradient(180deg, rgba(63,66,133,0.92), rgba(47,49,99,0.96))",
+        }}
+      />
+      <div className="relative container-custom flex min-h-[min(72dvh,34rem)] sm:min-h-[min(68dvh,36rem)] items-end sm:items-center py-14 sm:py-16 md:py-20">
+        {children ?? <BannerSlideContent banner={banner} />}
       </div>
     </div>
   );
@@ -221,35 +235,25 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
 
   return (
     <div className={`relative w-full overflow-hidden ${className}`}>
-      <div className="relative min-h-[22rem] sm:min-h-[24rem] md:h-[500px]">
+      <div className="relative min-h-[min(72dvh,34rem)] sm:min-h-[min(68dvh,36rem)]">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
-            className={`absolute inset-0 overflow-y-auto ${
+            className={`absolute inset-0 ${
               index === currentIndex ? getActiveAnimationClass() : getAnimationClass()
             } ${index === currentIndex ? "pointer-events-auto" : "pointer-events-none"}`}
-            style={{
-              backgroundColor: banner.metadata?.backgroundColor || "#ffffff",
-              backgroundImage: banner.backgroundImage ? `url(${banner.backgroundImage})` : undefined,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
             aria-hidden={index !== currentIndex}
           >
-            <div className="relative h-full flex items-center">
-              <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <BannerContent banner={banner} />
-              </div>
-            </div>
+            <BannerSlideShell banner={banner} className="h-full min-h-[min(72dvh,34rem)] sm:min-h-[min(68dvh,36rem)]" />
           </div>
         ))}
       </div>
 
       {settings.showNavigation && banners.length > 1 && (
-        <>
+        <div className="pointer-events-none absolute inset-y-0 inset-x-0 z-20 flex items-center justify-between px-2 sm:px-4">
           <button
             onClick={handlePrev}
-            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-neutral-800 min-h-11 min-w-11 p-2.5 rounded-full shadow-lg transition-colors z-20"
+            className="pointer-events-auto bg-white/90 hover:bg-white text-ink min-h-11 min-w-11 p-2.5 rounded-full shadow-soft transition-colors"
             aria-label="Previous banner"
           >
             <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,18 +262,18 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
           </button>
           <button
             onClick={handleNext}
-            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-neutral-800 min-h-11 min-w-11 p-2.5 rounded-full shadow-lg transition-colors z-20"
+            className="pointer-events-auto bg-white/90 hover:bg-white text-ink min-h-11 min-w-11 p-2.5 rounded-full shadow-soft transition-colors"
             aria-label="Next banner"
           >
             <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-        </>
+        </div>
       )}
 
       {settings.showIndicators && banners.length > 1 && (
-        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex space-x-1 z-20">
+        <div className="absolute bottom-3 sm:bottom-4 inset-x-0 flex justify-center gap-1 z-20">
           {banners.map((_, index) => (
             <button
               key={index}
@@ -292,21 +296,5 @@ export default function BannerCarousel({ banners, carouselSettings, className = 
 }
 
 export function HeroBanner({ banner, className = "" }: { banner: Banner; className?: string }) {
-  return (
-    <div
-      className={`relative w-full min-h-[22rem] sm:min-h-[24rem] md:h-[500px] overflow-hidden ${className}`}
-      style={{
-        backgroundColor: banner.metadata?.backgroundColor || "#ffffff",
-        backgroundImage: banner.backgroundImage ? `url(${banner.backgroundImage})` : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="relative h-full flex items-center">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <BannerContent banner={banner} />
-        </div>
-      </div>
-    </div>
-  );
+  return <BannerSlideShell banner={banner} className={className} />;
 }

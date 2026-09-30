@@ -25,6 +25,8 @@ const COLLECTIONS = [
 async function truncateAll() {
   for (const model of COLLECTIONS) {
     await model.deleteMany({});
+    // Drop stale indexes (e.g. legacy likes blogId+ipAddress) and match the current schemas.
+    await model.syncIndexes();
   }
 }
 

@@ -62,14 +62,39 @@ export interface PublicAuthorProfile {
 }
 
 export async function getBlogs(limit = 12): Promise<Blog[]> {
+  const { blogs } = await getBlogsPage({ page: 1, limit, skip: 0 });
+  return blogs;
+}
+
+export async function getBlogsPage(paging: PageQuery): Promise<{
+  blogs: Blog[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}> {
   await connectDB();
-  const safeLimit = Math.min(Math.max(Math.trunc(limit) || 1, 1), 50);
-  const blogs = await BlogModel.find(publicPostFilter())
-    .select(PUBLIC_CARD_FIELDS)
-    .sort({ publish_date: -1 })
-    .limit(safeLimit)
-    .lean();
-  return JSON.parse(JSON.stringify(blogs));
+  const safeLimit = Math.min(Math.max(Math.trunc(paging.limit) || 1, 1), 50);
+  const safePage = Math.max(Math.trunc(paging.page) || 1, 1);
+  const skip = Math.max(Math.trunc(paging.skip) || (safePage - 1) * safeLimit, 0);
+  const filter = publicPostFilter();
+
+  const [blogs, total] = await Promise.all([
+    BlogModel.find(filter)
+      .select(PUBLIC_CARD_FIELDS)
+      .sort({ publish_date: -1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .lean(),
+    BlogModel.countDocuments(filter),
+  ]);
+
+  return {
+    blogs: JSON.parse(JSON.stringify(blogs)),
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      pages: Math.max(1, Math.ceil(total / safeLimit)),
+    },
+  };
 }
 
 export async function getBlogById(id: string, viewer?: PostViewer | null): Promise<Blog | null> {

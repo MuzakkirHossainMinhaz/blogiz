@@ -1,4 +1,5 @@
 import { Container } from "@/components/ui/Container";
+import { Pagination } from "@/components/ui/Pagination";
 import { Section } from "@/components/ui/Section";
 import { ROUTES } from "@/config/constants";
 import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
@@ -148,28 +149,24 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
             </ul>
           )}
           {profile.pagination.pages > 1 && (
-            <nav className="mt-6 flex items-center justify-between gap-3 text-sm">
-              {profile.pagination.page > 1 ? (
-                <Link
-                  href={`${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page - 1}`}
-                  className="inline-flex items-center min-h-11 font-medium text-primary-600 hover:text-primary-700"
-                >
-                  Previous
-                </Link>
-              ) : (
-                <span />
-              )}
-              {profile.pagination.page < profile.pagination.pages ? (
-                <Link
-                  href={`${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page + 1}`}
-                  className="inline-flex items-center min-h-11 font-medium text-primary-600 hover:text-primary-700"
-                >
-                  Next
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
+            <Pagination
+              className="mt-6"
+              page={profile.pagination.page}
+              pages={profile.pagination.pages}
+              total={profile.pagination.total}
+              prevHref={
+                profile.pagination.page > 1
+                  ? profile.pagination.page === 2
+                    ? ROUTES.AUTHOR(profile.id)
+                    : `${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page - 1}`
+                  : undefined
+              }
+              nextHref={
+                profile.pagination.page < profile.pagination.pages
+                  ? `${ROUTES.AUTHOR(profile.id)}?page=${profile.pagination.page + 1}`
+                  : undefined
+              }
+            />
           )}
         </Container>
       </Section>

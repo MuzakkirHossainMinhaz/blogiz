@@ -1,10 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { Pagination } from "@/components/ui/Pagination";
 import { hasPermission, type UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FiCheck,
   FiClock,
@@ -36,6 +37,8 @@ interface RoleUpgrade {
   };
 }
 
+const QUEUE_PAGE_SIZE = 10;
+
 export default function AdminPanelPage() {
   const { data: session } = useSession();
   const userRole = (session?.user?.role as UserRole) || "user";
@@ -48,11 +51,20 @@ export default function AdminPanelPage() {
   const [upgrades, setUpgrades] = useState<RoleUpgrade[]>([]);
   const [bannerCount, setBannerCount] = useState<number | null>(null);
   const [pendingUsers, setPendingUsers] = useState<number | null>(null);
+  const [pendingBlogsTotal, setPendingBlogsTotal] = useState(0);
+  const [pendingBlogsPages, setPendingBlogsPages] = useState(1);
+  const [blogsPage, setBlogsPage] = useState(1);
+  const [upgradesTotal, setUpgradesTotal] = useState(0);
+  const [upgradesPages, setUpgradesPages] = useState(1);
+  const [upgradesPage, setUpgradesPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const refresh = useCallback(() => setReloadKey((value) => value + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,16 +73,27 @@ export default function AdminPanelPage() {
       setError("");
       setLoading(true);
       try {
-        const nextBlogs: PendingBlog[] = [];
+        let nextBlogs: PendingBlog[] = [];
         let nextPendingUsers: number | null = null;
         let nextBannerCount: number | null = null;
         let nextUpgrades: RoleUpgrade[] = [];
+        let nextBlogsTotal = 0;
+        let nextBlogsPages = 1;
+        let nextUpgradesTotal = 0;
+        let nextUpgradesPages = 1;
 
         if (canApproveBlog) {
-          const response = await fetch("/api/blogs?status=pending&limit=20");
+          const params = new URLSearchParams({
+            status: "pending",
+            page: String(blogsPage),
+            limit: String(QUEUE_PAGE_SIZE),
+          });
+          const response = await fetch(`/api/blogs?${params.toString()}`);
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "Could not load pending posts");
-          nextBlogs.push(...(data.blogs || []));
+          nextBlogs = data.blogs || [];
+          nextBlogsTotal = data.pagination?.total ?? nextBlogs.length;
+          nextBlogsPages = data.pagination?.pages ?? 1;
         }
 
         if (canViewUsers) {
@@ -88,17 +111,28 @@ export default function AdminPanelPage() {
         }
 
         if (canChangeRole) {
-          const response = await fetch("/api/admin/role-upgrades?status=pending&limit=20");
+          const params = new URLSearchParams({
+            status: "pending",
+            page: String(upgradesPage),
+            limit: String(QUEUE_PAGE_SIZE),
+          });
+          const response = await fetch(`/api/admin/role-upgrades?${params.toString()}`);
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "Could not load role requests");
           nextUpgrades = data.requests || [];
+          nextUpgradesTotal = data.pagination?.total ?? nextUpgrades.length;
+          nextUpgradesPages = data.pagination?.pages ?? 1;
         }
 
         if (cancelled) return;
         setPendingBlogs(nextBlogs);
+        setPendingBlogsTotal(nextBlogsTotal);
+        setPendingBlogsPages(nextBlogsPages);
         setPendingUsers(nextPendingUsers);
         setBannerCount(nextBannerCount);
         setUpgrades(nextUpgrades);
+        setUpgradesTotal(nextUpgradesTotal);
+        setUpgradesPages(nextUpgradesPages);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Could not load admin data");
@@ -111,7 +145,7 @@ export default function AdminPanelPage() {
     return () => {
       cancelled = true;
     };
-  }, [canApproveBlog, canViewUsers, canManageBanners, canChangeRole]);
+  }, [canApproveBlog, canViewUsers, canManageBanners, canChangeRole, blogsPage, upgradesPage, reloadKey]);
 
   const approveBlog = async (blogId: string) => {
     setBusyId(blogId);
@@ -122,7 +156,8 @@ export default function AdminPanelPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not approve post");
       setMessage("Post approved");
-      setPendingBlogs((current) => current.filter((blog) => blog._id !== blogId));
+      if (pendingBlogs.length === 1 && blogsPage > 1) setBlogsPage((p) => p - 1);
+      else refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not approve post");
     } finally {
@@ -148,7 +183,8 @@ export default function AdminPanelPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not reject post");
       setMessage("Post rejected");
-      setPendingBlogs((current) => current.filter((blog) => blog._id !== blogId));
+      if (pendingBlogs.length === 1 && blogsPage > 1) setBlogsPage((p) => p - 1);
+      else refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reject post");
     } finally {
@@ -169,7 +205,8 @@ export default function AdminPanelPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || `Could not ${action} request`);
       setMessage(`Role request ${action}d`);
-      setUpgrades((current) => current.filter((item) => item._id !== requestId));
+      if (upgrades.length === 1 && upgradesPage > 1) setUpgradesPage((p) => p - 1);
+      else refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : `Could not ${action} request`);
     } finally {
@@ -212,7 +249,7 @@ export default function AdminPanelPage() {
               <div>
                 <p className="text-sm text-accent-500">Pending posts</p>
                 <p className="font-display text-2xl font-semibold text-ink">
-                  {loading ? "—" : pendingBlogs.length}
+                  {loading ? "—" : pendingBlogsTotal}
                 </p>
               </div>
             </div>
@@ -337,6 +374,12 @@ export default function AdminPanelPage() {
               </ul>
             )}
           </div>
+          <Pagination
+            page={blogsPage}
+            pages={pendingBlogsPages}
+            total={pendingBlogsTotal}
+            onPageChange={setBlogsPage}
+          />
         </section>
       )}
 
@@ -393,6 +436,12 @@ export default function AdminPanelPage() {
               </ul>
             )}
           </div>
+          <Pagination
+            page={upgradesPage}
+            pages={upgradesPages}
+            total={upgradesTotal}
+            onPageChange={setUpgradesPage}
+          />
         </section>
       )}
     </div>

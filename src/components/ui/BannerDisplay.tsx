@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import BannerCarousel, { HeroBanner } from "./BannerCarousel";
 
 interface Banner {
@@ -27,12 +27,19 @@ interface BannerDisplayProps {
   type?: "hero" | "featured" | "all";
   limit?: number;
   className?: string;
+  /** Shown while loading or when no banners are configured in the admin panel. */
+  fallback?: ReactNode;
 }
 
-export default function BannerDisplay({ type = "all", limit = 5, className = "" }: BannerDisplayProps) {
+export default function BannerDisplay({
+  type = "all",
+  limit = 5,
+  className = "",
+  fallback = null,
+}: BannerDisplayProps) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [carouselSettings, setCarouselSettings] = useState<any>(null);
+  const [carouselSettings, setCarouselSettings] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,28 +82,33 @@ export default function BannerDisplay({ type = "all", limit = 5, className = "" 
 
   if (loading) {
     return (
-      <div className={`w-full min-h-[14rem] sm:min-h-[16rem] md:min-h-[18rem] bg-primary-50 animate-pulse ${className}`}>
-        <div className="h-full flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      fallback ?? (
+        <div className={`w-full min-h-[min(72dvh,34rem)] bg-primary-50 animate-pulse ${className}`}>
+          <div className="h-full min-h-[min(72dvh,34rem)] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+          </div>
         </div>
-      </div>
+      )
     );
   }
 
   if (banners.length === 0) {
-    return null;
+    return <>{fallback}</>;
   }
 
-  // Single hero banner
   if (type === "hero" && banners.length === 1) {
     return <HeroBanner banner={banners[0]} className={className} />;
   }
 
-  // Multiple banners as carousel
   if (banners.length > 1) {
-    return <BannerCarousel banners={banners} carouselSettings={carouselSettings} className={className} />;
+    return (
+      <BannerCarousel
+        banners={banners}
+        carouselSettings={carouselSettings as never}
+        className={className}
+      />
+    );
   }
 
-  // Single banner (non-hero)
   return <HeroBanner banner={banners[0]} className={className} />;
 }
