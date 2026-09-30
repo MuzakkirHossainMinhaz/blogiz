@@ -30,6 +30,10 @@ export default auth((req) => {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   applySecurityHeaders(response.headers, csp);
+  // Avoid stale HTML/document responses pinning old Turbopack module graphs in the browser.
+  if (process.env.NODE_ENV !== "production") {
+    response.headers.set("Cache-Control", "no-store, must-revalidate");
+  }
   return response;
 });
 

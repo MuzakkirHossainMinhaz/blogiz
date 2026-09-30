@@ -2,7 +2,7 @@ import { Blog } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { ReactionButtons } from "@/components/ui/ReactionButtons";
-import { FaCalendar } from "react-icons/fa";
+import { FiCalendar } from "react-icons/fi";
 import { Badge } from "@/components/ui/Badge";
 import { authorProfileId, cn, truncateText, formatDate } from "@/lib/utils";
 import { ROUTES, UI_CONFIG } from "@/config/constants";
@@ -52,7 +52,7 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
       <div className="card-body p-4 sm:p-5 md:p-6">
         {/* Date Badge */}
         <Badge variant="accent" size="sm" className="w-fit mb-3">
-          <FaCalendar className="w-3 h-3" />
+          <FiCalendar className="w-3 h-3" />
           <span>{formatDate(blog.publish_date || blog.createdAt)}</span>
         </Badge>
 

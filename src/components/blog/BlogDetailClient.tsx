@@ -8,7 +8,7 @@ import { ROUTES } from "@/config/constants";
 import { Blog } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
-import { FaCalendar } from "react-icons/fa";
+import { FiCalendar } from "react-icons/fi";
 import { authorProfileId, formatDate } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/sanitize";
 import { isCloudinaryDeliveryUrl } from "@/lib/urls";
@@ -27,7 +27,7 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
       <FadeIn>
         <header className="mb-8 md:mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium bg-primary-50 text-primary-800 border border-primary-100 mb-4">
-            <FaCalendar className="w-3.5 h-3.5 shrink-0" />
+            <FiCalendar className="w-3.5 h-3.5 shrink-0" />
             <span>{formatDate(blog.publish_date || blog.createdAt)}</span>
           </div>
 
