@@ -6,7 +6,7 @@ import User from "@/models/User";
 import Blog from "@/models/Blog";
 import Like from "@/models/Like";
 import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
-import { backfillMissingLikeTypes } from "@/lib/engagement";
+import { backfillMissingLikeTypes, syncReactionCounts } from "@/lib/engagement";
 
 const authMock = vi.hoisted(() => vi.fn(async (): Promise<{ user: Record<string, unknown> } | null> => null));
 
@@ -291,5 +291,49 @@ describe("like type backfill", () => {
     expect(legacy?.type).toBe("like");
     expect((await Like.findOne({ userId: author._id }))?.type).toBe("dislike");
     expect(await backfillMissingLikeTypes()).toBe(0);
+  });
+
+  it("counts a missing type as a like when syncing reaction totals", async () => {
+    const author = await makeUser({ role: "author" });
+    const reader = await makeUser();
+    const blog = await makeBlog(author._id);
+    await Like.collection.insertOne({
+      blogId: blog._id,
+      userId: reader._id,
+      createdAt: new Date(),
+    });
+    await Like.create({ blogId: blog._id, userId: author._id, type: "dislike" });
+
+    await expect(syncReactionCounts(blog._id)).resolves.toEqual({ total_likes: 1, total_dislikes: 1 });
+    const stored = await Blog.findById(blog._id).select("total_likes total_dislikes");
+    expect(stored?.total_likes).toBe(1);
+    expect(stored?.total_dislikes).toBe(1);
+  });
+
+  it("repairs missing like types when connectDB establishes a connection", async () => {
+    const author = await makeUser({ role: "author" });
+    const reader = await makeUser();
+    const blog = await makeBlog(author._id);
+    await Like.collection.insertOne({
+      blogId: blog._id,
+      userId: reader._id,
+      createdAt: new Date(),
+    });
+
+    // Fresh module state so the once-per-process ensure runs again after reconnect.
+    await mongoose.disconnect();
+    global.mongoose = { conn: null, promise: null, uri: null };
+    vi.resetModules();
+    vi.doMock("@/lib/auth", () => ({
+      auth: authMock,
+      handlers: {},
+      authConfig: {},
+    }));
+
+    const { connectDB } = await import("@/lib/mongodb");
+    await connectDB();
+
+    const legacy = await Like.collection.findOne({ userId: reader._id });
+    expect(legacy?.type).toBe("like");
   });
 });

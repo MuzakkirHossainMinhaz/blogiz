@@ -21,7 +21,13 @@ export async function backfillMissingLikeTypes(): Promise<number> {
 export async function syncReactionCounts(blogId: mongoose.Types.ObjectId | string, session?: ClientSession | null) {
   const options = { session: session ?? undefined };
   const [total_likes, total_dislikes] = await Promise.all([
-    Like.countDocuments({ blogId, type: "like" }, options),
+    Like.countDocuments(
+      {
+        blogId,
+        $or: [{ type: "like" }, { type: { $exists: false } }, { type: null }],
+      },
+      options
+    ),
     Like.countDocuments({ blogId, type: "dislike" }, options),
   ]);
   await Blog.updateOne({ _id: blogId }, { total_likes, total_dislikes }, options);

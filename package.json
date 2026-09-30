@@ -9,8 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed:admin": "node --experimental-strip-types scripts/seed-admin.mjs",
-    "backfill:likes": "node --experimental-strip-types scripts/backfill-like-type.mjs"
+    "seed:admin": "node --experimental-strip-types scripts/seed-admin.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
