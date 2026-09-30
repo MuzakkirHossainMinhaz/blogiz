@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { requireMongoUri } from "@/lib/env";
+import { backfillMissingLikeTypes } from "@/lib/engagement";
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -15,6 +16,16 @@ const cached: MongooseCache = global.mongoose || { conn: null, promise: null, ur
 
 if (!global.mongoose) {
   global.mongoose = cached;
+}
+
+/** Runs once per process after a successful connect. Cached reconnects skip it. */
+let likeTypesBackfillPromise: Promise<void> | null = null;
+
+async function ensureLikeTypesBackfilled(): Promise<void> {
+  if (!likeTypesBackfillPromise) {
+    likeTypesBackfillPromise = backfillMissingLikeTypes().then(() => undefined);
+  }
+  await likeTypesBackfillPromise;
 }
 
 export async function connectDB() {
@@ -42,5 +53,6 @@ export async function connectDB() {
     throw error;
   }
 
+  await ensureLikeTypesBackfilled();
   return cached.conn;
 }
