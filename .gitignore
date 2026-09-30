@@ -39,3 +39,7 @@ next-env.d.ts
 
 # uploaded objects are stored in the database, not on disk
 /var/uploads
+
+# Local Next agent stubs
+AGENTS.md
+CLAUDE.md

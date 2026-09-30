@@ -16,7 +16,7 @@ export function buildSeedUsers(adminEmail) {
       },
     },
     siteAdmin: {
-      email: "admin@blogiz.test",
+      email: "moderator@blogiz.test",
       password: "AdminPass1234",
       name: "Casey Admin",
       role: "admin",

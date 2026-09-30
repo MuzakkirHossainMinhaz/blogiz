@@ -112,12 +112,15 @@ async function main() {
     emailVerified: true,
   });
 
-  const siteAdmin = await createUser({
-    ...fixtures.siteAdmin,
-    isApproved: true,
-    isActive: true,
-    emailVerified: true,
-  });
+  const siteAdmin =
+    fixtures.siteAdmin.email.toLowerCase() === adminEmail
+      ? admin
+      : await createUser({
+          ...fixtures.siteAdmin,
+          isApproved: true,
+          isActive: true,
+          emailVerified: true,
+        });
 
   const authors = [];
   for (const author of fixtures.authors) {
