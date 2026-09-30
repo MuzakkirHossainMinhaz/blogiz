@@ -54,6 +54,17 @@ The UI is light-only (`data-theme="light"`). daisyUI’s light theme is remapped
 
 An author who asks to publish a post gets `pending` and the post stays unapproved until someone with `approveBlog` approves it. Comments are public only after someone with `approveComment` approves them. Admin and superadmin comments are approved immediately. An author's comment on someone else's post uses that same approval rule.
 
+## Dashboard routes
+
+Signed-in users open `/dashboard` behind the shared site navbar. Authors and admins also use `/dashboard/blogs`, `/dashboard/analytics`, and `/dashboard/settings`. Admins and superadmins with `viewAdminDashboard` open:
+
+| Route | Purpose |
+| --- | --- |
+| `/dashboard/admin` | Pending post review, role-upgrade queue (when allowed), and links into user management |
+| `/dashboard/admin/users` | Search and manage users through `/api/admin/users` |
+
+Those admin pages use the existing admin APIs and permission checks. Authors who lack `viewAdminDashboard` are redirected away from `/dashboard/admin*`.
+
 ## Reactions
 
 A published post has two reactions, like and dislike. A signed-in user has one reaction on a post. Choosing the other reaction replaces the first. Choosing the same reaction again removes it. The public post shows both counts. A visitor who is not signed in sees the counts and cannot react.

@@ -52,34 +52,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="bg-paper min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)] md:min-h-[calc(100dvh-5rem)]">
-      <div className="lg:hidden sticky top-14 sm:top-16 md:top-20 z-30 border-b border-neutral-200 bg-surface/95 backdrop-blur-md">
-        <div className="flex items-center gap-3 px-4 py-2.5">
+      {/* Mobile sidebar control — same chrome language as Navbar, not a second product header */}
+      <div className="lg:hidden sticky top-14 sm:top-16 md:top-20 z-30 border-b border-neutral-200/80 bg-surface/90 backdrop-blur-md">
+        <div className="flex items-center gap-3 px-4 py-2">
           <button
             onClick={toggleSidebar}
-            className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-xl border border-neutral-200 bg-surface text-neutral-700 hover:bg-primary-50 transition-colors"
+            className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-xl text-ink hover:bg-primary-50 transition-colors"
             aria-label="Toggle dashboard menu"
             aria-expanded={isSidebarOpen}
           >
             {isSidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
           </button>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink truncate">Dashboard</p>
-            <p className="text-xs text-accent-500 truncate">Navigate sections</p>
+            <p className="font-display text-sm font-semibold text-ink truncate">Workspace</p>
+            <p className="text-xs text-accent-500 truncate">Same Blogiz chrome, dashboard tools</p>
           </div>
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex min-h-[inherit]">
         <aside
           className={`
-            fixed z-40 w-[min(18rem,85vw)] bg-surface border-r border-neutral-200
+            fixed z-40 w-[min(18rem,85vw)] bg-surface border-r border-neutral-200/80
             top-14 sm:top-16 md:top-20 bottom-0
             transform transition-transform duration-300 ease-in-out motion-reduce:transition-none
             lg:sticky lg:top-20 lg:h-[calc(100dvh-5rem)] lg:w-64 lg:shrink-0 lg:translate-x-0
             ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
           `}
         >
-          <nav className="p-3 sm:p-4 h-full overflow-y-auto overscroll-contain">
+          <nav className="p-3 sm:p-4 h-full overflow-y-auto overscroll-contain" aria-label="Dashboard">
             <Sidebar onNavigate={closeSidebar} />
           </nav>
         </aside>
@@ -94,7 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex-1 min-w-0">
           <main className="flex-1">
-            <Container size="full" className="py-4 sm:py-6 lg:py-8">
+            <Container size="full" className="py-5 sm:py-6 lg:py-8 max-w-6xl">
               <PageEnter>{children}</PageEnter>
             </Container>
           </main>

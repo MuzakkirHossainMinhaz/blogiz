@@ -27,6 +27,8 @@ export default function Navbar() {
   const isMobileMenuOpen = menuPath === pathname;
   const reduceMotion = usePrefersReducedMotion();
 
+  const isDashboard = pathname.startsWith("/dashboard");
+
   const isActive = (href: string) => {
     if (href === ROUTES.HOME) {
       return pathname === href;
@@ -93,14 +95,18 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-primary-50/70 transition-colors"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-xl transition-colors",
+                    isDashboard ? "bg-primary-50" : "hover:bg-primary-50/70"
+                  )}
+                  aria-current={isDashboard ? "page" : undefined}
                 >
                   <div className="flex flex-col items-end min-w-0">
                     <span className="text-sm font-semibold text-ink leading-tight truncate max-w-40">
                       {user?.name || "User"}
                     </span>
                     <span className="text-xs text-accent-500 leading-tight truncate max-w-40">
-                      @{user?.email?.split("@")[0] || "username"}
+                      Dashboard
                     </span>
                   </div>
                   <div className="w-9 h-9 shrink-0 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden border border-primary-200">
@@ -199,7 +205,13 @@ export default function Navbar() {
                       <Link
                         href="/dashboard"
                         onClick={closeMobileMenu}
-                        className="block px-4 py-3 min-h-11 rounded-xl font-medium text-accent-600 hover:bg-primary-50/70"
+                        className={cn(
+                          "block px-4 py-3 min-h-11 rounded-xl font-medium transition-colors",
+                          isDashboard
+                            ? "bg-primary-50 text-primary-800"
+                            : "text-accent-600 hover:bg-primary-50/70"
+                        )}
+                        aria-current={isDashboard ? "page" : undefined}
                       >
                         Dashboard
                       </Link>
