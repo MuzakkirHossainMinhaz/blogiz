@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (!(file instanceof Blob)) return jsonError("No file provided", 400);
 
     const bytes = Buffer.from(await file.arrayBuffer());
-    const stored = await saveImage(bytes);
+    const stored = await saveImage(bytes, { kind: "banners" });
 
     return NextResponse.json({
       message: "Banner image uploaded successfully",

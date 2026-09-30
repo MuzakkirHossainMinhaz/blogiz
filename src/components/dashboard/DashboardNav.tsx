@@ -7,7 +7,8 @@ import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { FiChevronDown, FiLogOut, FiMenu, FiSettings, FiUser, FiX } from "react-icons/fi";
+import { FiChevronDown, FiLogOut, FiMenu, FiSettings, FiX } from "react-icons/fi";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   superadmin: "Superadmin",
@@ -97,9 +98,7 @@ export default function DashboardNav({ onToggleSidebar, sidebarOpen }: Dashboard
             aria-expanded={menuOpen}
             aria-haspopup="menu"
           >
-            <div className="w-8 h-8 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center shrink-0">
-              <FiUser className="w-4 h-4 text-primary-700" />
-            </div>
+            <UserAvatar src={user?.avatar} name={user?.name} size="sm" priority />
             <div className="hidden sm:block text-left min-w-0 max-w-[10rem]">
               <p className="text-sm font-semibold text-ink truncate leading-tight">{user?.name || "Account"}</p>
               <p className="text-xs text-accent-500 truncate leading-tight">{user?.email}</p>
@@ -124,14 +123,6 @@ export default function DashboardNav({ onToggleSidebar, sidebarOpen }: Dashboard
               >
                 <FiSettings className="w-4 h-4 shrink-0" />
                 Settings
-              </Link>
-              <Link
-                href="/"
-                role="menuitem"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2.5 min-h-11 px-3 text-sm text-accent-700 hover:bg-primary-50 hover:text-ink"
-              >
-                View public site
               </Link>
               <button
                 type="button"

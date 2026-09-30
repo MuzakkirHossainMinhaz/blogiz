@@ -70,15 +70,32 @@ const authConfig = {
           role: user.role,
           sessionVersion: user.sessionVersion ?? 0,
           isApproved: user.isApproved,
+          avatar: user.profile?.avatar || "",
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user?: User }) {
+    async jwt({
+      token,
+      user,
+      trigger,
+      session,
+    }: {
+      token: JWT;
+      user?: User;
+      trigger?: "signIn" | "signUp" | "update";
+      session?: Session;
+    }) {
       if (user) {
         token.id = user.id;
         token.sessionVersion = user.sessionVersion ?? 0;
+        token.avatar = user.avatar || "";
+      }
+
+      if (trigger === "update" && session?.user) {
+        if (typeof session.user.name === "string") token.name = session.user.name;
+        if (typeof session.user.avatar === "string") token.avatar = session.user.avatar;
       }
 
       if (!token.id) {
@@ -90,7 +107,7 @@ const authConfig = {
         const User = (await import("@/models/User")).default;
         await connectDB();
         const dbUser = await User.findById(token.id).select(
-          "role isActive isApproved emailVerified sessionVersion email name"
+          "role isActive isApproved emailVerified sessionVersion email name profile.avatar"
         );
         const decision = evaluateSession(
           dbUser
@@ -102,6 +119,7 @@ const authConfig = {
                 sessionVersion: dbUser.sessionVersion ?? 0,
                 email: dbUser.email,
                 name: dbUser.name,
+                avatar: dbUser.profile?.avatar || "",
               }
             : null,
           typeof token.sessionVersion === "number" ? token.sessionVersion : undefined
@@ -116,6 +134,7 @@ const authConfig = {
         token.emailVerified = decision.emailVerified;
         token.email = decision.email;
         token.name = decision.name;
+        token.avatar = decision.avatar;
         token.invalid = false;
         return token;
       } catch (error) {
@@ -132,6 +151,7 @@ const authConfig = {
       session.user.role = token.role;
       session.user.email = token.email || session.user.email;
       session.user.name = token.name || session.user.name;
+      session.user.avatar = token.avatar || "";
       session.user.isApproved = Boolean(token.isApproved);
       session.user.emailVerified = Boolean(token.emailVerified);
       return session;

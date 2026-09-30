@@ -1,6 +1,7 @@
 import { Container } from "@/components/ui/Container";
 import { Pagination } from "@/components/ui/Pagination";
 import { Section } from "@/components/ui/Section";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ROUTES } from "@/config/constants";
 import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
 import { parsePageLimit } from "@/lib/pagination";
@@ -8,7 +9,6 @@ import { buildPageMetadata } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
 import { isCloudinaryDeliveryUrl, isHttpsUrl } from "@/lib/urls";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -74,19 +74,13 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
         <Container size="md">
           <header className="rounded-2xl border border-neutral-200 bg-surface shadow-soft p-6 sm:p-8 mb-10">
             <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary-100 text-primary-800 flex items-center justify-center text-3xl font-display font-semibold overflow-hidden shrink-0 border border-primary-200">
-                {profile.profile.avatar && isCloudinaryDeliveryUrl(profile.profile.avatar) ? (
-                  <Image
-                    src={profile.profile.avatar}
-                    alt=""
-                    width={96}
-                    height={96}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  displayName.charAt(0).toUpperCase()
-                )}
-              </div>
+              <UserAvatar
+                src={profile.profile.avatar}
+                name={displayName}
+                size="xl"
+                priority
+                className="rounded-2xl ring-primary-200 sm:w-24 sm:h-24"
+              />
               <div className="min-w-0 flex-1">
                 <h1 className="font-display text-3xl sm:text-4xl font-semibold text-ink tracking-tight break-words">
                   {displayName}

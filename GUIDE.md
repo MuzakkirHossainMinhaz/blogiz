@@ -105,9 +105,13 @@ Public pages set title, description, Open Graph, canonical URL (from `AUTH_URL`)
 
 `POST /api/upload` stores a JPEG, PNG, or WebP for a verified signed-in user. Banner uploads use `POST /api/admin/banners/upload` and require `manageBanners`. The server ignores the client filename, checks magic bytes, and rejects anything over 5 MB. The generated object name cannot leave the upload root.
 
-Bytes go to Cloudinary. The database stores the HTTPS `secure_url` for this cloud only: `https://res.cloudinary.com/<cloud>/image/upload/v<version>/<public id>.<ext>`, with no query string or credentials. Blog and banner image fields reject any other URL. If `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, or `CLOUDINARY_API_SECRET` is missing, the upload returns 400 with that requirement in the error.
+Bytes go to Cloudinary under the `blogiz` folder (`blogiz/avatars`, `blogiz/banners`, `blogiz/covers`, or `blogiz` for general uploads). The database stores the HTTPS `secure_url` for this cloud only: `https://res.cloudinary.com/<cloud>/image/upload/v<version>/<public id>.<ext>`, with no query string or credentials. Blog and banner image fields reject any other URL. If `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, or `CLOUDINARY_API_SECRET` is missing, the upload returns 400 with that requirement in the error.
 
-Replacing or clearing a post image deletes the previous Cloudinary asset. Replacing or clearing a banner image or background does the same, including when the banner itself is deleted.
+`POST /api/ai/generate-image` (and the Generate control on create/edit post) creates a cover with Hugging Face, then stores it under `blogiz/covers` and returns `{ url, prompt }`. It needs `HUGGINGFACE_API_KEY`, a positive `HF_IMAGE_DAILY_QUOTA`, Redis, a verified signed-in user, and Cloudinary. Without a quota the route returns 503 and the editor shows that generation is not configured. The blog form only accepts that Cloudinary URL (or a normal `/api/upload` result)—not a pasted external image URL.
+
+Profile avatars are uploaded from Settings (`kind=avatars` → `blogiz/avatars`). Hero banners are managed at `/dashboard/admin/banners` (`blogiz/banners`).
+
+Replacing or clearing a post image deletes the previous Cloudinary asset. Replacing or clearing a banner image or background does the same, including when the banner itself is deleted. Replacing or clearing a profile avatar deletes the previous avatar asset.
 
 ## Rate limits
 

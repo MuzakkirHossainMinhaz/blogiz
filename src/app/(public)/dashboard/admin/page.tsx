@@ -1,6 +1,8 @@
 "use client";
 
+import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { hasPermission, type UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
@@ -11,10 +13,10 @@ import {
   FiClock,
   FiFileText,
   FiImage,
-  FiShield,
   FiUserCheck,
   FiUsers,
   FiX,
+  type IconType,
 } from "react-icons/fi";
 
 interface PendingBlog {
@@ -38,6 +40,77 @@ interface RoleUpgrade {
 }
 
 const QUEUE_PAGE_SIZE = 10;
+
+function SectionHeading({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <h2 className="font-display text-base font-semibold tracking-tight text-ink">{title}</h2>
+      {description ? <p className="mt-0.5 text-sm text-accent-500">{description}</p> : null}
+    </div>
+  );
+}
+
+function MetricTile({
+  title,
+  value,
+  icon: Icon,
+  href,
+}: {
+  title: string;
+  value: string | number;
+  icon: IconType;
+  href?: string;
+}) {
+  const inner = (
+    <div className="flex items-center gap-3">
+      <div className="rounded-xl bg-primary-50 p-2.5 text-primary-700 shrink-0">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm text-accent-500">{title}</p>
+        <p className="font-display text-2xl font-semibold text-ink">{value}</p>
+      </div>
+    </div>
+  );
+
+  const className =
+    "rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 block transition-colors" +
+    (href ? " hover:border-primary-200" : "");
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{inner}</div>;
+}
+
+function QueueEmpty({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: IconType;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="p-8 text-center">
+      <Icon className="mx-auto h-10 w-10 text-primary-400" />
+      <p className="mt-3 font-medium text-ink">{title}</p>
+      <p className="mt-1 text-sm text-accent-500">{description}</p>
+    </div>
+  );
+}
 
 export default function AdminPanelPage() {
   const { data: session } = useSession();
@@ -223,118 +296,79 @@ export default function AdminPanelPage() {
     });
   };
 
+  const hasMetrics = canApproveBlog || canViewUsers || canManageBanners;
+
   return (
-    <div className="w-full space-y-8">
-      <header className="space-y-1">
-        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">Admin Panel</h1>
-        <p className="text-sm sm:text-base text-accent-500 max-w-2xl">
-          Review pending posts, accounts, and site content with the same Blogiz chrome.
-        </p>
-      </header>
+    <div className="w-full space-y-6">
+      <DashboardPageHeader
+        title="Admin Panel"
+        description="Review pending posts, accounts, and site content."
+      />
 
-      {error && (
+      {error ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
-      )}
-      {message && (
+      ) : null}
+      {message ? (
         <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{message}</p>
-      )}
+      ) : null}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {canApproveBlog && (
-          <div className="rounded-2xl border border-neutral-200 bg-surface p-5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-primary-50 p-2.5 text-primary-700">
-                <FiFileText className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-accent-500">Pending posts</p>
-                <p className="font-display text-2xl font-semibold text-ink">
-                  {loading ? "—" : pendingBlogsTotal}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        {canViewUsers && (
-          <Link
-            href="/dashboard/admin/users"
-            className="rounded-2xl border border-neutral-200 bg-surface p-5 shadow-soft hover:border-primary-200 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-primary-50 p-2.5 text-primary-700">
-                <FiUsers className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-accent-500">Pending users</p>
-                <p className="font-display text-2xl font-semibold text-ink">
-                  {loading || pendingUsers === null ? "—" : pendingUsers}
-                </p>
-              </div>
-            </div>
-          </Link>
-        )}
-        {canManageBanners && (
-          <div className="rounded-2xl border border-neutral-200 bg-surface p-5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-primary-50 p-2.5 text-primary-700">
-                <FiImage className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-accent-500">Banners</p>
-                <p className="font-display text-2xl font-semibold text-ink">
-                  {loading || bannerCount === null ? "—" : bannerCount}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {hasMetrics ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {canApproveBlog ? (
+            <MetricTile
+              title="Pending Posts"
+              value={loading ? "—" : pendingBlogsTotal}
+              icon={FiFileText}
+              href="#pending-posts"
+            />
+          ) : null}
+          {canViewUsers ? (
+            <MetricTile
+              title="Pending Users"
+              value={loading || pendingUsers === null ? "—" : pendingUsers}
+              icon={FiUsers}
+              href="/dashboard/admin/users"
+            />
+          ) : null}
+          {canManageBanners ? (
+            <MetricTile
+              title="Banners"
+              value={loading || bannerCount === null ? "—" : bannerCount}
+              icon={FiImage}
+              href="/dashboard/admin/banners"
+            />
+          ) : null}
+        </div>
+      ) : null}
 
-      <div className="flex flex-wrap gap-3">
-        {canViewUsers && (
-          <Link href="/dashboard/admin/users">
-            <Button variant="outline">
-              <FiUsers className="h-4 w-4" />
-              Manage users
-            </Button>
-          </Link>
-        )}
-        <Link href="/dashboard">
-          <Button variant="ghost">
-            <FiShield className="h-4 w-4" />
-            Back to dashboard
-          </Button>
-        </Link>
-      </div>
-
-      {canApproveBlog && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="font-display text-xl font-semibold text-ink">Pending posts</h2>
-            <p className="text-sm text-accent-500">Approve or reject submissions waiting for review.</p>
-          </div>
-          <div className="rounded-2xl border border-neutral-200 bg-surface overflow-hidden">
+      {canApproveBlog ? (
+        <section id="pending-posts" className="space-y-4 scroll-mt-24">
+          <SectionHeading
+            title="Pending Posts"
+            description="Approve or reject submissions waiting for review."
+          />
+          <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
             {loading ? (
               <p className="p-6 text-sm text-accent-500">Loading pending posts…</p>
             ) : pendingBlogs.length === 0 ? (
-              <div className="p-8 text-center">
-                <FiCheck className="mx-auto h-10 w-10 text-primary-400" />
-                <p className="mt-3 font-medium text-ink">No pending posts</p>
-                <p className="mt-1 text-sm text-accent-500">New submissions will show up here.</p>
-              </div>
+              <QueueEmpty
+                icon={FiCheck}
+                title="No Pending Posts"
+                description="New submissions will show up here."
+              />
             ) : (
-              <ul className="divide-y divide-neutral-200">
+              <ul className="divide-y divide-neutral-100">
                 {pendingBlogs.map((blog) => (
                   <li key={blog._id} className="p-4 sm:p-5 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div className="min-w-0 space-y-1">
-                        <p className="font-medium text-ink break-words">{blog.title}</p>
+                        <p className="font-medium text-ink wrap-break-word">{blog.title}</p>
                         <p className="text-sm text-accent-500">
                           {blog.author_name || "Unknown author"} · {formatDate(blog.createdAt)}
                         </p>
-                        {blog.description && (
+                        {blog.description ? (
                           <p className="text-sm text-neutral-600 line-clamp-2">{blog.description}</p>
-                        )}
+                        ) : null}
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">
                         <Button
@@ -357,61 +391,67 @@ export default function AdminPanelPage() {
                         </Button>
                       </div>
                     </div>
-                    <label className="block">
-                      <span className="sr-only">Rejection reason for {blog.title}</span>
-                      <input
-                        type="text"
-                        value={rejectReason[blog._id] || ""}
-                        onChange={(event) =>
-                          setRejectReason((current) => ({ ...current, [blog._id]: event.target.value }))
-                        }
-                        placeholder="Rejection reason (required to reject)"
-                        className="w-full rounded-xl border border-neutral-200 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                      />
-                    </label>
+                    <Input
+                      id={`reject-reason-${blog._id}`}
+                      label="Rejection reason"
+                      value={rejectReason[blog._id] || ""}
+                      onChange={(event) =>
+                        setRejectReason((current) => ({ ...current, [blog._id]: event.target.value }))
+                      }
+                      placeholder="Required to reject"
+                      required
+                    />
                   </li>
                 ))}
               </ul>
             )}
           </div>
-          <Pagination
-            page={blogsPage}
-            pages={pendingBlogsPages}
-            total={pendingBlogsTotal}
-            onPageChange={setBlogsPage}
-          />
+          {pendingBlogsPages > 1 ? (
+            <div className="rounded-xl border border-neutral-200 bg-white px-4 sm:px-5 py-3">
+              <Pagination
+                page={blogsPage}
+                pages={pendingBlogsPages}
+                total={pendingBlogsTotal}
+                onPageChange={setBlogsPage}
+              />
+            </div>
+          ) : null}
         </section>
-      )}
+      ) : null}
 
-      {canChangeRole && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="font-display text-xl font-semibold text-ink">Role upgrade requests</h2>
-            <p className="text-sm text-accent-500">Approve authors and other role changes.</p>
-          </div>
-          <div className="rounded-2xl border border-neutral-200 bg-surface overflow-hidden">
+      {canChangeRole ? (
+        <section id="role-upgrades" className="space-y-4 scroll-mt-24">
+          <SectionHeading
+            title="Role Upgrade Requests"
+            description="Approve authors and other role changes."
+          />
+          <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
             {loading ? (
               <p className="p-6 text-sm text-accent-500">Loading role requests…</p>
             ) : upgrades.length === 0 ? (
-              <div className="p-8 text-center">
-                <FiUserCheck className="mx-auto h-10 w-10 text-primary-400" />
-                <p className="mt-3 font-medium text-ink">No pending requests</p>
-              </div>
+              <QueueEmpty
+                icon={FiUserCheck}
+                title="No Pending Requests"
+                description="Role upgrade requests will appear here."
+              />
             ) : (
-              <ul className="divide-y divide-neutral-200">
+              <ul className="divide-y divide-neutral-100">
                 {upgrades.map((request) => (
-                  <li key={request._id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                  <li
+                    key={request._id}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
+                  >
                     <div className="min-w-0 space-y-1">
                       <p className="font-medium text-ink">
                         {request.userId?.profile?.fullName || request.userId?.name || "User"} →{" "}
                         {request.requestedRole}
                       </p>
-                      <p className="text-sm text-accent-500 flex items-center gap-1.5">
-                        <FiClock className="h-3.5 w-3.5" />
+                      <p className="text-sm text-accent-500 flex items-center gap-1.5 flex-wrap">
+                        <FiClock className="h-3.5 w-3.5 shrink-0" />
                         {formatDate(request.createdAt)}
                         {request.userId?.email ? ` · ${request.userId.email}` : ""}
                       </p>
-                      {request.reason && <p className="text-sm text-neutral-600">{request.reason}</p>}
+                      {request.reason ? <p className="text-sm text-neutral-600">{request.reason}</p> : null}
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <Button
@@ -436,14 +476,18 @@ export default function AdminPanelPage() {
               </ul>
             )}
           </div>
-          <Pagination
-            page={upgradesPage}
-            pages={upgradesPages}
-            total={upgradesTotal}
-            onPageChange={setUpgradesPage}
-          />
+          {upgradesPages > 1 ? (
+            <div className="rounded-xl border border-neutral-200 bg-white px-4 sm:px-5 py-3">
+              <Pagination
+                page={upgradesPage}
+                pages={upgradesPages}
+                total={upgradesTotal}
+                onPageChange={setUpgradesPage}
+              />
+            </div>
+          ) : null}
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

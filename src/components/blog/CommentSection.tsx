@@ -2,13 +2,14 @@
 
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 interface CommentUser {
   name?: string;
-  profile?: { fullName?: string };
+  profile?: { fullName?: string; avatar?: string };
 }
 
 interface PublicComment {
@@ -22,6 +23,11 @@ interface PublicComment {
 function commenterName(user: PublicComment["userId"]): string {
   if (!user || typeof user === "string") return "Reader";
   return user.profile?.fullName || user.name || "Reader";
+}
+
+function commenterAvatar(user: PublicComment["userId"]): string | undefined {
+  if (!user || typeof user === "string") return undefined;
+  return user.profile?.avatar;
 }
 
 export function CommentSection({ blogId }: { blogId: string }) {
@@ -96,6 +102,7 @@ export function CommentSection({ blogId }: { blogId: string }) {
             maxLength={1000}
             rows={4}
             placeholder="Share your thoughts..."
+            required
           />
           <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
             Post comment
@@ -123,13 +130,19 @@ export function CommentSection({ blogId }: { blogId: string }) {
         <ul className="space-y-5">
           {comments.map((comment) => (
             <li key={comment._id} className="rounded-2xl border border-neutral-200 bg-surface p-4 sm:p-5">
-              <p className="text-sm font-semibold text-ink">{commenterName(comment.userId)}</p>
+              <div className="flex items-center gap-2.5">
+                <UserAvatar src={commenterAvatar(comment.userId)} name={commenterName(comment.userId)} size="sm" />
+                <p className="text-sm font-semibold text-ink">{commenterName(comment.userId)}</p>
+              </div>
               <p className="mt-2 text-neutral-700 whitespace-pre-wrap break-words leading-relaxed">{comment.content}</p>
               {comment.replies && comment.replies.length > 0 && (
                 <ul className="mt-4 space-y-3 border-l-2 border-primary-100 pl-4">
                   {comment.replies.map((reply) => (
                     <li key={reply._id}>
-                      <p className="text-sm font-semibold text-ink">{commenterName(reply.userId)}</p>
+                      <div className="flex items-center gap-2.5">
+                        <UserAvatar src={commenterAvatar(reply.userId)} name={commenterName(reply.userId)} size="sm" />
+                        <p className="text-sm font-semibold text-ink">{commenterName(reply.userId)}</p>
+                      </div>
                       <p className="mt-1 text-neutral-700 whitespace-pre-wrap break-words leading-relaxed">
                         {reply.content}
                       </p>

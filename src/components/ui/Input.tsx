@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { fieldErrorClassName, fieldLabelClassName, controlClassName } from "@/lib/field-styles";
 import { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -35,7 +36,7 @@ export function Input({
       {label ? (
         <label htmlFor={fieldId} className={fieldLabelClassName}>
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required ? <FieldRequiredMark /> : null}
         </label>
       ) : null}
       <div className="relative">
@@ -46,6 +47,7 @@ export function Input({
           type={inputType}
           disabled={disabled}
           required={required}
+          aria-required={required || undefined}
           className={controlClassName({
             error: Boolean(error),
             withIcon: Boolean(icon),

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { Section } from "@/components/ui/Section";
 import { ROUTES } from "@/config/constants";
 import { createBlog } from "@/lib/api";
@@ -85,7 +86,7 @@ export default function CreateBlogForm() {
                   {/* Title */}
                   <fieldset className="fieldset">
                     <label htmlFor="title" className="label text-sm font-semibold text-neutral-700 mb-2">
-                      Title <span className="text-red-500">*</span>
+                      Title <FieldRequiredMark />
                     </label>
                     <input
                       id="title"
@@ -110,7 +111,7 @@ export default function CreateBlogForm() {
                   {/* Description */}
                   <fieldset className="fieldset">
                     <label htmlFor="description" className="label text-sm font-semibold text-neutral-700 mb-2">
-                      Description <span className="text-red-500">*</span>
+                      Description <FieldRequiredMark />
                     </label>
                     <textarea
                       id="description"
@@ -131,7 +132,7 @@ export default function CreateBlogForm() {
                   {/* Content */}
                   <fieldset className="fieldset">
                     <label htmlFor="content" className="label text-sm font-semibold text-neutral-700 mb-2">
-                      Content <span className="text-red-500">*</span>
+                      Content <FieldRequiredMark />
                     </label>
                     <textarea
                       id="content"
@@ -154,7 +155,7 @@ export default function CreateBlogForm() {
                     {/* Publish Date */}
                     <fieldset className="fieldset">
                       <label htmlFor="publish_date" className="label text-sm font-semibold text-neutral-700 mb-2">
-                        Publish Date <span className="text-red-500">*</span>
+                        Publish Date <FieldRequiredMark />
                       </label>
                       <input
                         id="publish_date"
@@ -172,7 +173,7 @@ export default function CreateBlogForm() {
                     {/* Author Name */}
                     <fieldset className="fieldset">
                       <label htmlFor="author_name" className="label text-sm font-semibold text-neutral-700 mb-2">
-                        Author Name <span className="text-red-500">*</span>
+                        Author Name <FieldRequiredMark />
                       </label>
                       <input
                         id="author_name"
@@ -194,7 +195,7 @@ export default function CreateBlogForm() {
                   {/* Blog Image URL */}
                   <fieldset className="fieldset">
                     <label htmlFor="blog_image" className="label text-sm font-semibold text-neutral-700 mb-2">
-                      Featured Image URL <span className="text-red-500">*</span>
+                      Featured Image URL <FieldRequiredMark />
                     </label>
                     <input
                       id="blog_image"

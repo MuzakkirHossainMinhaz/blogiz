@@ -1,5 +1,6 @@
 "use client";
 
+import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { Input } from "@/components/ui/Input";
@@ -134,23 +135,19 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="w-full space-y-8">
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
-            User Management
-          </h1>
-          <p className="text-sm sm:text-base text-accent-500">
-            Search, approve, and manage accounts you are allowed to act on.
-          </p>
-        </div>
-        <Link href="/dashboard/admin">
-          <Button variant="ghost" size="sm">
-            <FiArrowLeft className="h-4 w-4" />
-            Admin panel
-          </Button>
-        </Link>
-      </header>
+    <div className="w-full space-y-6">
+      <DashboardPageHeader
+        title="User Management"
+        description="Search, approve, and manage accounts you are allowed to act on."
+        actions={
+          <Link href="/dashboard/admin">
+            <Button variant="ghost" size="sm">
+              <FiArrowLeft className="h-4 w-4" />
+              Admin Panel
+            </Button>
+          </Link>
+        }
+      />
 
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
@@ -392,6 +389,7 @@ function UserActions({
             options={CHANGEABLE_ROLES}
             value={roleDraft === "superadmin" ? "admin" : roleDraft}
             onChange={(event) => onRoleDraft(event.target.value)}
+            size="sm"
             className="min-w-28"
           />
           <Button

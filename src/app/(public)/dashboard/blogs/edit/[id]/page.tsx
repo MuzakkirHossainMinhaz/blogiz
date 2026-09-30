@@ -1,103 +1,109 @@
 "use client";
 
-import RichTextEditor from "@/components/dashboard/RichTextEditor";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
-import { renderMarkdown } from "@/lib/sanitize";
+import { BlogEditor, type BlogEditorValues } from "@/components/dashboard/BlogEditor";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+type LoadedBlog = {
+  title: string;
+  description: string;
+  content: string;
+  author_name: string;
+  blog_image?: string;
+  status?: string;
+  publish_date?: string;
+};
+
 export default function EditBlogPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
-  const [authorName, setAuthorName] = useState("");
-  const [blogImage, setBlogImage] = useState("");
-  const [error, setError] = useState("");
-  const [preview, setPreview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [blog, setBlog] = useState<LoadedBlog | null>(null);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     if (!params.id) return;
+    let cancelled = false;
     fetch(`/api/blogs/${params.id}`)
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not load post");
-        setTitle(data.blog.title || "");
-        setDescription(data.blog.description || "");
-        setContent(data.blog.content || "");
-        setAuthorName(data.blog.author_name || "");
-        setBlogImage(data.blog.blog_image || "");
+        if (cancelled) return;
+        setBlog({
+          title: data.blog.title || "",
+          description: data.blog.description || "",
+          content: data.blog.content || "",
+          author_name: data.blog.author_name || "",
+          blog_image: data.blog.blog_image || "",
+          status: data.blog.status || "draft",
+          publish_date: data.blog.publish_date
+            ? String(data.blog.publish_date).slice(0, 10)
+            : undefined,
+        });
       })
-      .catch(() => setError("Could not load post"));
+      .catch(() => {
+        if (!cancelled) setLoadError("Could not load post");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [params.id]);
 
-  const save = async () => {
-    setIsSaving(true);
-    setError("");
+  if (loadError) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-red-700">{loadError}</p>
+        <Link href="/dashboard/blogs" className="text-sm font-medium text-primary-600">
+          Back to posts
+        </Link>
+      </div>
+    );
+  }
+
+  if (!blog) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+      </div>
+    );
+  }
+
+  const handleSubmit = async (data: BlogEditorValues) => {
     const response = await fetch(`/api/blogs/${params.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title,
-        description,
-        content,
-        author_name: authorName,
-        ...(blogImage ? { blog_image: blogImage } : {}),
+        title: data.title,
+        description: data.description,
+        content: data.content,
+        author_name: data.author_name,
+        blog_image: data.blog_image ?? "",
+        status: data.status,
+        publish_date: data.status === "published" ? data.publish_date || new Date().toISOString() : undefined,
       }),
     });
-    const result = await response.json();
-    setIsSaving(false);
+    const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setError(result.error || "Could not save post");
-      return;
+      throw new Error(result.error || "Could not save post");
     }
     router.push("/dashboard/blogs");
     router.refresh();
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Edit post</h1>
-        <Link href="/dashboard/blogs" className="inline-flex items-center min-h-11 text-sm font-medium text-primary-600">
-          Back
-        </Link>
-      </div>
-      {error && <p className="text-sm text-red-700">{error}</p>}
-      {preview ? (
-        <div className="bg-white rounded-lg border border-neutral-200 p-4 sm:p-6 md:p-8 overflow-hidden">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4 break-words">{title}</h2>
-          <div className="prose max-w-none break-words" dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
-          <Button className="mt-6" variant="outline" onClick={() => setPreview(false)}>
-            Back to edit
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4 bg-white p-4 sm:p-6 rounded-xl border border-neutral-200">
-          <Input label="Title" value={title} onChange={(event) => setTitle(event.target.value)} />
-          <Textarea
-            label="Description"
-            rows={3}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-          <Input label="Author name" value={authorName} onChange={(event) => setAuthorName(event.target.value)} />
-          <RichTextEditor value={content} onChange={setContent} />
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <Button type="button" variant="outline" onClick={() => setPreview(true)} className="w-full sm:w-auto">
-              Preview
-            </Button>
-            <Button type="button" variant="primary" onClick={save} isLoading={isSaving} className="w-full sm:w-auto">
-              Save
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+    <BlogEditor
+      key={params.id}
+      mode="edit"
+      initialValues={{
+        title: blog.title,
+        description: blog.description,
+        content: blog.content,
+        author_name: blog.author_name,
+        blog_image: blog.blog_image || "",
+        status: blog.status === "published" ? "published" : "draft",
+        publish_date: blog.publish_date,
+      }}
+      onSubmit={handleSubmit}
+    />
   );
 }

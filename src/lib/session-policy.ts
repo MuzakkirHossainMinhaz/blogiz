@@ -8,6 +8,7 @@ export interface SessionUserRecord {
   sessionVersion: number;
   email?: string;
   name?: string;
+  avatar?: string;
 }
 
 /**
@@ -43,6 +44,7 @@ export function evaluateSession(
       emailVerified: boolean;
       email: string;
       name: string;
+      avatar: string;
     } {
   if (!user || user.isActive === false) return { ok: false };
   if (typeof tokenVersion === "number" && user.sessionVersion !== tokenVersion) return { ok: false };
@@ -54,5 +56,6 @@ export function evaluateSession(
     emailVerified: Boolean(user.emailVerified),
     email: user.email || "",
     name: user.name || "",
+    avatar: user.avatar || "",
   };
 }

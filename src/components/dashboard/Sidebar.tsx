@@ -12,6 +12,7 @@ import {
   FiFileText,
   FiGrid,
   FiHome,
+  FiImage,
   FiSettings,
   FiUsers,
   FiShield,
@@ -53,7 +54,7 @@ const authorNavigation: NavItem[] = [
     requiredPermission: "viewDashboard",
   },
   {
-    name: "My posts",
+    name: "My Posts",
     href: "/dashboard/blogs",
     icon: FiFileText,
     current: (pathname: string) => pathname.startsWith("/dashboard/blogs"),
@@ -77,7 +78,7 @@ const authorNavigation: NavItem[] = [
 
 const adminNavigation: NavItem[] = [
   {
-    name: "Admin panel",
+    name: "Admin Panel",
     href: "/dashboard/admin",
     icon: FiShield,
     current: (pathname: string) => pathname === "/dashboard/admin",
@@ -89,6 +90,13 @@ const adminNavigation: NavItem[] = [
     icon: FiUsers,
     current: (pathname: string) => pathname.startsWith("/dashboard/admin/users"),
     requiredPermission: "viewUsers",
+  },
+  {
+    name: "Banners",
+    href: "/dashboard/admin/banners",
+    icon: FiImage,
+    current: (pathname: string) => pathname.startsWith("/dashboard/admin/banners"),
+    requiredPermission: "manageBanners",
   },
 ];
 
@@ -174,7 +182,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
               className="group flex items-center min-h-11 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors duration-200 bg-primary-500 text-white hover:bg-primary-600 shadow-soft"
             >
               <FiEdit3 className="mr-3 h-5 w-5 shrink-0" />
-              Write new post
+              Write New Post
             </Link>
           </div>
         </div>
@@ -190,7 +198,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
               className={linkClass(false)}
             >
               <FiArrowUpCircle className="mr-3 h-5 w-5 shrink-0 text-neutral-400 group-hover:text-primary-600" />
-              Become an author
+              Become An Author
             </Link>
           </div>
         </div>
@@ -201,7 +209,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         <div className="mt-3 space-y-1">
           <Link href="/" onClick={onNavigate} className={linkClass(false)}>
             <FiGrid className="mr-3 h-5 w-5 shrink-0 text-neutral-400 group-hover:text-primary-600" />
-            View public site
+            View Public Site
           </Link>
         </div>
       </div>

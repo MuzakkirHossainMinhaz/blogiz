@@ -8,7 +8,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiMenu, FiUser, FiX } from "react-icons/fi";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { FiMenu, FiX } from "react-icons/fi";
 import { MOTION_DURATION, MOTION_EASE, usePrefersReducedMotion } from "@/components/motion";
 
 const navLinks = [
@@ -112,8 +113,8 @@ export default function Navbar() {
                         Dashboard
                       </span>
                     </div>
-                    <div className="w-9 h-9 shrink-0 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden border border-primary-200">
-                      <FiUser className="w-5 h-5 text-primary-700" />
+                    <div className="w-9 h-9 shrink-0 overflow-hidden">
+                      <UserAvatar src={user?.avatar} name={user?.name} size="sm" className="w-9 h-9 ring-primary-200" priority />
                     </div>
                   </Link>
                   <button
@@ -157,9 +158,7 @@ export default function Navbar() {
                   className="flex items-center justify-center min-h-11 min-w-11 rounded-xl hover:bg-primary-50 transition-colors"
                   aria-label="Open dashboard"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center border border-primary-200">
-                    <FiUser className="w-4 h-4 text-primary-700" />
-                  </div>
+                  <UserAvatar src={user?.avatar} name={user?.name} size="sm" priority />
                 </Link>
               )}
               <button

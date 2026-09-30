@@ -4,7 +4,9 @@ import { RECENT_AUTHOR_BLOGS, getPublicAuthorProfile } from "@/lib/db";
 import { denied, requireUser } from "@/lib/authz";
 import { jsonError, serverError } from "@/lib/http";
 import { canPerformAction } from "@/lib/permissions";
+import { deleteStoredImage } from "@/lib/object-storage";
 import { isHttpsUrl, isStoredImageUrl } from "@/lib/urls";
+import { UploadError } from "@/lib/uploads";
 import bcrypt from "bcryptjs";
 import Blog from "@/models/Blog";
 import BlogView from "@/models/BlogView";
@@ -94,17 +96,25 @@ export async function PUT(
       }
     }
 
+    const existingUser = await User.findById(userId).select("profile.avatar");
+    if (!existingUser) return jsonError("User not found", 404);
+
     // Update user
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (name) updateData.name = name.trim();
     if (profile) {
       if (profile.fullName !== undefined) updateData["profile.fullName"] = profile.fullName.trim();
       if (profile.bio !== undefined) updateData["profile.bio"] = profile.bio.trim();
       if (profile.avatar !== undefined) {
-        if (profile.avatar && !isStoredImageUrl(profile.avatar)) {
+        const nextAvatar = typeof profile.avatar === "string" ? profile.avatar.trim() : "";
+        if (nextAvatar && !isStoredImageUrl(nextAvatar)) {
           return jsonError("Avatar must be an uploaded image", 400);
         }
-        updateData["profile.avatar"] = profile.avatar;
+        updateData["profile.avatar"] = nextAvatar;
+        const previous = existingUser.profile?.avatar || "";
+        if (previous && previous !== nextAvatar) {
+          await deleteStoredImage(previous);
+        }
       }
       if (profile.website !== undefined) {
         const website = profile.website.trim();
@@ -135,6 +145,7 @@ export async function PUT(
       user: updatedUser,
     });
   } catch (error) {
+    if (error instanceof UploadError) return jsonError(error.message, 400);
     return serverError("Error updating user profile:", error);
   }
 }

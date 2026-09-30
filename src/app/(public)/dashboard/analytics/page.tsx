@@ -1,6 +1,7 @@
 "use client";
 
 import StatsCard from "@/components/dashboard/StatsCard";
+import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { useEffect, useState } from "react";
 import { FiEye, FiFileText, FiHeart } from "react-icons/fi";
 
@@ -37,10 +38,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">Analytics</h1>
-        <p className="mt-1 text-accent-500">Performance for posts you created.</p>
-      </div>
+      <DashboardPageHeader title="Analytics" description="Performance for posts you created." />
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatsCard title="Posts" value={stats.totalBlogs} icon={FiFileText} variant="primary" />
         <StatsCard title="Published" value={stats.publishedBlogs} icon={FiEye} variant="success" />

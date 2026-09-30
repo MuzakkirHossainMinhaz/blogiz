@@ -2,9 +2,10 @@ import { Blog } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { ReactionButtons } from "@/components/ui/ReactionButtons";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { FiCalendar } from "react-icons/fi";
 import { Badge } from "@/components/ui/Badge";
-import { authorProfileId, cn, truncateText, formatDate } from "@/lib/utils";
+import { authorAvatarUrl, authorProfileId, cn, truncateText, formatDate } from "@/lib/utils";
 import { ROUTES, UI_CONFIG } from "@/config/constants";
 import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 
@@ -98,17 +99,7 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-neutral-100">
           {/* Author */}
           <div className="flex items-center gap-2 min-w-0">
-            <div className="avatar shrink-0">
-              <div className="w-8 h-8 flex justify-center items-center rounded-full ring-2 ring-primary-100">
-                <Image
-                  src={UI_CONFIG.DEFAULT_AVATAR}
-                  width={20}
-                  height={20}
-                  alt={blog.author_name}
-                  className="object-cover"
-                />
-              </div>
-            </div>
+            <UserAvatar src={authorAvatarUrl(blog.authorId)} name={blog.author_name} size="sm" />
             {profileId ? (
               <Link href={ROUTES.AUTHOR(profileId)} className="text-sm text-neutral-700 font-medium hover:text-primary-600 truncate">
                 {blog.author_name}

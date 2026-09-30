@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { controlClassName, fieldErrorClassName, fieldLabelClassName } from "@/lib/field-styles";
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -15,7 +16,7 @@ export function Textarea({ label, error, className, disabled, required, id, name
       {label ? (
         <label htmlFor={fieldId} className={fieldLabelClassName}>
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required ? <FieldRequiredMark /> : null}
         </label>
       ) : null}
       <textarea
@@ -24,6 +25,7 @@ export function Textarea({ label, error, className, disabled, required, id, name
         rows={rows}
         disabled={disabled}
         required={required}
+        aria-required={required || undefined}
         className={controlClassName({
           error: Boolean(error),
           className: "resize-y min-h-24 leading-relaxed",

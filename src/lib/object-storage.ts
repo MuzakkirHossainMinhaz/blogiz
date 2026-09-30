@@ -3,7 +3,17 @@ import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT, UploadError, type SniffedImage } from "@/lib/uploads";
 import { cloudinaryPublicId, isStoredImageUrl } from "@/lib/urls";
 
-const FOLDER = "blogiz";
+/** Root Cloudinary folder for every Blogiz upload. */
+export const CLOUDINARY_ROOT_FOLDER = "blogiz";
+
+export type StoredImageKind = "avatars" | "banners" | "covers" | "general";
+
+const KIND_SUBFOLDER: Record<StoredImageKind, string> = {
+  avatars: `${CLOUDINARY_ROOT_FOLDER}/avatars`,
+  banners: `${CLOUDINARY_ROOT_FOLDER}/banners`,
+  covers: `${CLOUDINARY_ROOT_FOLDER}/covers`,
+  general: CLOUDINARY_ROOT_FOLDER,
+};
 
 export function requireCloudinaryConfig(): { cloud_name: string; api_key: string; api_secret: string } {
   const cloud_name = process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "";
@@ -20,10 +30,13 @@ export function requireCloudinaryConfig(): { cloud_name: string; api_key: string
 }
 
 /**
- * Server-side Cloudinary upload. The client filename is ignored.
- * Magic bytes choose the format, and the object name cannot leave the upload root.
+ * Server-side Cloudinary upload into the `blogiz` folder (optional subfolder by kind).
+ * The client filename is ignored. Magic bytes choose the format.
  */
-export async function saveImage(bytes: Buffer): Promise<{ url: string; contentType: SniffedImage["mime"] }> {
+export async function saveImage(
+  bytes: Buffer,
+  options?: { kind?: StoredImageKind }
+): Promise<{ url: string; contentType: SniffedImage["mime"] }> {
   const sniffed = sniffImage(bytes);
   if (!sniffed) {
     throw new UploadError("Only JPEG, PNG, and WebP images are allowed");
@@ -33,11 +46,12 @@ export async function saveImage(bytes: Buffer): Promise<{ url: string; contentTy
   const filename = `${id}.${sniffed.ext}`;
   assertInsideUploadRoot(UPLOAD_ROOT, filename);
   const { cloud_name } = requireCloudinaryConfig();
+  const folder = KIND_SUBFOLDER[options?.kind ?? "general"];
 
   const uploaded = await new Promise<UploadApiResponse>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: FOLDER,
+        folder,
         public_id: id,
         resource_type: "image",
         format: sniffed.ext,

@@ -164,6 +164,7 @@ export default function RegisterPage() {
               error={errors.role?.message}
               disabled={isLoading}
               icon={<FiUsers className="w-5 h-5" />}
+              required
               options={[
                 { value: "user", label: "Reader - Can read and comment on blogs" },
                 { value: "author", label: "Author - Can write and manage blogs" },

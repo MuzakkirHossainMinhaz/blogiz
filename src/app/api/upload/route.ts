@@ -1,9 +1,17 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { denied, requireUser } from "@/lib/authz";
 import { jsonError, serverError } from "@/lib/http";
-import { saveImage } from "@/lib/object-storage";
+import { saveImage, type StoredImageKind } from "@/lib/object-storage";
 import { UploadError } from "@/lib/uploads";
-import { NextResponse } from "next/server";
+
+const KINDS = new Set<StoredImageKind>(["avatars", "banners", "covers", "general"]);
+
+function parseKind(value: FormDataEntryValue | null): StoredImageKind {
+  if (typeof value === "string" && KINDS.has(value as StoredImageKind)) {
+    return value as StoredImageKind;
+  }
+  return "covers";
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,8 +25,9 @@ export async function POST(request: NextRequest) {
       return jsonError("No file provided", 400);
     }
 
+    const kind = parseKind(formData.get("kind"));
     const bytes = Buffer.from(await file.arrayBuffer());
-    const stored = await saveImage(bytes);
+    const stored = await saveImage(bytes, { kind });
 
     return NextResponse.json({
       message: "File uploaded successfully",

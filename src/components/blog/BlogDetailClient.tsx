@@ -4,12 +4,13 @@ import { CommentSection } from "@/components/blog/CommentSection";
 import { FadeIn } from "@/components/motion";
 import { ReactionButtons } from "@/components/ui/ReactionButtons";
 import { ShareButtons } from "@/components/ui/ShareButtons";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ROUTES } from "@/config/constants";
 import { Blog } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { FiCalendar } from "react-icons/fi";
-import { authorProfileId, formatDate } from "@/lib/utils";
+import { authorAvatarUrl, authorProfileId, formatDate } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/sanitize";
 import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 
@@ -37,11 +38,7 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
 
           <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 mb-2">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 shrink-0 rounded-full ring-2 ring-primary-100 bg-primary-100 flex items-center justify-center">
-                <span className="text-primary-800 font-semibold text-lg">
-                  {blog.author_name.charAt(0).toUpperCase()}
-                </span>
-              </div>
+              <UserAvatar src={authorAvatarUrl(blog.authorId)} name={blog.author_name} size="lg" />
               <div className="text-left min-w-0">
                 {profileId ? (
                   <Link

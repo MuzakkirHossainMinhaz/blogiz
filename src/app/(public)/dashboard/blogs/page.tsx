@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
@@ -157,9 +158,7 @@ export default function BlogsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-neutral-900">Blogs</h1>
-        </div>
+        <DashboardPageHeader title="My Posts" description="Manage your blog posts" />
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
@@ -169,19 +168,18 @@ export default function BlogsPage() {
 
   return (
     <div className="space-y-6 ">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Blogs</h1>
-          <p className="text-neutral-600">Manage your blog posts</p>
-        </div>
-        <Link href="/dashboard/blogs/create" className="w-full sm:w-auto">
-          <Button variant="primary" className="rounded-xl w-full sm:w-auto">
-            <FiPlusCircle className="w-4 h-4 mr-2" />
-            Create New Post
-          </Button>
-        </Link>
-      </div>
+      <DashboardPageHeader
+        title="My Posts"
+        description="Manage your blog posts"
+        actions={
+          <Link href="/dashboard/blogs/create" className="w-full sm:w-auto">
+            <Button variant="primary" className="rounded-xl w-full sm:w-auto">
+              <FiPlusCircle className="w-4 h-4 mr-2" />
+              Create New Post
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Filters and Search */}
       <div className="bg-white p-4 rounded-lg border border-neutral-200">
@@ -199,13 +197,12 @@ export default function BlogsPage() {
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center gap-2 lg:w-56">
-            <FiFilter className="text-neutral-400 w-4 h-4 shrink-0" />
+          <div className="lg:w-56">
             <Select
               aria-label="Filter by status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "all" | "published" | "draft")}
-              className="flex-1"
+              icon={<FiFilter className="w-4 h-4" />}
               options={[
                 { value: "all", label: "All Status" },
                 { value: "published", label: "Published" },
@@ -245,7 +242,14 @@ export default function BlogsPage() {
       {/* Results Summary */}
       <div className="flex items-center justify-between text-sm text-neutral-600">
         <span>Showing {filteredBlogs.length} of {blogs.length} blogs</span>
-        <span>{statusFilter === "all" ? "All" : statusFilter} blogs</span>
+        <span>
+          {statusFilter === "all"
+            ? "All"
+            : statusFilter === "published"
+              ? "Published"
+              : "Draft"}{" "}
+          blogs
+        </span>
       </div>
 
       {/* Blog List */}

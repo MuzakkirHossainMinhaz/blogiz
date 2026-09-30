@@ -71,3 +71,10 @@ export function authorProfileId(authorId: unknown): string | null {
   }
   return null;
 }
+
+/** Avatar URL from a populated author ref, if present. */
+export function authorAvatarUrl(authorId: unknown): string | undefined {
+  if (!authorId || typeof authorId !== "object") return undefined;
+  const profile = (authorId as { profile?: { avatar?: unknown } }).profile;
+  return typeof profile?.avatar === "string" && profile.avatar.trim() ? profile.avatar.trim() : undefined;
+}

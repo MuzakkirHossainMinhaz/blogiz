@@ -230,6 +230,10 @@ class HuggingFaceAI {
 
   // Image Generation
   async generateImage(prompt: string, style: string = "realistic"): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error("Hugging Face is not configured");
+    }
+
     try {
       const models = {
         realistic: "runwayml/stable-diffusion-v1-5",
@@ -239,22 +243,35 @@ class HuggingFaceAI {
 
       const selectedModel = models[style as keyof typeof models] || models.realistic;
 
-      const response = await this.makeRequest(selectedModel, {
-        inputs: `${prompt}, professional blog cover, high quality, detailed`,
-        parameters: {
-          guidance_scale: 7.5,
-          num_inference_steps: 20,
+      const response = await fetch(`${this.baseUrl}/${selectedModel}`, {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
         },
+        method: "POST",
+        body: JSON.stringify({
+          inputs: `${prompt}, professional blog cover, high quality, detailed`,
+          parameters: {
+            guidance_scale: 7.5,
+            num_inference_steps: 20,
+          },
+        }),
       });
 
-      // Handle different response formats
-      if (response[0] && typeof response[0] === "string") {
-        return response[0]; // Base64 image
-      } else if (response.image) {
-        return response.image;
-      } else {
+      if (!response.ok) {
+        throw new Error(`HuggingFace API error: ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        if (Array.isArray(data) && typeof data[0] === "string") return data[0];
+        if (typeof data?.image === "string") return data.image;
         throw new Error("Unexpected image generation response format");
       }
+
+      const bytes = Buffer.from(await response.arrayBuffer());
+      return `data:image/png;base64,${bytes.toString("base64")}`;
     } catch (error) {
       console.error("Image generation failed:", error);
       throw error;

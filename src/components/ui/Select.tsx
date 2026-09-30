@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { controlClassName, fieldErrorClassName, fieldLabelClassName } from "@/lib/field-styles";
 import { cn } from "@/lib/utils";
 import {
@@ -30,6 +31,10 @@ interface SelectProps {
   value?: string;
   defaultValue?: string;
   placeholder?: string;
+  /** Compact trigger to match `Button` `size="sm"`. */
+  size?: "sm" | "md";
+  /** Where the menu opens. `auto` flips upward when there isn’t enough space below. */
+  placement?: "auto" | "top" | "bottom";
   "aria-label"?: string;
   onChange?: (event: { target: { name?: string; value: string } }) => void;
   onBlur?: (event: { target: { name?: string } }) => void;
@@ -49,11 +54,14 @@ export function Select({
   value,
   defaultValue,
   placeholder = "Select an option",
+  size = "md",
+  placement = "auto",
   "aria-label": ariaLabel,
   onChange,
   onBlur,
   ref,
 }: SelectProps) {
+  const isSm = size === "sm";
   const reactId = useId();
   const fieldId = id || name || reactId;
   const listboxId = `${fieldId}-listbox`;
@@ -61,15 +69,29 @@ export function Select({
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue ?? options[0]?.value ?? "");
   const selectedValue = isControlled ? value : uncontrolledValue;
   const [open, setOpen] = useState(false);
+  const [menuPlacement, setMenuPlacement] = useState<"top" | "bottom">("bottom");
   const [highlightIndex, setHighlightIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const selectedOption = options.find((option) => option.value === selectedValue);
 
+  const resolvePlacement = (): "top" | "bottom" => {
+    if (placement === "top" || placement === "bottom") return placement;
+    const el = rootRef.current;
+    if (!el || typeof window === "undefined") return "bottom";
+    const rect = el.getBoundingClientRect();
+    const estimatedMenuHeight = Math.min(240, options.length * 44 + 20);
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    if (spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow) return "top";
+    return "bottom";
+  };
+
   const openMenu = () => {
     if (disabled) return;
     const index = options.findIndex((option) => option.value === selectedValue);
     setHighlightIndex(index >= 0 ? index : 0);
+    setMenuPlacement(resolvePlacement());
     setOpen(true);
   };
 
@@ -143,7 +165,7 @@ export function Select({
       {label ? (
         <label htmlFor={fieldId} className={fieldLabelClassName}>
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required ? <FieldRequiredMark /> : null}
         </label>
       ) : null}
 
@@ -160,7 +182,12 @@ export function Select({
         />
 
         {icon && (
-          <span className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-neutral-400 pointer-events-none">
+          <span
+            className={cn(
+              "absolute top-1/2 z-10 -translate-y-1/2 text-neutral-400 pointer-events-none",
+              isSm ? "left-2.5" : "left-3"
+            )}
+          >
             {icon}
           </span>
         )}
@@ -172,6 +199,7 @@ export function Select({
           aria-expanded={open}
           aria-controls={listboxId}
           aria-label={ariaLabel || label || placeholder}
+          aria-required={required || undefined}
           onClick={() => (open ? setOpen(false) : openMenu())}
           onKeyDown={onTriggerKeyDown}
           onBlur={() => onBlur?.({ target: { name } })}
@@ -181,7 +209,13 @@ export function Select({
             withTrailing: true,
             className: cn(
               "text-left flex items-center cursor-pointer",
-              !selectedOption && "text-neutral-400"
+              !selectedOption && "text-neutral-400",
+              isSm &&
+                cn(
+                  "px-3 py-1.5 text-sm min-h-9 font-medium",
+                  icon ? "pl-9" : "pl-3",
+                  "pr-9"
+                )
             ),
           })}
         >
@@ -190,11 +224,12 @@ export function Select({
 
         <span
           className={cn(
-            "absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none transition-transform",
+            "absolute top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none transition-transform",
+            isSm ? "right-2.5" : "right-3",
             open && "rotate-180"
           )}
         >
-          <FiChevronDown className="w-5 h-5" />
+          <FiChevronDown className={isSm ? "w-4 h-4" : "w-5 h-5"} />
         </span>
 
         {open && (
@@ -205,7 +240,10 @@ export function Select({
             tabIndex={-1}
             aria-activedescendant={`${listboxId}-option-${highlightIndex}`}
             onKeyDown={onListKeyDown}
-            className="absolute z-50 mt-2 max-h-60 w-full overflow-auto rounded-xl border border-neutral-200 bg-white p-1.5 shadow-soft-lg focus:outline-none"
+            className={cn(
+              "absolute z-50 max-h-60 w-full overflow-auto rounded-xl border border-neutral-200 bg-white p-1.5 shadow-soft-lg focus:outline-none",
+              menuPlacement === "top" ? "bottom-full mb-2" : "top-full mt-2"
+            )}
           >
             {options.map((option, index) => {
               const selected = option.value === selectedValue;

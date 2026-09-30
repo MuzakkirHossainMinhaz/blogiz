@@ -9,6 +9,7 @@ import { Blog } from "@/types";
 import { connectDB } from "./mongodb";
 import { type PageQuery } from "./pagination";
 import {
+  PUBLIC_AUTHOR_FIELDS,
   PUBLIC_CARD_FIELDS,
   PUBLIC_PROFILE_BLOG_FIELDS,
   PUBLIC_PROFILE_FIELDS,
@@ -79,6 +80,7 @@ export async function getBlogsPage(paging: PageQuery): Promise<{
   const [blogs, total] = await Promise.all([
     BlogModel.find(filter)
       .select(PUBLIC_CARD_FIELDS)
+      .populate("authorId", PUBLIC_AUTHOR_FIELDS)
       .sort({ publish_date: -1 })
       .skip(skip)
       .limit(safeLimit)
@@ -100,7 +102,7 @@ export async function getBlogsPage(paging: PageQuery): Promise<{
 export async function getBlogById(id: string, viewer?: PostViewer | null): Promise<Blog | null> {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
   await connectDB();
-  const blog = await BlogModel.findById(id).lean();
+  const blog = await BlogModel.findById(id).populate("authorId", PUBLIC_AUTHOR_FIELDS).lean();
   if (!blog || !canViewPost(blog, viewer)) return null;
   return JSON.parse(JSON.stringify(blog));
 }
