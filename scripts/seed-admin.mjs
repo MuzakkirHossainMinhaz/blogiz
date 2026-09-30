@@ -1,3 +1,7 @@
+import { loadLocalEnv } from "./load-env.mjs";
+
+loadLocalEnv();
+
 if (process.env.NODE_ENV === "production") {
   console.error("Refusing to seed while NODE_ENV=production");
   process.exit(1);

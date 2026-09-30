@@ -23,15 +23,29 @@ async function main() {
 
   await connectDB();
 
-  const existing = await User.findOne({ role: "superadmin" }).select("email");
+  const hashed = await bcrypt.hash(password, 12);
+  const existing = await User.findOne({ email });
+
   if (existing) {
-    console.log("Superadmin already exists");
+    existing.password = hashed;
+    existing.role = "superadmin";
+    existing.isApproved = true;
+    existing.isActive = true;
+    existing.emailVerified = true;
+    await existing.save();
+    console.log(`Superadmin password updated for ${email}`);
+    process.exit(0);
+  }
+
+  const otherSuperadmin = await User.findOne({ role: "superadmin" }).select("email");
+  if (otherSuperadmin) {
+    console.log(`Superadmin already exists as ${otherSuperadmin.email}. Set ADMIN_EMAIL to that address to reset its password.`);
     process.exit(0);
   }
 
   await User.create({
     email,
-    password: await bcrypt.hash(password, 12),
+    password: hashed,
     name: "Super Admin",
     role: "superadmin",
     profile: {
