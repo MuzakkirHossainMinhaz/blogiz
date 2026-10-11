@@ -43,3 +43,8 @@ Fill in `.env.local` from `.env.example`. Every value there is empty on purpose.
 | `npm run seed` | Truncate all collections and seed fixtures + superadmin |
 
 Setup, roles, auth, uploads, rate limits, and how to run the checks are in [GUIDE.md](GUIDE.md).
+
+## Docs
+
+- [PLAN.md](PLAN.md) — Product and engineering plan (vision, roles, features, AI workflows, delivery phases)
+- [DATABASE.md](DATABASE.md) — MongoDB / Mongoose schema design (collections, indexes, relationships)
