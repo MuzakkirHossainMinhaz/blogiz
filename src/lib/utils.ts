@@ -16,17 +16,29 @@ export function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength).trim() + "...";
 }
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
 /**
- * Format date to readable string
+ * Format date to a stable en-US-style string (SSR/client identical).
  */
 export function formatDate(dateString: string): string {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    if (Number.isNaN(date.getTime())) return dateString;
+    return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
   } catch {
     return dateString;
   }

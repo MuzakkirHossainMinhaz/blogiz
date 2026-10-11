@@ -1,4 +1,5 @@
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { auth } from "@/lib/auth";
 import Providers from "@/lib/Providers";
 import { APP_CONFIG } from "@/config/constants";
 import { buildPageMetadata, DEFAULT_DESCRIPTION } from "@/lib/seo";
@@ -37,16 +38,18 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en" data-theme="light">
       <body className={`${plusJakarta.variable} ${fraunces.variable} font-sans`}>
         <ErrorBoundary>
-          <Providers>{children}</Providers>
+          <Providers session={session}>{children}</Providers>
         </ErrorBoundary>
       </body>
     </html>

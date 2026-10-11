@@ -10,7 +10,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { fieldErrorClassName, fieldLabelClassName } from "@/lib/field-styles";
 import { renderMarkdown } from "@/lib/sanitize";
-import { isCloudinaryDeliveryUrl } from "@/lib/urls";
+import { isStoredImageUrl } from "@/lib/urls";
 import { BLOG_CONTENT_MAX } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
@@ -28,7 +28,7 @@ const blogSchema = z.object({
   authorName: z.string().min(1, "Set your name in Settings").max(50),
   thumbnail: z
     .string()
-    .refine((value) => value === "" || isCloudinaryDeliveryUrl(value), "Upload or generate a cover")
+    .refine((value) => value === "" || isStoredImageUrl(value), "Upload or generate a cover")
     .optional()
     .or(z.literal("")),
   status: z.enum(["draft", "published"]),

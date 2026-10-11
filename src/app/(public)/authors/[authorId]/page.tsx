@@ -7,7 +7,7 @@ import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
 import { parsePageLimit } from "@/lib/pagination";
 import { buildPageMetadata } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
-import { isCloudinaryDeliveryUrl, isHttpsUrl } from "@/lib/urls";
+import { isHttpsUrl, isStoredImageUrl } from "@/lib/urls";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: AuthorProfilePageProps): Prom
   const displayName = profile.profile.fullName || profile.name;
   const bio = profile.profile.bio || `Published writer on Blogiz.`;
   const image =
-    profile.profile.avatar && isCloudinaryDeliveryUrl(profile.profile.avatar)
+    profile.profile.avatar && isStoredImageUrl(profile.profile.avatar)
       ? profile.profile.avatar
       : undefined;
 

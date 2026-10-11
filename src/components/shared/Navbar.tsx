@@ -57,31 +57,33 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-neutral-200/80">
       <div className="container-custom relative">
         {/*
-          3-column grid avoids absolute + -translate-x-1/2 centering.
-          Turbopack/Lightning CSS has been unreliable with that translate utility.
+          Three equal flex zones: brand | centered links | actions.
+          Avoids broken arbitrary grid-template columns under Lightning CSS.
         */}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center h-14 sm:h-16 md:h-20 gap-2">
-          <Link href={ROUTES.HOME} className="flex items-center gap-2.5 md:gap-3 group min-w-0 justify-self-start">
-            <Image
-              src="/logo.png"
-              width={44}
-              height={44}
-              alt={`${APP_CONFIG.SITE_NAME} logo`}
-              className="h-9 w-9 md:h-11 md:w-11 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105 motion-reduce:group-hover:scale-100"
-              priority
-            />
-            <span className="font-display text-xl sm:text-2xl md:text-[1.65rem] font-semibold tracking-tight text-ink truncate">
-              {APP_CONFIG.SITE_NAME}
-            </span>
-          </Link>
+        <div className="flex h-14 items-center gap-3 sm:h-16 md:h-20">
+          <div className="flex min-w-0 flex-1 items-center justify-start">
+            <Link href={ROUTES.HOME} className="group flex min-w-0 items-center gap-2.5 md:gap-3">
+              <Image
+                src="/logo.png"
+                width={44}
+                height={44}
+                alt={`${APP_CONFIG.SITE_NAME} logo`}
+                className="h-9 w-9 shrink-0 object-contain transition-transform duration-200 group-hover:scale-105 motion-reduce:group-hover:scale-100 md:h-11 md:w-11"
+                priority
+              />
+              <span className="truncate font-display text-xl font-semibold tracking-tight text-ink sm:text-2xl md:text-[1.65rem]">
+                {APP_CONFIG.SITE_NAME}
+              </span>
+            </Link>
+          </div>
 
-          <ul className="hidden lg:flex items-center gap-0.5 justify-self-center">
+          <ul className="hidden shrink-0 items-center gap-0.5 lg:flex">
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
                   className={cn(
-                    "px-4 py-2.5 rounded-xl font-medium transition-colors duration-200",
+                    "rounded-xl px-4 py-2.5 font-medium transition-colors duration-200",
                     isActive(link.href)
                       ? "bg-primary-50 text-primary-800"
                       : "text-accent-500 hover:bg-primary-50/60 hover:text-ink"
@@ -93,37 +95,35 @@ export default function Navbar() {
             ))}
           </ul>
 
-          <div className="justify-self-end flex items-center gap-1.5 sm:gap-2">
-            <div className="hidden lg:flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2">
+            <div className="hidden items-center gap-2 lg:flex">
               {isLoggedIn ? (
                 <div className="flex items-center gap-2">
                   <Link
                     href="/dashboard"
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-xl transition-colors",
+                      "flex items-center gap-3 rounded-xl px-3 py-2 transition-colors",
                       isDashboard ? "bg-primary-50" : "hover:bg-primary-50/70"
                     )}
                     aria-current={isDashboard ? "page" : undefined}
                   >
-                    <div className="flex flex-col items-end min-w-0">
-                      <span className="text-sm font-semibold text-ink leading-tight truncate max-w-40">
+                    <div className="flex min-w-0 flex-col items-end">
+                      <span className="max-w-40 truncate text-sm font-semibold leading-tight text-ink">
                         {user?.name || "User"}
                       </span>
-                      <span className="text-xs text-accent-500 leading-tight truncate max-w-40">
-                        Dashboard
-                      </span>
+                      <span className="max-w-40 truncate text-xs leading-tight text-accent-500">Dashboard</span>
                     </div>
-                    <div className="w-9 h-9 shrink-0 overflow-hidden">
-                      <UserAvatar src={user?.avatar} name={user?.name} size="sm" className="w-9 h-9 ring-primary-200" priority />
+                    <div className="h-9 w-9 shrink-0 overflow-hidden">
+                      <UserAvatar src={user?.avatar} name={user?.name} size="sm" className="h-9 w-9 ring-primary-200" priority />
                     </div>
                   </Link>
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="min-h-11 min-w-11 p-2.5 rounded-xl text-accent-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="min-h-11 min-w-11 rounded-xl p-2.5 text-accent-500 transition-colors hover:bg-red-50 hover:text-red-600"
                     aria-label="Sign Out"
                     title="Sign Out"
                   >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -137,13 +137,13 @@ export default function Navbar() {
                 <>
                   <Link
                     href="/auth/login"
-                    className="px-4 py-2.5 text-sm font-medium text-accent-500 hover:text-ink transition-colors"
+                    className="px-4 py-2.5 text-sm font-medium text-accent-500 transition-colors hover:text-ink"
                   >
                     Login
                   </Link>
                   <Link
                     href="/auth/register"
-                    className="px-5 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 rounded-xl shadow-soft transition-colors duration-200"
+                    className="rounded-xl bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition-colors duration-200 hover:bg-primary-600"
                   >
                     Get Started
                   </Link>
@@ -151,11 +151,11 @@ export default function Navbar() {
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden shrink-0">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 lg:hidden">
               {isLoggedIn && (
                 <Link
                   href="/dashboard"
-                  className="flex items-center justify-center min-h-11 min-w-11 rounded-xl hover:bg-primary-50 transition-colors"
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-xl transition-colors hover:bg-primary-50"
                   aria-label="Open dashboard"
                 >
                   <UserAvatar src={user?.avatar} name={user?.name} size="sm" priority />
@@ -163,11 +163,11 @@ export default function Navbar() {
               )}
               <button
                 onClick={toggleMobileMenu}
-                className="min-h-11 min-w-11 p-2.5 rounded-xl hover:bg-primary-50 transition-colors"
+                className="min-h-11 min-w-11 rounded-xl p-2.5 transition-colors hover:bg-primary-50"
                 aria-label="Toggle menu"
                 aria-expanded={isMobileMenuOpen}
               >
-                {isMobileMenuOpen ? <FiX className="w-6 h-6 text-ink" /> : <FiMenu className="w-6 h-6 text-ink" />}
+                {isMobileMenuOpen ? <FiX className="h-6 w-6 text-ink" /> : <FiMenu className="h-6 w-6 text-ink" />}
               </button>
             </div>
           </div>
@@ -176,13 +176,13 @@ export default function Navbar() {
         <AnimatePresence>
           {isMobileMenuOpen && (
             <motion.div
-              className="lg:hidden absolute top-full left-0 right-0 bg-surface border-b border-neutral-200 shadow-soft-lg max-h-[calc(100dvh-3.5rem)] overflow-y-auto"
+              className="absolute top-full right-0 left-0 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-neutral-200 bg-surface shadow-soft-lg lg:hidden"
               initial={reduceMotion ? false : { opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
               transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE }}
             >
-              <div className="p-3 sm:p-4 space-y-3">
+              <div className="space-y-3 p-3 sm:p-4">
                 <ul className="space-y-1">
                   {navLinks.map((link) => (
                     <li key={link.href}>
@@ -190,7 +190,7 @@ export default function Navbar() {
                         href={link.href}
                         onClick={closeMobileMenu}
                         className={cn(
-                          "block px-4 py-3 min-h-11 rounded-xl font-medium transition-colors duration-200",
+                          "block min-h-11 rounded-xl px-4 py-3 font-medium transition-colors duration-200",
                           isActive(link.href)
                             ? "bg-primary-50 text-primary-800"
                             : "text-accent-600 hover:bg-primary-50/70"
@@ -202,17 +202,15 @@ export default function Navbar() {
                   ))}
                 </ul>
 
-                <div className="pt-3 border-t border-neutral-200 space-y-1">
+                <div className="space-y-1 border-t border-neutral-200 pt-3">
                   {isLoggedIn ? (
                     <>
                       <Link
                         href="/dashboard"
                         onClick={closeMobileMenu}
                         className={cn(
-                          "block px-4 py-3 min-h-11 rounded-xl font-medium transition-colors",
-                          isDashboard
-                            ? "bg-primary-50 text-primary-800"
-                            : "text-accent-600 hover:bg-primary-50/70"
+                          "block min-h-11 rounded-xl px-4 py-3 font-medium transition-colors",
+                          isDashboard ? "bg-primary-50 text-primary-800" : "text-accent-600 hover:bg-primary-50/70"
                         )}
                         aria-current={isDashboard ? "page" : undefined}
                       >
@@ -223,7 +221,7 @@ export default function Navbar() {
                           closeMobileMenu();
                           signOut({ callbackUrl: "/" });
                         }}
-                        className="w-full text-left px-4 py-3 min-h-11 rounded-xl font-medium text-red-600 hover:bg-red-50"
+                        className="min-h-11 w-full rounded-xl px-4 py-3 text-left font-medium text-red-600 hover:bg-red-50"
                       >
                         Sign Out
                       </button>
@@ -233,14 +231,14 @@ export default function Navbar() {
                       <Link
                         href="/auth/login"
                         onClick={closeMobileMenu}
-                        className="block px-4 py-3 min-h-11 rounded-xl font-medium text-accent-600 hover:bg-primary-50/70"
+                        className="block min-h-11 rounded-xl px-4 py-3 font-medium text-accent-600 hover:bg-primary-50/70"
                       >
                         Sign In
                       </Link>
                       <Link
                         href="/auth/register"
                         onClick={closeMobileMenu}
-                        className="block px-4 py-3 min-h-11 rounded-xl font-semibold text-center text-white bg-primary-500 hover:bg-primary-600"
+                        className="block min-h-11 rounded-xl bg-primary-500 px-4 py-3 text-center font-semibold text-white hover:bg-primary-600"
                       >
                         Get Started
                       </Link>
@@ -255,7 +253,7 @@ export default function Navbar() {
 
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 top-14 sm:top-16 md:top-20 z-[-1] bg-ink/30 lg:hidden"
+          className="fixed inset-0 top-14 z-[-1] bg-ink/30 sm:top-16 md:top-20 lg:hidden"
           onClick={closeMobileMenu}
           aria-hidden="true"
         />

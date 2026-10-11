@@ -1,6 +1,6 @@
-import { seedImageUrl } from "./images.mjs";
-
-/** Static seed fixtures (emails/passwords for non-admin users are set in the seeder). */
+/** Static seed fixtures (emails/passwords for non-admin users are set in the seeder).
+ * Avatars/thumbnails stay empty so the UI uses local fallbacks until real Cloudinary uploads exist.
+ */
 export function buildSeedUsers(adminEmail) {
   return {
     admin: {
@@ -12,7 +12,7 @@ export function buildSeedUsers(adminEmail) {
         bio: "Site admin with full moderation access.",
         location: "Remote",
         expertise: ["operations", "moderation"],
-        avatar: seedImageUrl("blogiz/avatars/admin"),
+        avatar: "",
       },
     },
     authors: [
@@ -27,7 +27,7 @@ export function buildSeedUsers(adminEmail) {
           location: "Portland, OR",
           website: "https://example.com/ava",
           expertise: ["design", "writing"],
-          avatar: seedImageUrl("blogiz/avatars/ava"),
+          avatar: "",
           socialLinks: { twitter: "https://example.com/x/ava", github: "https://example.com/gh/ava" },
         },
       },
@@ -41,7 +41,7 @@ export function buildSeedUsers(adminEmail) {
           bio: "Essays on engineering culture and long-form notes.",
           location: "Toronto, ON",
           expertise: ["engineering", "culture"],
-          avatar: seedImageUrl("blogiz/avatars/noah"),
+          avatar: "",
         },
       },
     ],
@@ -54,7 +54,7 @@ export function buildSeedUsers(adminEmail) {
         profile: {
           fullName: "Riley Reader",
           bio: "Here for the stories.",
-          avatar: seedImageUrl("blogiz/avatars/riley"),
+          avatar: "",
         },
       },
       {
@@ -65,7 +65,7 @@ export function buildSeedUsers(adminEmail) {
         profile: {
           fullName: "Sam Subscriber",
           bio: "Comments and likes thoughtfully.",
-          avatar: seedImageUrl("blogiz/avatars/sam"),
+          avatar: "",
         },
       },
     ],
@@ -82,8 +82,8 @@ export const blogFixtures = [
       "<p>Great reading experiences feel quiet. This post walks through palette choices, type pairing with Fraunces and Plus Jakarta Sans, and why the public site should never pretend to be the dashboard.</p><p>Keep motion minimal. Let empty states breathe. Prefer one job per section.</p>",
     tags: ["design", "product"],
     status: "published",
-    thumbnail: seedImageUrl("blogiz/posts/indigo-craft"),
-    thumbnailSource: "upload",
+    thumbnail: "",
+    thumbnailSource: "none",
     readingTime: 6,
   },
   {
@@ -95,8 +95,8 @@ export const blogFixtures = [
       "<p>Authors draft and publish. Admins govern trust. Readers engage. Keep those lanes clear in navigation and APIs.</p><p>Role upgrades should be explicit requests — never silent promotions.</p>",
     tags: ["community", "ops"],
     status: "published",
-    thumbnail: seedImageUrl("blogiz/posts/multi-author"),
-    thumbnailSource: "upload",
+    thumbnail: "",
+    thumbnailSource: "none",
     readingTime: 5,
   },
   {
@@ -107,8 +107,8 @@ export const blogFixtures = [
     content: "<p>Empty states should explain the next action, not apologize forever.</p>",
     tags: ["draft"],
     status: "draft",
-    thumbnail: seedImageUrl("blogiz/posts/draft-notes"),
-    thumbnailSource: "upload",
+    thumbnail: "",
+    thumbnailSource: "none",
     readingTime: 3,
   },
 ];

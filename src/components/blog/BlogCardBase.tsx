@@ -1,13 +1,12 @@
 import { Blog } from "@/types";
-import Image from "next/image";
 import Link from "next/link";
 import { ReactionButtons } from "@/components/ui/ReactionButtons";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { BlogCoverImage } from "@/components/ui/BlogCoverImage";
 import { FiCalendar } from "react-icons/fi";
 import { Badge } from "@/components/ui/Badge";
 import { authorAvatarUrl, authorProfileId, cn, truncateText, formatDate } from "@/lib/utils";
 import { ROUTES, UI_CONFIG } from "@/config/constants";
-import { isCloudinaryDeliveryUrl } from "@/lib/urls";
 
 interface BlogCardBaseProps {
   blog: Blog;
@@ -21,36 +20,34 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
   const maxDescLength = isFeatured
     ? UI_CONFIG.MAX_DESCRIPTION_LENGTH_LATEST
     : UI_CONFIG.MAX_DESCRIPTION_LENGTH_CARD;
+  const coverHeight = isFeatured ? "h-56 sm:h-72 md:h-96" : "h-48 sm:h-56 md:h-64";
 
   return (
     <article
       className={cn(
-        "group card bg-white shadow-soft hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-1 motion-reduce:hover:translate-y-0 overflow-hidden",
+        "group overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg motion-reduce:hover:translate-y-0",
         className
       )}
     >
-      {/* Image */}
-      <figure className="relative overflow-hidden">
-        <Link href={ROUTES.BLOG_DETAIL(blog._id)}>
-          <Image
-            src={blog.thumbnail && isCloudinaryDeliveryUrl(blog.thumbnail) ? blog.thumbnail : "/placeholder-blog.jpg"}
+      <figure className={cn("relative overflow-hidden", coverHeight)}>
+        <Link href={ROUTES.BLOG_DETAIL(blog._id)} className="block h-full w-full">
+          <BlogCoverImage
+            src={blog.thumbnail}
+            alt={blog.title}
             width={600}
             height={isFeatured ? 400 : 300}
-            alt={blog.title}
             className={cn(
-              "w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:group-hover:scale-100",
-              isFeatured ? "h-56 sm:h-72 md:h-96" : "h-48 sm:h-56 md:h-64"
+              "h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:group-hover:scale-100",
+              coverHeight
             )}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             priority={isFeatured}
           />
         </Link>
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 motion-reduce:hidden" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:hidden" />
       </figure>
 
-      {/* Content */}
-      <div className="card-body p-4 sm:p-5 md:p-6">
+      <div className="p-4 sm:p-5 md:p-6">
         {/* Date Badge */}
         <Badge variant="accent" size="sm" className="w-fit mb-3">
           <FiCalendar className="w-3 h-3" />

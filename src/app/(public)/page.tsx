@@ -38,7 +38,7 @@ export default async function HomePage() {
           </div>
           <Link
             href={ROUTES.BLOGS}
-            className="inline-flex items-center justify-center min-h-11 px-5 rounded-xl text-sm font-semibold text-ink bg-surface border border-primary-200 hover:border-primary-300 transition-colors shrink-0"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-white px-5 text-sm font-semibold text-ink shadow-soft transition-colors hover:border-primary-300 hover:bg-primary-50/40"
           >
             View all blogs
           </Link>

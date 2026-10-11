@@ -2,7 +2,7 @@
 
 import { UI_CONFIG } from "@/config/constants";
 import { cn } from "@/lib/utils";
-import { isCloudinaryDeliveryUrl } from "@/lib/urls";
+import { isStoredImageUrl } from "@/lib/urls";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -23,12 +23,12 @@ type UserAvatarProps = {
 };
 
 /**
- * Shows uploaded Cloudinary avatar when available.
+ * Shows this app's Cloudinary avatar when available.
  * Otherwise tries `/author.png`. If that fails, shows the first letter of the name.
  */
 export function UserAvatar({ src, name, size = "md", className, priority = false }: UserAvatarProps) {
   const dims = SIZES[size];
-  const hasPhoto = Boolean(src && isCloudinaryDeliveryUrl(src));
+  const remote = src && isStoredImageUrl(src) ? src : null;
   const [failed, setFailed] = useState(false);
   const alt = name?.trim() || "User avatar";
   const initial = (name?.trim()?.charAt(0) || "?").toUpperCase();
@@ -37,7 +37,7 @@ export function UserAvatar({ src, name, size = "md", className, priority = false
     return (
       <span
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-full ring-2 ring-primary-100 bg-primary-100 text-primary-800 font-semibold",
+          "inline-flex shrink-0 items-center justify-center rounded-full bg-primary-100 font-semibold text-primary-800 ring-2 ring-primary-100",
           dims.box,
           dims.text,
           className
@@ -53,18 +53,18 @@ export function UserAvatar({ src, name, size = "md", className, priority = false
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 overflow-hidden rounded-full ring-2 ring-primary-100 bg-primary-50",
+        "relative inline-flex shrink-0 overflow-hidden rounded-full bg-primary-50 ring-2 ring-primary-100",
         dims.box,
         className
       )}
     >
       <Image
-        src={hasPhoto ? src! : UI_CONFIG.DEFAULT_AVATAR}
+        src={remote || UI_CONFIG.DEFAULT_AVATAR}
         alt={alt}
         width={dims.px}
         height={dims.px}
-        className="object-cover w-full h-full"
-        unoptimized={!hasPhoto}
+        className="h-full w-full object-cover"
+        unoptimized={!remote}
         priority={priority}
         onError={() => setFailed(true)}
       />

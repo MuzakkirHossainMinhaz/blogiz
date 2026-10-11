@@ -7,20 +7,19 @@ import { ShareButtons } from "@/components/ui/ShareButtons";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ROUTES } from "@/config/constants";
 import { Blog } from "@/types";
-import Image from "next/image";
 import Link from "next/link";
 import { FiCalendar } from "react-icons/fi";
 import { authorAvatarUrl, authorProfileId, formatDate } from "@/lib/utils";
 import { renderMarkdown } from "@/lib/sanitize";
-import { isCloudinaryDeliveryUrl } from "@/lib/urls";
+import { BlogCoverImage } from "@/components/ui/BlogCoverImage";
+import { isStoredImageUrl } from "@/lib/urls";
 
 interface BlogDetailClientProps {
   blog: Blog;
+  shareUrl: string;
 }
 
-export function BlogDetailClient({ blog }: BlogDetailClientProps) {
-  const currentUrl =
-    typeof window !== "undefined" ? window.location.href : `https://your-domain.com/blogs/${blog._id}`;
+export function BlogDetailClient({ blog, shareUrl }: BlogDetailClientProps) {
   const profileId = authorProfileId(blog.authorId);
 
   return (
@@ -57,21 +56,21 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
         </header>
       </FadeIn>
 
-      {blog.thumbnail && isCloudinaryDeliveryUrl(blog.thumbnail) && (
+      {blog.thumbnail && isStoredImageUrl(blog.thumbnail) ? (
         <FadeIn delay={0.06}>
-          <figure className="mb-8 md:mb-10 rounded-2xl overflow-hidden shadow-soft border border-neutral-200/80">
-            <Image
+          <figure className="mb-8 md:mb-10 h-56 overflow-hidden rounded-2xl border border-neutral-200/80 shadow-soft sm:h-72 md:h-96">
+            <BlogCoverImage
               src={blog.thumbnail}
+              alt={blog.title}
               width={1200}
               height={600}
-              alt={blog.title}
-              className="w-full h-auto object-cover"
+              className="h-full w-full object-cover"
               sizes="(max-width: 768px) 100vw, 768px"
               priority
             />
           </figure>
         </FadeIn>
-      )}
+      ) : null}
 
       <div className="prose prose-neutral sm:prose-lg max-w-none mb-10 sm:mb-12">
         <div
@@ -89,7 +88,7 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
             size="md"
             showSignInHint
           />
-          <ShareButtons title={blog.title} url={currentUrl} size="md" variant="compact" />
+          <ShareButtons title={blog.title} url={shareUrl} size="md" variant="compact" />
         </div>
       </div>
 

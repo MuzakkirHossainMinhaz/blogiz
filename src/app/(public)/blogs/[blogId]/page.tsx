@@ -2,8 +2,8 @@ import { BlogDetailClient } from "@/components/blog/BlogDetailClient";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
 import { getBlogById } from "@/lib/db";
-import { buildPageMetadata } from "@/lib/seo";
-import { isCloudinaryDeliveryUrl } from "@/lib/urls";
+import { absoluteUrl, buildPageMetadata } from "@/lib/seo";
+import { isStoredImageUrl } from "@/lib/urls";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: BlogDetailPageProps): Promise
     });
   }
 
-  const image = blog.thumbnail && isCloudinaryDeliveryUrl(blog.thumbnail) ? blog.thumbnail : undefined;
+  const image = blog.thumbnail && isStoredImageUrl(blog.thumbnail) ? blog.thumbnail : undefined;
   return buildPageMetadata({
     title: blog.title,
     description: blog.description || `A story by ${blog.authorName} on Blogiz.`,
@@ -49,7 +49,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
     <main className="bg-paper">
       <Section className="py-8 md:py-12">
         <Container size="md">
-          <BlogDetailClient blog={blog} />
+          <BlogDetailClient blog={blog} shareUrl={absoluteUrl(`/blogs/${blogId}`)} />
         </Container>
       </Section>
     </main>
