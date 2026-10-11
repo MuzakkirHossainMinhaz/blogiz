@@ -120,6 +120,20 @@ html {
   overflow-x: clip;
 }
 
+/*
+  Modal scroll freeze: hide the document scrollbar without changing overflow
+  (overflow:hidden on html breaks position:sticky dashboard chrome).
+*/
+html.modal-scroll-lock {
+  scrollbar-width: none;
+}
+
+html.modal-scroll-lock::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 body {
   @apply bg-paper text-ink font-sans antialiased;
 }

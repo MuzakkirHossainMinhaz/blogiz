@@ -1,9 +1,10 @@
 "use client";
 
 import { APP_CONFIG, ROUTES } from "@/config/constants";
+import { useSessionStatus } from "@/hooks/useSessionStatus";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,8 +23,8 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const [menuPath, setMenuPath] = useState<string | null>(null);
-  const { data: session, status } = useSession();
-  const isLoggedIn = status === "authenticated";
+  const { session, isAuthenticated } = useSessionStatus();
+  const isLoggedIn = isAuthenticated;
   const user = session?.user;
   const isMobileMenuOpen = menuPath === pathname;
   const reduceMotion = usePrefersReducedMotion();
@@ -98,11 +99,11 @@ export default function Navbar() {
           <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2">
             <div className="hidden items-center gap-2 lg:flex">
               {isLoggedIn ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <Link
                     href="/dashboard"
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 transition-colors",
+                      "flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors",
                       isDashboard ? "bg-primary-50" : "hover:bg-primary-50/70"
                     )}
                     aria-current={isDashboard ? "page" : undefined}
@@ -113,17 +114,16 @@ export default function Navbar() {
                       </span>
                       <span className="max-w-40 truncate text-xs leading-tight text-accent-500">Dashboard</span>
                     </div>
-                    <div className="h-9 w-9 shrink-0 overflow-hidden">
-                      <UserAvatar src={user?.avatar} name={user?.name} size="sm" className="h-9 w-9 ring-primary-200" priority />
-                    </div>
+                    <UserAvatar src={user?.avatar} name={user?.name} size="md" priority />
                   </Link>
                   <button
+                    type="button"
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="min-h-11 min-w-11 rounded-xl p-2.5 text-accent-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-accent-500 transition-colors hover:bg-red-50 hover:text-red-600"
                     aria-label="Sign Out"
                     title="Sign Out"
                   >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -162,8 +162,9 @@ export default function Navbar() {
                 </Link>
               )}
               <button
+                type="button"
                 onClick={toggleMobileMenu}
-                className="min-h-11 min-w-11 rounded-xl p-2.5 transition-colors hover:bg-primary-50"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl transition-colors hover:bg-primary-50"
                 aria-label="Toggle menu"
                 aria-expanded={isMobileMenuOpen}
               >

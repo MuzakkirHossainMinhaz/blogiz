@@ -1,4 +1,4 @@
-import Redis from "ioredis";
+import { getRedis, RedisUnavailable, stopRedis } from "@/lib/redis";
 import { RedisSlidingWindowRateLimiter, SlidingWindowRateLimiter } from "sliding-window-rate-limiter";
 
 export class RateLimitUnavailable extends Error {
@@ -15,7 +15,6 @@ export interface RateLimitStore {
 }
 
 let injected: RateLimitStore | undefined;
-let client: Redis | undefined;
 const windows = new Map<number, RedisSlidingWindowRateLimiter>();
 
 /** Test-only. Production requests always use Redis. */
@@ -28,54 +27,10 @@ export async function stopRateLimiter() {
     limiter.destroy();
   }
   windows.clear();
-  if (client) {
-    const current = client;
-    client = undefined;
-    current.disconnect();
-  }
+  await stopRedis();
 }
 
-function redisClient(): Redis {
-  const url = process.env.REDIS_URL?.trim();
-  if (!url) {
-    throw new RateLimitUnavailable("REDIS_URL is required");
-  }
-  if (!client) {
-    client = new Redis(url, {
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-      connectTimeout: 2_000,
-      lazyConnect: true,
-    });
-    client.on("error", () => {
-      // Callers fail closed when a command rejects. Do not buffer or fall back.
-    });
-  }
-  return client;
-}
-
-async function readyClient(): Promise<Redis> {
-  const redis = redisClient();
-  if (redis.status === "wait") {
-    await redis.connect();
-  }
-  if (redis.status === "ready") return redis;
-  await new Promise<void>((resolve, reject) => {
-    const onReady = () => {
-      redis.off("error", onError);
-      resolve();
-    };
-    const onError = (error: Error) => {
-      redis.off("ready", onReady);
-      reject(error);
-    };
-    redis.once("ready", onReady);
-    redis.once("error", onError);
-  });
-  return redis;
-}
-
-function windowLimiter(windowMs: number, redis: Redis) {
+function windowLimiter(windowMs: number, redis: Awaited<ReturnType<typeof getRedis>>) {
   const existing = windows.get(windowMs);
   if (existing) return existing;
   const limiter = SlidingWindowRateLimiter.createLimiter({
@@ -103,13 +58,16 @@ export async function rateLimit(key: string, limit: number, windowMs: number): P
   }
 
   try {
-    const redis = await readyClient();
+    const redis = await getRedis();
     const result = await windowLimiter(windowMs, redis).reserve(`blogiz:${key}`, limit);
     if (result.token) return { ok: true };
     const retryAfter = result.reset ? Math.max(1, Math.ceil(result.reset / 1000)) : 1;
     return { ok: false, retryAfter };
   } catch (error) {
     if (error instanceof RateLimitUnavailable) throw error;
+    if (error instanceof RedisUnavailable) {
+      throw new RateLimitUnavailable(error.message);
+    }
     throw new RateLimitUnavailable("Rate limiting is unavailable");
   }
 }

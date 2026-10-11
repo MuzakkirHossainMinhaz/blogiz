@@ -50,10 +50,13 @@ export function UserAvatar({ src, name, size = "md", className, priority = false
     );
   }
 
+  // Default /author.png is a padded icon (object-contain). Uploaded photos fill the circle.
+  const isIcon = !remote;
+
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 overflow-hidden rounded-full bg-primary-50 ring-2 ring-primary-100",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 ring-2 ring-primary-100",
         dims.box,
         className
       )}
@@ -63,7 +66,10 @@ export function UserAvatar({ src, name, size = "md", className, priority = false
         alt={alt}
         width={dims.px}
         height={dims.px}
-        className="h-full w-full object-cover"
+        className={cn(
+          "h-full w-full object-center",
+          isIcon ? "object-contain" : "object-cover"
+        )}
         unoptimized={!remote}
         priority={priority}
         onError={() => setFailed(true)}

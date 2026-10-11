@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthorUpgrade } from "@/components/dashboard/AuthorUpgradeProvider";
 import { cn } from "@/lib/utils";
 import { hasPermission, UserRole, Permission } from "@/lib/permissions";
 import Link from "next/link";
@@ -99,6 +100,7 @@ interface SidebarProps {
 export default function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { openAuthorUpgrade } = useAuthorUpgrade();
   const userRole = (session?.user?.role as UserRole) || "reader";
   const canCreateBlog = hasPermission(userRole, "createBlog");
   const isReader = userRole === "reader";
@@ -184,14 +186,17 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         <div>
           <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Grow</h3>
           <div className="mt-3 space-y-1">
-            <Link
-              href="/dashboard/settings#role-upgrade"
-              onClick={onNavigate}
-              className={linkClass(false)}
+            <button
+              type="button"
+              onClick={() => {
+                onNavigate?.();
+                openAuthorUpgrade();
+              }}
+              className={cn(linkClass(false), "w-full text-left")}
             >
               <FiArrowUpCircle className="mr-3 h-5 w-5 shrink-0 text-neutral-400 group-hover:text-primary-600" />
               Become An Author
-            </Link>
+            </button>
           </div>
         </div>
       )}

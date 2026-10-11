@@ -2,17 +2,31 @@
 
 import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { controlClassName, fieldErrorClassName, fieldLabelClassName } from "@/lib/field-styles";
+import { cn } from "@/lib/utils";
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  /** Grow to fill available height in a flex parent. */
+  fill?: boolean;
 }
 
-export function Textarea({ label, error, className, disabled, required, id, name, rows = 4, ...props }: TextareaProps) {
+export function Textarea({
+  label,
+  error,
+  fill = false,
+  className,
+  disabled,
+  required,
+  id,
+  name,
+  rows = 4,
+  ...props
+}: TextareaProps) {
   const fieldId = id || name;
 
   return (
-    <div className={className}>
+    <div className={cn(fill && "flex min-h-0 flex-1 flex-col", className)}>
       {label ? (
         <label htmlFor={fieldId} className={fieldLabelClassName}>
           {label}
@@ -22,13 +36,16 @@ export function Textarea({ label, error, className, disabled, required, id, name
       <textarea
         id={fieldId}
         name={name}
-        rows={rows}
+        rows={fill ? undefined : rows}
         disabled={disabled}
         required={required}
         aria-required={required || undefined}
         className={controlClassName({
           error: Boolean(error),
-          className: "resize-y min-h-24 leading-relaxed",
+          className: cn(
+            "leading-relaxed",
+            fill ? "min-h-24 flex-1 resize-none" : "min-h-24 resize-y"
+          ),
         })}
         {...props}
       />

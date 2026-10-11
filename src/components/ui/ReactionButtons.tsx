@@ -22,7 +22,7 @@ export function ReactionButtons({
   size = "md",
   showSignInHint = false,
 }: ReactionButtonsProps) {
-  const { reaction, likes, dislikes, isLoading, error, canReact, signedOut, choose } = useReaction(
+  const { reaction, likes, dislikes, isLoading, canReact, signedOut, choose } = useReaction(
     blogId,
     initialLikes,
     initialDislikes
@@ -59,8 +59,8 @@ export function ReactionButtons({
           aria-label={reaction === "like" ? "Remove like" : "Like"}
           className={buttonClass(
             "like",
-            "border-red-300 bg-red-50 text-red-700",
-            "border-neutral-300 bg-white text-neutral-700 hover:border-red-300 hover:text-red-600"
+            "border-emerald-300 bg-emerald-50 text-emerald-700",
+            "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400"
           )}
         >
           <FiThumbsUp className={cn(iconSizes[size], reaction === "like" && "fill-current")} />
@@ -75,8 +75,8 @@ export function ReactionButtons({
           aria-label={reaction === "dislike" ? "Remove dislike" : "Dislike"}
           className={buttonClass(
             "dislike",
-            "border-neutral-800 bg-neutral-900 text-white",
-            "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-500"
+            "border-red-300 bg-red-50 text-red-700",
+            "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400"
           )}
         >
           <FiThumbsDown className={cn(iconSizes[size], reaction === "dislike" && "fill-current")} />
@@ -85,7 +85,6 @@ export function ReactionButtons({
         </button>
       </div>
       {showSignInHint && signedOut && <p className="text-xs text-neutral-500">Sign in to react</p>}
-      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }

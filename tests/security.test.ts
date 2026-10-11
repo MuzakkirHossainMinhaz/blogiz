@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { dashboardAccess, hasPermission } from "@/lib/permissions";
 import { parsePageLimit, escapeRegex } from "@/lib/pagination";
 import { buildBlogListFilter, publicPostFilter, resolveCreateStatus, resolvePublishStatus } from "@/lib/public-posts";
-import { renderMarkdown } from "@/lib/sanitize";
+import { renderContent, renderMarkdown } from "@/lib/sanitize";
 import { canSignIn, evaluateSession } from "@/lib/session-policy";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT } from "@/lib/uploads";
 import { cloudinaryPublicId, isCloudinaryDeliveryUrl, isSafeNavigationUrl, isStoredImageUrl, safeCallbackUrl } from "@/lib/urls";
@@ -90,6 +90,16 @@ describe("input guards", () => {
     expect(html).not.toContain("<script>");
     expect(html).toContain("<strong>bold</strong>");
     expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("sanitizes stored HTML blog bodies without showing tags as text", () => {
+    const html = renderContent(
+      "<p>Authors draft and publish.</p><p>Role upgrades should be explicit.</p><script>alert(1)</script>"
+    );
+    expect(html).toContain("<p>Authors draft and publish.</p>");
+    expect(html).toContain("<p>Role upgrades should be explicit.</p>");
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("&lt;p&gt;");
   });
 
   it("rejects upload paths that leave the upload root", () => {

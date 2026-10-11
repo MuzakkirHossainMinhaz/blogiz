@@ -5,7 +5,8 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Container } from "@/components/ui/Container";
 import { Input } from "@/components/ui/Input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn, useSession } from "next-auth/react";
+import { useSessionStatus } from "@/hooks/useSessionStatus";
+import { signIn } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,7 +25,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { data: session, status } = useSession();
+  const { isInitialLoading, isAuthenticated } = useSessionStatus();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,10 +43,10 @@ export default function LoginPage() {
 
   // Redirect to dashboard if already authenticated
   useEffect(() => {
-    if (status === "authenticated") {
+    if (isAuthenticated) {
       router.push("/dashboard");
     }
-  }, [status, router]);
+  }, [isAuthenticated, router]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -77,7 +78,7 @@ export default function LoginPage() {
   };
 
   // Show loading while checking session
-  if (status === "loading") {
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -86,7 +87,7 @@ export default function LoginPage() {
   }
 
   // Don't render login page if authenticated (will redirect)
-  if (status === "authenticated") {
+  if (isAuthenticated) {
     return null;
   }
 

@@ -1,30 +1,66 @@
 "use client";
 
+import { useToast } from "@/components/ui/Toast";
 import { getReaction, setReaction, type ReactionKind } from "@/lib/api";
-import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useState } from "react";
+import { useSessionStatus } from "@/hooks/useSessionStatus";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseReactionReturn {
   reaction: ReactionKind | null;
   likes: number;
   dislikes: number;
   isLoading: boolean;
-  error: string | null;
   canReact: boolean;
   signedOut: boolean;
   choose: (reaction: ReactionKind) => Promise<void>;
 }
 
+function nextReactionState(
+  current: ReactionKind | null,
+  likes: number,
+  dislikes: number,
+  next: ReactionKind
+) {
+  if (current === next) {
+    return {
+      reaction: null as ReactionKind | null,
+      likes: next === "like" ? Math.max(0, likes - 1) : likes,
+      dislikes: next === "dislike" ? Math.max(0, dislikes - 1) : dislikes,
+    };
+  }
+
+  if (current === null) {
+    return {
+      reaction: next,
+      likes: next === "like" ? likes + 1 : likes,
+      dislikes: next === "dislike" ? dislikes + 1 : dislikes,
+    };
+  }
+
+  return {
+    reaction: next,
+    likes: next === "like" ? likes + 1 : Math.max(0, likes - 1),
+    dislikes: next === "dislike" ? dislikes + 1 : Math.max(0, dislikes - 1),
+  };
+}
+
 export function useReaction(blogId: string, initialLikes = 0, initialDislikes = 0): UseReactionReturn {
-  const { status } = useSession();
+  const { isAuthenticated, status } = useSessionStatus();
+  const toast = useToast();
   const [reaction, setCurrent] = useState<ReactionKind | null>(null);
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const stateRef = useRef({ reaction, likes, dislikes });
+  stateRef.current = { reaction, likes, dislikes };
 
   useEffect(() => {
-    if (status !== "authenticated" || !blogId) return;
+    setLikes(initialLikes);
+    setDislikes(initialDislikes);
+  }, [blogId, initialLikes, initialDislikes]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !blogId) return;
     let cancelled = false;
     getReaction(blogId)
       .then((result) => {
@@ -37,25 +73,34 @@ export function useReaction(blogId: string, initialLikes = 0, initialDislikes = 
     return () => {
       cancelled = true;
     };
-  }, [blogId, status]);
+  }, [blogId, isAuthenticated]);
 
   const choose = useCallback(
     async (next: ReactionKind) => {
-      if (status !== "authenticated" || isLoading || !blogId) return;
+      if (!isAuthenticated || isLoading || !blogId) return;
+
+      const previous = stateRef.current;
+      const optimistic = nextReactionState(previous.reaction, previous.likes, previous.dislikes, next);
+      setCurrent(optimistic.reaction);
+      setLikes(optimistic.likes);
+      setDislikes(optimistic.dislikes);
       setIsLoading(true);
-      setError(null);
+
       try {
         const result = await setReaction(blogId, next);
         setCurrent(result.reaction);
         setLikes(result.totalLikes);
         setDislikes(result.totalDislikes);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not save reaction");
+        setCurrent(previous.reaction);
+        setLikes(previous.likes);
+        setDislikes(previous.dislikes);
+        toast.error(err instanceof Error ? err.message : "Could not save reaction");
       } finally {
         setIsLoading(false);
       }
     },
-    [blogId, isLoading, status]
+    [blogId, isAuthenticated, isLoading, toast]
   );
 
   return {
@@ -63,8 +108,7 @@ export function useReaction(blogId: string, initialLikes = 0, initialDislikes = 
     likes,
     dislikes,
     isLoading,
-    error,
-    canReact: status === "authenticated",
+    canReact: isAuthenticated,
     signedOut: status === "unauthenticated",
     choose,
   };

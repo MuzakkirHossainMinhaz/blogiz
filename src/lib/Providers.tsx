@@ -1,5 +1,6 @@
 "use client";
 
+import { ToastProvider } from "@/components/ui/Toast";
 import { store } from "@/redux/store";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
@@ -14,7 +15,9 @@ const Providers = ({
 }) => {
   return (
     <Provider store={store}>
-      <SessionProvider session={session}>{children}</SessionProvider>
+      <SessionProvider session={session}>
+        <ToastProvider>{children}</ToastProvider>
+      </SessionProvider>
     </Provider>
   );
 };

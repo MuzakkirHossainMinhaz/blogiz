@@ -6,10 +6,11 @@ import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader"
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { useToast } from "@/components/ui/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { fieldErrorClassName, fieldLabelClassName } from "@/lib/field-styles";
-import { renderMarkdown } from "@/lib/sanitize";
+import { renderContent } from "@/lib/sanitize";
 import { isStoredImageUrl } from "@/lib/urls";
 import { BLOG_CONTENT_MAX } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,11 +52,11 @@ export function BlogEditor({
   onSubmit,
 }: BlogEditorProps) {
   const { data: session } = useSession();
+  const toast = useToast();
   const profileName = (session?.user?.name || "").trim().slice(0, 50);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [content, setContent] = useState(initialValues?.content ?? "");
   const [optimizing, setOptimizing] = useState<"title" | "content" | null>(null);
@@ -103,13 +104,12 @@ export function BlogEditor({
       setValue("authorName", profileName, { shouldValidate: true });
       return true;
     }
-    setError("Set your name in Settings before saving a post.");
+    toast.error("Set your name in Settings before saving a post.");
     return false;
   };
 
   const optimizeField = async (field: "title" | "content") => {
     setOptimizing(field);
-    setError(null);
     try {
       const currentTitle = getValues("title");
       const response = await fetch("/api/ai/optimize", {
@@ -123,18 +123,19 @@ export function BlogEditor({
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(typeof result.error === "string" ? result.error : "Optimization failed");
+        toast.error(typeof result.error === "string" ? result.error : "Optimization failed");
         return;
       }
       const optimized = typeof result.optimized === "string" ? result.optimized.trim() : "";
       if (!optimized) {
-        setError("No suggestion returned");
+        toast.error("No suggestion returned");
         return;
       }
       if (field === "title") setTitleSuggestion(optimized.slice(0, 100));
       else setContentSuggestion(optimized);
+      toast.success(field === "title" ? "Title suggestion ready" : "Content suggestion ready");
     } catch {
-      setError("Optimization failed");
+      toast.error("Optimization failed");
     } finally {
       setOptimizing(null);
     }
@@ -143,11 +144,10 @@ export function BlogEditor({
   const submit = async (data: BlogEditorValues) => {
     if (!ensureAuthorName()) return;
     setIsSubmitting(true);
-    setError(null);
     try {
       await onSubmit({ ...data, authorName: profileName || data.authorName });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
       setIsSavingDraft(false);
@@ -171,7 +171,7 @@ export function BlogEditor({
 
   const handlePublish = async () => {
     if (!content || content.trim().length < 50) {
-      setError("Please add more content before publishing (minimum 50 characters)");
+      toast.error("Please add more content before publishing (minimum 50 characters)");
       return;
     }
     if (!ensureAuthorName()) return;
@@ -236,7 +236,7 @@ export function BlogEditor({
               </div>
             ) : null}
             <div className="prose max-w-none break-words">
-              <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+              <div dangerouslySetInnerHTML={{ __html: renderContent(content) }} />
             </div>
           </div>
         </div>
@@ -291,9 +291,6 @@ export function BlogEditor({
         />
       </div>
 
-      {error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-      ) : null}
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-stretch">
         <div className="space-y-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6 h-full">

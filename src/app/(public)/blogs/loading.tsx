@@ -1,15 +1,23 @@
+import { EditorialPageHero } from "@/components/shared/EditorialPageHero";
 import LoadingCard from "@/components/ui/LoadingCard";
+import { APP_CONFIG } from "@/config/constants";
 
-const BlogLoadingPage = () => {
+export default function BlogLoadingPage() {
   return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, index) => (
-          <LoadingCard key={index} />
-        ))}
-      </div>
-    </div>
-  );
-};
+    <main className="bg-paper" aria-busy="true" aria-label="Loading articles">
+      <EditorialPageHero
+        eyebrow="Library"
+        title="All articles"
+        description={APP_CONFIG.SITE_DESCRIPTION}
+      />
 
-export default BlogLoadingPage;
+      <section className="container-custom py-12 sm:py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+          {Array.from({ length: 6 }, (_, index) => (
+            <LoadingCard key={index} />
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}

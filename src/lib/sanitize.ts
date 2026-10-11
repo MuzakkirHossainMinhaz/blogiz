@@ -1,5 +1,29 @@
 import { isSafeNavigationUrl, isStoredImageUrl } from "@/lib/urls";
 
+const ALLOWED_TAGS = new Set([
+  "p",
+  "br",
+  "hr",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "u",
+  "s",
+  "ul",
+  "ol",
+  "li",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "a",
+  "img",
+  "code",
+  "pre",
+  "blockquote",
+]);
+
 export function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
@@ -13,6 +37,55 @@ function safeHref(escapedHref: string): string | null {
   const decoded = escapedHref.replace(/&amp;/g, "&").replace(/&quot;/g, '"');
   if (!isSafeNavigationUrl(decoded)) return null;
   return escapeHtml(decoded);
+}
+
+function extractAttr(attrs: string, name: string): string | null {
+  const match = attrs.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  if (!match) return null;
+  return match[2] ?? match[3] ?? match[4] ?? null;
+}
+
+/** True when the source already looks like HTML (seeded posts, pasted HTML). */
+export function looksLikeHtml(input: string): boolean {
+  const trimmed = input.trim();
+  if (!trimmed.startsWith("<")) return false;
+  return /<\/?(?:p|div|h[1-6]|ul|ol|li|br|strong|em|b|i|a|img|blockquote|pre|code)\b/i.test(trimmed);
+}
+
+/**
+ * Allowlist sanitizer for stored HTML blog bodies.
+ * Drops unknown tags/attrs and unsafe href/src values.
+ */
+export function sanitizeHtml(html: string): string {
+  const withoutComments = html.replace(/<!--[\s\S]*?-->/g, "");
+  return withoutComments.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g, (match, rawTag: string, attrs: string) => {
+    const tag = rawTag.toLowerCase();
+    if (!ALLOWED_TAGS.has(tag)) return "";
+
+    const isClose = match.startsWith("</");
+    if (isClose) return `</${tag}>`;
+
+    if (tag === "br" || tag === "hr") return `<${tag} />`;
+
+    if (tag === "a") {
+      const href = extractAttr(attrs, "href");
+      if (!href) return "<a>";
+      const safe = safeHref(escapeHtml(href));
+      if (!safe) return "<a>";
+      return `<a href="${safe}" rel="noopener noreferrer nofollow">`;
+    }
+
+    if (tag === "img") {
+      const src = extractAttr(attrs, "src");
+      const alt = extractAttr(attrs, "alt") ?? "";
+      if (!src) return "";
+      const decoded = src.replace(/&amp;/g, "&");
+      if (!isStoredImageUrl(decoded) && !isSafeNavigationUrl(decoded)) return "";
+      return `<img src="${escapeHtml(decoded)}" alt="${escapeHtml(alt)}" />`;
+    }
+
+    return `<${tag}>`;
+  });
 }
 
 /**
@@ -60,6 +133,16 @@ export function renderMarkdown(markdown: string): string {
 
   closeList();
   return html.join("");
+}
+
+/**
+ * Blog bodies may be Markdown (editor) or HTML (seeds / pasted).
+ * Pick the safe renderer for each.
+ */
+export function renderContent(source: string): string {
+  if (!source) return "";
+  if (looksLikeHtml(source)) return sanitizeHtml(source);
+  return renderMarkdown(source);
 }
 
 function inlineMarkdown(text: string): string {

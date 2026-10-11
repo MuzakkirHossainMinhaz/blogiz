@@ -3,6 +3,7 @@
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
+import { useToast } from "@/components/ui/Toast";
 import { hasPermission, type UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -97,6 +98,7 @@ function QueueEmpty({
 
 export default function AdminPanelPage() {
   const { data: session } = useSession();
+  const toast = useToast();
   const userRole = (session?.user?.role as UserRole) || "reader";
   const canViewUsers = hasPermission(userRole, "viewUsers");
   const canReviewUpgrades = hasPermission(userRole, "reviewRoleUpgrades");
@@ -107,8 +109,6 @@ export default function AdminPanelPage() {
   const [upgradesPages, setUpgradesPages] = useState(1);
   const [upgradesPage, setUpgradesPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -118,7 +118,6 @@ export default function AdminPanelPage() {
     let cancelled = false;
 
     (async () => {
-      setError("");
       setLoading(true);
       try {
         let nextUserCount: number | null = null;
@@ -154,7 +153,7 @@ export default function AdminPanelPage() {
         setUpgradesPages(nextUpgradesPages);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load admin data");
+          toast.error(err instanceof Error ? err.message : "Could not load admin data");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -164,12 +163,10 @@ export default function AdminPanelPage() {
     return () => {
       cancelled = true;
     };
-  }, [canViewUsers, canReviewUpgrades, upgradesPage, reloadKey]);
+  }, [canViewUsers, canReviewUpgrades, upgradesPage, reloadKey, toast]);
 
   const reviewUpgrade = async (requestId: string, action: "approve" | "reject") => {
     setBusyId(requestId);
-    setError("");
-    setMessage("");
     try {
       const response = await fetch(`/api/admin/role-upgrades/${requestId}`, {
         method: "PUT",
@@ -178,11 +175,11 @@ export default function AdminPanelPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || `Could not ${action} request`);
-      setMessage(`Role request ${action}d`);
+      toast.success(`Role request ${action}d`);
       if (upgrades.length === 1 && upgradesPage > 1) setUpgradesPage((p) => p - 1);
       else refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Could not ${action} request`);
+      toast.error(err instanceof Error ? err.message : `Could not ${action} request`);
     } finally {
       setBusyId(null);
     }
@@ -203,13 +200,6 @@ export default function AdminPanelPage() {
         title="Admin Panel"
         description="Review author upgrades and manage accounts."
       />
-
-      {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
-      ) : null}
-      {message ? (
-        <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{message}</p>
-      ) : null}
 
       {(canViewUsers || canReviewUpgrades) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

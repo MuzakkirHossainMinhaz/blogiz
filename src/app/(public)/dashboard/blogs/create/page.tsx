@@ -2,8 +2,8 @@
 
 import { BlogEditor, type BlogEditorValues } from "@/components/dashboard/BlogEditor";
 import { Button } from "@/components/ui/Button";
+import { useSessionStatus } from "@/hooks/useSessionStatus";
 import { hasPermission, UserRole } from "@/lib/permissions";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -11,16 +11,16 @@ import { FiLock } from "react-icons/fi";
 
 export default function CreateBlogPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { session, isInitialLoading } = useSessionStatus();
   const userRole = (session?.user?.role as UserRole) || "reader";
   const canCreateBlog = hasPermission(userRole, "createBlog");
 
   useEffect(() => {
-    if (status === "loading") return;
+    if (isInitialLoading) return;
     if (!canCreateBlog) router.push("/dashboard");
-  }, [canCreateBlog, router, status]);
+  }, [canCreateBlog, isInitialLoading, router]);
 
-  if (status === "loading") {
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />

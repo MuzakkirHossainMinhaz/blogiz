@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         _id: { $in: viewedBlogs },
         status: "published",
       })
-        .select("title authorName publishedAt totalLikes totalComments")
+        .select("title authorName thumbnail publishedAt readingTime totalLikes totalComments")
         .populate("authorId", "profile.fullName profile.avatar name")
         .sort({ publishedAt: -1 })
         .limit(10);
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         _id: { $in: likedBlogIds },
         status: "published",
       })
-        .select("title authorName publishedAt totalLikes totalComments")
+        .select("title authorName thumbnail publishedAt readingTime totalLikes totalComments")
         .sort({ publishedAt: -1 })
         .limit(10);
 

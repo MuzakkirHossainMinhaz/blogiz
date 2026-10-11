@@ -79,7 +79,7 @@ export const blogFixtures = [
     title: "Indigo craft: designing a calm editorial home",
     description: "How Blogiz leans on paper, feather, quill, and ink without shouting for attention.",
     content:
-      "<p>Great reading experiences feel quiet. This post walks through palette choices, type pairing with Fraunces and Plus Jakarta Sans, and why the public site should never pretend to be the dashboard.</p><p>Keep motion minimal. Let empty states breathe. Prefer one job per section.</p>",
+      "Great reading experiences feel quiet. This post walks through palette choices, type pairing with Fraunces and Plus Jakarta Sans, and why the public site should never pretend to be the dashboard.\n\nKeep motion minimal. Let empty states breathe. Prefer one job per section.",
     tags: ["design", "product"],
     status: "published",
     thumbnail: "",
@@ -92,7 +92,7 @@ export const blogFixtures = [
     title: "Running a multi-author blog without chaos",
     description: "Drafts, publishing, role upgrades, and what readers actually need in a dashboard.",
     content:
-      "<p>Authors draft and publish. Admins govern trust. Readers engage. Keep those lanes clear in navigation and APIs.</p><p>Role upgrades should be explicit requests — never silent promotions.</p>",
+      "Authors draft and publish. Admins govern trust. Readers engage. Keep those lanes clear in navigation and APIs.\n\nRole upgrades should be explicit requests — never silent promotions.",
     tags: ["community", "ops"],
     status: "published",
     thumbnail: "",
@@ -104,7 +104,7 @@ export const blogFixtures = [
     authorEmail: "ava.writer@blogiz.test",
     title: "Draft: notes on empty states",
     description: "Work in progress — not public yet.",
-    content: "<p>Empty states should explain the next action, not apologize forever.</p>",
+    content: "Empty states should explain the next action, not apologize forever.",
     tags: ["draft"],
     status: "draft",
     thumbnail: "",

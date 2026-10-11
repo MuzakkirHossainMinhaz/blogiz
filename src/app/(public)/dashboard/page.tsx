@@ -1,10 +1,13 @@
 "use client";
 
+import { useAuthorUpgrade } from "@/components/dashboard/AuthorUpgradeProvider";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { Button } from "@/components/ui/Button";
+import { isStoredImageUrl } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { hasPermission, UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import type { IconType } from "react-icons";
@@ -17,6 +20,7 @@ import {
   FiEye,
   FiFileText,
   FiHeart,
+  FiMessageSquare,
   FiPlusCircle,
   FiUserCheck,
 } from "react-icons/fi";
@@ -36,6 +40,17 @@ interface DashboardStats {
   }>;
 }
 
+interface ActivityBlog {
+  _id: string;
+  title: string;
+  authorName?: string;
+  thumbnail?: string;
+  publishedAt?: string;
+  readingTime?: number;
+  totalLikes?: number;
+  totalComments?: number;
+}
+
 interface ReaderDashboard {
   stats: {
     comments?: number;
@@ -44,8 +59,8 @@ interface ReaderDashboard {
     likedBlogsCount?: number;
   };
   activity: {
-    readBlogs?: Array<{ _id: string; title: string; authorName?: string }>;
-    likedBlogs?: Array<{ _id: string; title: string; authorName?: string }>;
+    readBlogs?: ActivityBlog[];
+    likedBlogs?: ActivityBlog[];
     recentComments?: Array<{ _id: string; content: string }>;
   };
 }
@@ -126,8 +141,142 @@ function formatDate(dateString?: string) {
   });
 }
 
+function ActivityThumb({
+  title,
+  thumbnail,
+  accent = "book",
+}: {
+  title: string;
+  thumbnail?: string;
+  accent?: "book" | "heart";
+}) {
+  const src = thumbnail && isStoredImageUrl(thumbnail) ? thumbnail : null;
+  const AccentIcon = accent === "heart" ? FiHeart : FiBookOpen;
+
+  if (src) {
+    return (
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-primary-50">
+        <Image src={src} alt="" width={56} height={56} className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-primary-50 via-feather to-primary-100 text-primary-600"
+      aria-hidden
+    >
+      <AccentIcon className="h-5 w-5" />
+      <span className="sr-only">{title}</span>
+    </div>
+  );
+}
+
+function ActivityListSkeleton() {
+  return (
+    <ul className="space-y-2" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <li key={i} className="flex items-center gap-3 rounded-xl px-2 py-2.5">
+          <div className="h-14 w-14 shrink-0 animate-pulse rounded-xl bg-neutral-100" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3.5 w-3/4 max-w-[14rem] animate-pulse rounded bg-neutral-100" />
+            <div className="h-3 w-1/3 max-w-[8rem] animate-pulse rounded bg-neutral-100" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ActivityEmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: IconType;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50/60 px-4 py-8 text-center">
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+        <Icon className="h-5 w-5" />
+      </div>
+      <p className="mt-3 font-medium text-ink">{title}</p>
+      <p className="mt-1 text-sm text-accent-500">{description}</p>
+      <Link
+        href="/blogs"
+        className="mt-3 inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"
+      >
+        Browse Blogs
+        <FiArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </div>
+  );
+}
+
+function ActivityBlogRow({
+  blog,
+  accent = "book",
+}: {
+  blog: ActivityBlog;
+  accent?: "book" | "heart";
+}) {
+  return (
+    <li>
+      <Link
+        href={`/blogs/${blog._id}`}
+        className="group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-primary-50/60"
+      >
+        <ActivityThumb title={blog.title} thumbnail={blog.thumbnail} accent={accent} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-ink wrap-break-word transition-colors group-hover:text-primary-700">
+            {blog.title}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-accent-500">
+            {blog.authorName ? <span className="truncate">{blog.authorName}</span> : null}
+            {blog.authorName && blog.publishedAt ? <span aria-hidden>·</span> : null}
+            {blog.publishedAt ? (
+              <span className="inline-flex items-center gap-1">
+                <FiClock className="h-3 w-3" />
+                {formatDate(blog.publishedAt)}
+              </span>
+            ) : null}
+            {typeof blog.readingTime === "number" && blog.readingTime > 0 ? (
+              <>
+                <span aria-hidden>·</span>
+                <span>{blog.readingTime} min</span>
+              </>
+            ) : null}
+            {accent === "heart" && typeof blog.totalLikes === "number" ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1 text-primary-600">
+                  <FiHeart className="h-3 w-3" />
+                  {blog.totalLikes}
+                </span>
+              </>
+            ) : null}
+            {accent === "book" && typeof blog.totalComments === "number" && blog.totalComments > 0 ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1">
+                  <FiMessageSquare className="h-3 w-3" />
+                  {blog.totalComments}
+                </span>
+              </>
+            ) : null}
+          </div>
+        </div>
+        <FiArrowRight className="h-4 w-4 shrink-0 text-accent-300 transition-all group-hover:translate-x-0.5 group-hover:text-primary-500" />
+      </Link>
+    </li>
+  );
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const { openAuthorUpgrade } = useAuthorUpgrade();
   const userRole = (session?.user?.role as UserRole) || "reader";
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User";
 
@@ -259,66 +408,67 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 space-y-3">
-            <SectionHeading title="Reading Activity" description="Posts you’ve opened recently." />
+          <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 space-y-4">
+            <SectionHeading
+              title="Reading Activity"
+              description="Posts you’ve opened recently."
+              action={
+                !isLoading && read.length > 0 ? (
+                  <Link
+                    href="/blogs"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Browse
+                    <FiArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                ) : null
+              }
+            />
             {isLoading ? (
-              <p className="text-sm text-accent-500">Loading…</p>
+              <ActivityListSkeleton />
             ) : read.length === 0 ? (
-              <div className="py-8 text-center">
-                <FiBookOpen className="mx-auto h-10 w-10 text-primary-400" />
-                <p className="mt-3 font-medium text-ink">No Reading History Yet</p>
-                <p className="mt-1 text-sm text-accent-500">Browse the feed to start building activity.</p>
-                <Link
-                  href="/blogs"
-                  className="inline-flex mt-3 text-sm font-medium text-primary-600 hover:text-primary-700 min-h-9 items-center"
-                >
-                  Browse Blogs
-                </Link>
-              </div>
+              <ActivityEmptyState
+                icon={FiBookOpen}
+                title="No Reading History Yet"
+                description="Browse the feed to start building activity."
+              />
             ) : (
-              <ul className="divide-y divide-neutral-100">
+              <ul className="space-y-0.5">
                 {read.slice(0, 5).map((blog) => (
-                  <li key={blog._id} className="py-3">
-                    <Link
-                      href={`/blogs/${blog._id}`}
-                      className="text-sm font-medium text-ink hover:text-primary-600 wrap-break-word"
-                    >
-                      {blog.title}
-                    </Link>
-                    {blog.authorName ? <p className="text-xs text-accent-500 mt-0.5">{blog.authorName}</p> : null}
-                  </li>
+                  <ActivityBlogRow key={blog._id} blog={blog} accent="book" />
                 ))}
               </ul>
             )}
           </section>
 
-          <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 space-y-3">
-            <SectionHeading title="Liked Posts" description="Stories you’ve reacted to." />
+          <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 space-y-4">
+            <SectionHeading
+              title="Liked Posts"
+              description="Stories you’ve reacted to."
+              action={
+                !isLoading && liked.length > 0 ? (
+                  <Link
+                    href="/blogs"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Browse
+                    <FiArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                ) : null
+              }
+            />
             {isLoading ? (
-              <p className="text-sm text-accent-500">Loading…</p>
+              <ActivityListSkeleton />
             ) : liked.length === 0 ? (
-              <div className="py-8 text-center">
-                <FiHeart className="mx-auto h-10 w-10 text-primary-400" />
-                <p className="mt-3 font-medium text-ink">No Liked Posts Yet</p>
-                <p className="mt-1 text-sm text-accent-500">Like posts while reading to collect them here.</p>
-                <Link
-                  href="/blogs"
-                  className="inline-flex mt-3 text-sm font-medium text-primary-600 hover:text-primary-700 min-h-9 items-center"
-                >
-                  Browse Blogs
-                </Link>
-              </div>
+              <ActivityEmptyState
+                icon={FiHeart}
+                title="No Liked Posts Yet"
+                description="Like posts while reading to collect them here."
+              />
             ) : (
-              <ul className="divide-y divide-neutral-100">
+              <ul className="space-y-0.5">
                 {liked.slice(0, 5).map((blog) => (
-                  <li key={blog._id} className="py-3">
-                    <Link
-                      href={`/blogs/${blog._id}`}
-                      className="text-sm font-medium text-ink hover:text-primary-600 wrap-break-word"
-                    >
-                      {blog.title}
-                    </Link>
-                  </li>
+                  <ActivityBlogRow key={blog._id} blog={blog} accent="heart" />
                 ))}
               </ul>
             )}
@@ -335,11 +485,9 @@ export default function DashboardPage() {
                 Request an upgrade from Settings. An admin reviews each request.
               </p>
             </div>
-            <Link href="/dashboard/settings#role-upgrade">
-              <Button variant="primary" size="sm">
-                Request Author Role
-              </Button>
-            </Link>
+            <Button type="button" variant="primary" size="sm" onClick={openAuthorUpgrade}>
+              Request Author Role
+            </Button>
           </div>
         </div>
       </div>

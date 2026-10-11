@@ -29,17 +29,15 @@ export function EditorialPageHero({ eyebrow, title, description, className }: Ed
         }}
       />
       <div className="container-custom py-14 sm:py-16 md:py-20">
-        <div className="max-w-2xl">
-          {eyebrow ? (
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">
-              {eyebrow}
-            </p>
-          ) : null}
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-ink">
-            {title}
-          </h1>
-          <p className="mt-4 text-base sm:text-lg text-accent-500 leading-relaxed">{description}</p>
-        </div>
+        {eyebrow ? (
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-primary-600">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-ink">
+          {title}
+        </h1>
+        <p className="mt-4 text-base sm:text-lg text-accent-500 leading-relaxed">{description}</p>
       </div>
     </header>
   );

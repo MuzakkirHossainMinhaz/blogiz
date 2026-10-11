@@ -1,6 +1,6 @@
 "use client";
 
-import { renderMarkdown } from "@/lib/sanitize";
+import { renderContent } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { FiBold, FiCode, FiImage, FiItalic, FiLink, FiList } from "react-icons/fi";
@@ -45,7 +45,7 @@ export default function RichTextEditor({
     { icon: FiImage, label: "Image", action: () => insertMarkdown("![alt text](", ")") },
   ];
 
-  const previewHtml = { __html: renderMarkdown(value) };
+  const previewHtml = { __html: renderContent(value) };
 
   return (
     <div className={cn("border border-neutral-300 rounded-lg overflow-hidden", className)}>

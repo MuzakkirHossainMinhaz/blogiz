@@ -10,7 +10,7 @@ import { Blog } from "@/types";
 import Link from "next/link";
 import { FiCalendar } from "react-icons/fi";
 import { authorAvatarUrl, authorProfileId, formatDate } from "@/lib/utils";
-import { renderMarkdown } from "@/lib/sanitize";
+import { renderContent } from "@/lib/sanitize";
 import { BlogCoverImage } from "@/components/ui/BlogCoverImage";
 import { isStoredImageUrl } from "@/lib/urls";
 
@@ -23,7 +23,7 @@ export function BlogDetailClient({ blog, shareUrl }: BlogDetailClientProps) {
   const profileId = authorProfileId(blog.authorId);
 
   return (
-    <article className="max-w-3xl mx-auto w-full min-w-0">
+    <article className="w-full min-w-0">
       <FadeIn>
         <header className="mb-8 md:mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium bg-primary-50 text-primary-800 border border-primary-100 mb-4">
@@ -65,7 +65,7 @@ export function BlogDetailClient({ blog, shareUrl }: BlogDetailClientProps) {
               width={1200}
               height={600}
               className="h-full w-full object-cover"
-              sizes="(max-width: 768px) 100vw, 768px"
+              sizes="(max-width: 1280px) 100vw, 1280px"
               priority
             />
           </figure>
@@ -75,7 +75,7 @@ export function BlogDetailClient({ blog, shareUrl }: BlogDetailClientProps) {
       <div className="prose prose-neutral sm:prose-lg max-w-none mb-10 sm:mb-12">
         <div
           className="text-neutral-700 leading-relaxed text-base sm:text-lg break-words"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(blog.content || blog.description) }}
+          dangerouslySetInnerHTML={{ __html: renderContent(blog.content || blog.description) }}
         />
       </div>
 
@@ -92,7 +92,7 @@ export function BlogDetailClient({ blog, shareUrl }: BlogDetailClientProps) {
         </div>
       </div>
 
-      <footer className="pt-6 sm:pt-8 border-t border-neutral-200">
+      <footer className="border-t border-neutral-200 pt-8 sm:pt-10">
         <CommentSection blogId={blog._id} />
       </footer>
     </article>

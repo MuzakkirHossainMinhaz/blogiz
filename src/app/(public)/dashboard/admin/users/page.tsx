@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { useToast } from "@/components/ui/Toast";
 import { canManageRole, hasPermission, type UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -53,6 +54,7 @@ const CHANGEABLE_ROLES = [
 
 export default function AdminUsersPage() {
   const { data: session } = useSession();
+  const toast = useToast();
   const actorRole = (session?.user?.role as UserRole) || "reader";
   const canDeactivate = hasPermission(actorRole, "deactivateUser");
   const canChangeRole = hasPermission(actorRole, "changeUserRole");
@@ -68,8 +70,6 @@ export default function AdminUsersPage() {
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, string>>({});
   const [reloadKey, setReloadKey] = useState(0);
@@ -79,7 +79,6 @@ export default function AdminUsersPage() {
 
     (async () => {
       setLoading(true);
-      setError("");
       try {
         const params = new URLSearchParams({ page: String(page), limit: "20" });
         if (search.trim()) params.set("search", search.trim());
@@ -95,7 +94,7 @@ export default function AdminUsersPage() {
         setTotal(data.pagination?.total || 0);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load users");
+          toast.error(err instanceof Error ? err.message : "Could not load users");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -105,14 +104,12 @@ export default function AdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, search, roleFilter, statusFilter, reloadKey]);
+  }, [page, search, roleFilter, statusFilter, reloadKey, toast]);
 
   const refresh = () => setReloadKey((value) => value + 1);
 
   const runAction = async (userId: string, action: UserAction, newRole?: string) => {
     setBusyId(userId);
-    setError("");
-    setMessage("");
     try {
       const response = await fetch("/api/admin/users", {
         method: "PUT",
@@ -121,10 +118,10 @@ export default function AdminUsersPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Action failed");
-      setMessage(data.message || "Updated");
+      toast.success(data.message || "Updated");
       refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed");
+      toast.error(err instanceof Error ? err.message : "Action failed");
     } finally {
       setBusyId(null);
     }
@@ -153,13 +150,6 @@ export default function AdminUsersPage() {
           </Link>
         }
       />
-
-      {error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
-      )}
-      {message && (
-        <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{message}</p>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 rounded-2xl border border-neutral-200 bg-surface p-4 sm:p-5 shadow-soft">
         <Input

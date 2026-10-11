@@ -1,6 +1,4 @@
 import { BlogDetailClient } from "@/components/blog/BlogDetailClient";
-import { Container } from "@/components/ui/Container";
-import { Section } from "@/components/ui/Section";
 import { getBlogById } from "@/lib/db";
 import { absoluteUrl, buildPageMetadata } from "@/lib/seo";
 import { isStoredImageUrl } from "@/lib/urls";
@@ -47,11 +45,9 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
 
   return (
     <main className="bg-paper">
-      <Section className="py-8 md:py-12">
-        <Container size="md">
-          <BlogDetailClient blog={blog} shareUrl={absoluteUrl(`/blogs/${blogId}`)} />
-        </Container>
-      </Section>
+      <section className="container-custom py-8 sm:py-12 md:py-16 lg:py-20">
+        <BlogDetailClient blog={blog} shareUrl={absoluteUrl(`/blogs/${blogId}`)} />
+      </section>
     </main>
   );
 }

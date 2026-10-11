@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { FieldRequiredMark } from "@/components/ui/FieldRequiredMark";
 import { Section } from "@/components/ui/Section";
+import { useToast } from "@/components/ui/Toast";
 import { ROUTES } from "@/config/constants";
 import { createBlog } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -21,8 +22,8 @@ type FormValues = {
 
 export default function CreateBlogForm() {
   const router = useRouter();
+  const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -32,7 +33,6 @@ export default function CreateBlogForm() {
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    setError(null);
 
     try {
       const blogData = {
@@ -44,10 +44,11 @@ export default function CreateBlogForm() {
       };
 
       await createBlog(blogData);
+      toast.success("Blog post published");
       router.push(ROUTES.BLOGS);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create blog");
+      toast.error(err instanceof Error ? err.message : "Failed to create blog");
       setIsSubmitting(false);
     }
   };
@@ -66,20 +67,6 @@ export default function CreateBlogForm() {
 
             <div className="card bg-white shadow-soft-lg">
               <div className="card-body p-6 md:p-8 lg:p-10">
-                {error && (
-                  <div className="alert alert-error mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span>{error}</span>
-                  </div>
-                )}
-
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   <fieldset className="fieldset">
                     <label htmlFor="title" className="label text-sm font-semibold text-neutral-700 mb-2">

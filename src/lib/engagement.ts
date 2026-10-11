@@ -2,6 +2,7 @@ import mongoose, { type ClientSession } from "mongoose";
 import Blog from "@/models/Blog";
 import Comment from "@/models/Comment";
 import Reaction from "@/models/Reaction";
+import { setCachedReaction } from "@/lib/reaction-cache";
 import type { ReactionKind } from "@/lib/validation";
 
 export function isDuplicateKey(error: unknown): boolean {
@@ -21,30 +22,79 @@ export async function syncReactionCounts(blogId: mongoose.Types.ObjectId | strin
 
 /**
  * One reaction per user per blog. The same choice removes it. The other choice replaces it.
+ * Uses incremental blog counters (not a full recount) and warms Redis for fast reads.
  */
 export async function applyBlogReaction(blogId: string, userId: string, reaction: ReactionKind) {
   const existing = await Reaction.findOne({ blogId, userId });
+  let saved: ReactionKind | null = null;
+  let likesDelta = 0;
+  let dislikesDelta = 0;
 
   if (!existing) {
     try {
       await Reaction.create({ blogId, userId, type: reaction });
+      saved = reaction;
+      if (reaction === "like") likesDelta = 1;
+      else dislikesDelta = 1;
     } catch (error) {
       if (!isDuplicateKey(error)) throw error;
       const raced = await Reaction.findOne({ blogId, userId });
-      if (raced && raced.type !== reaction) {
+      if (!raced) {
+        const counts = await syncReactionCounts(blogId);
+        return { reaction: null, ...counts };
+      }
+      if (raced.type === reaction) {
+        await Reaction.deleteOne({ _id: raced._id, type: reaction });
+        saved = null;
+        if (reaction === "like") likesDelta = -1;
+        else dislikesDelta = -1;
+      } else {
         await Reaction.updateOne({ _id: raced._id }, { $set: { type: reaction } });
+        saved = reaction;
+        if (reaction === "like") {
+          likesDelta = 1;
+          dislikesDelta = -1;
+        } else {
+          likesDelta = -1;
+          dislikesDelta = 1;
+        }
       }
     }
   } else if (existing.type === reaction) {
     await Reaction.deleteOne({ _id: existing._id, type: reaction });
+    saved = null;
+    if (reaction === "like") likesDelta = -1;
+    else dislikesDelta = -1;
   } else {
     await Reaction.updateOne({ _id: existing._id }, { $set: { type: reaction } });
+    saved = reaction;
+    if (reaction === "like") {
+      likesDelta = 1;
+      dislikesDelta = -1;
+    } else {
+      likesDelta = -1;
+      dislikesDelta = 1;
+    }
   }
 
-  const counts = await syncReactionCounts(blogId);
-  const current = await Reaction.findOne({ blogId, userId }).select("type");
-  const saved = current?.type === "like" || current?.type === "dislike" ? current.type : null;
-  return { reaction: saved, ...counts };
+  const blog = await Blog.findByIdAndUpdate(
+    blogId,
+    { $inc: { totalLikes: likesDelta, totalDislikes: dislikesDelta } },
+    { returnDocument: "after" }
+  ).select("totalLikes totalDislikes");
+
+  let totalLikes = Math.max(0, blog?.totalLikes ?? 0);
+  let totalDislikes = Math.max(0, blog?.totalDislikes ?? 0);
+
+  if ((blog?.totalLikes ?? 0) < 0 || (blog?.totalDislikes ?? 0) < 0) {
+    const repaired = await syncReactionCounts(blogId);
+    totalLikes = repaired.totalLikes;
+    totalDislikes = repaired.totalDislikes;
+  }
+
+  const result = { reaction: saved, totalLikes, totalDislikes };
+  void setCachedReaction(blogId, userId, result);
+  return result;
 }
 
 /** Recount visible comments, including replies, and store that number on the blog. */

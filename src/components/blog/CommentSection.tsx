@@ -2,9 +2,11 @@
 
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
+import { useToast } from "@/components/ui/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { hasPermission, type UserRole } from "@/lib/permissions";
-import { useSession } from "next-auth/react";
+import { useSessionStatus } from "@/hooks/useSessionStatus";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
@@ -39,7 +41,8 @@ function commenterId(user: PublicComment["userId"]): string | undefined {
 }
 
 export function CommentSection({ blogId }: { blogId: string }) {
-  const { data: session, status } = useSession();
+  const { session, isAuthenticated } = useSessionStatus();
+  const toast = useToast();
   const role = (session?.user?.role as UserRole) || "reader";
   const userId = session?.user?.id;
   const canModerateAny = hasPermission(role, "deleteAnyComment");
@@ -49,8 +52,6 @@ export function CommentSection({ blogId }: { blogId: string }) {
   const [content, setContent] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -63,20 +64,18 @@ export function CommentSection({ blogId }: { blogId: string }) {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      loadComments().catch(() => setError("Could not load comments"));
+      loadComments().catch(() => toast.error("Could not load comments"));
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [loadComments]);
+  }, [loadComments, toast]);
 
   const postComment = async (text: string, parentId?: string) => {
     const trimmed = text.trim();
     if (trimmed.length < 1 || trimmed.length > 1000) {
-      setError("Comment must be between 1 and 1000 characters");
+      toast.error("Comment must be between 1 and 1000 characters");
       return false;
     }
     setIsSubmitting(true);
-    setError("");
-    setMessage("");
     try {
       const response = await fetch("/api/comments", {
         method: "POST",
@@ -85,14 +84,14 @@ export function CommentSection({ blogId }: { blogId: string }) {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(typeof result.error === "string" ? result.error : "Could not post comment");
+        toast.error(typeof result.error === "string" ? result.error : "Could not post comment");
         return false;
       }
-      setMessage(typeof result.message === "string" ? result.message : "Comment posted");
+      toast.success(typeof result.message === "string" ? result.message : "Comment posted");
       await loadComments();
       return true;
     } catch {
-      setError("Could not post comment");
+      toast.error("Could not post comment");
       return false;
     } finally {
       setIsSubmitting(false);
@@ -116,17 +115,15 @@ export function CommentSection({ blogId }: { blogId: string }) {
 
   const moderate = async (commentId: string, action: "hide" | "unhide" | "delete") => {
     setBusyId(commentId);
-    setError("");
-    setMessage("");
     try {
       if (action === "delete") {
         const response = await fetch(`/api/comments/${commentId}`, { method: "DELETE" });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) {
-          setError(typeof result.error === "string" ? result.error : "Could not delete comment");
+          toast.error(typeof result.error === "string" ? result.error : "Could not delete comment");
           return;
         }
-        setMessage("Comment deleted");
+        toast.success("Comment deleted");
       } else {
         const response = await fetch(`/api/comments/${commentId}`, {
           method: "PUT",
@@ -135,10 +132,10 @@ export function CommentSection({ blogId }: { blogId: string }) {
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) {
-          setError(typeof result.error === "string" ? result.error : "Could not update comment");
+          toast.error(typeof result.error === "string" ? result.error : "Could not update comment");
           return;
         }
-        setMessage(action === "hide" ? "Comment hidden" : "Comment restored");
+        toast.success(action === "hide" ? "Comment hidden" : "Comment restored");
       }
       await loadComments();
     } finally {
@@ -153,42 +150,120 @@ export function CommentSection({ blogId }: { blogId: string }) {
     return false;
   };
 
-  const renderActions = (comment: PublicComment) => {
-    if (!canActOn(comment)) return null;
+  const renderComment = (comment: PublicComment, isReply = false) => {
     const busy = busyId === comment._id;
+    const showReply = isAuthenticated && !isReply;
+    const showModeration = canActOn(comment);
+    const replying = replyTo === comment._id;
+
     return (
-      <div className="mt-2 flex flex-wrap gap-2">
-        {canModerateAny ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => void moderate(comment._id, comment.isVisible === false ? "unhide" : "hide")}
-          >
-            {comment.isVisible === false ? "Unhide" : "Hide"}
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-red-600"
-          disabled={busy}
-          onClick={() => void moderate(comment._id, "delete")}
-        >
-          Delete
-        </Button>
-      </div>
+      <li
+        key={comment._id}
+        className={cn(
+          isReply
+            ? "min-w-0"
+            : cn(
+                "rounded-2xl border bg-surface p-4 sm:p-5",
+                comment.isVisible === false ? "border-amber-200 opacity-80" : "border-neutral-200"
+              )
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <UserAvatar src={commenterAvatar(comment.userId)} name={commenterName(comment.userId)} size="sm" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-sm font-semibold text-ink">{commenterName(comment.userId)}</p>
+              {comment.isVisible === false ? (
+                <span className="rounded-lg border border-amber-200 px-1.5 py-0.5 text-xs text-amber-700">
+                  Hidden
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-700 sm:text-base">
+              {comment.content}
+            </p>
+
+            {(showReply || showModeration) && !replying ? (
+              <div className="mt-3 flex flex-wrap items-center gap-1">
+                {showReply ? (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setReplyTo(comment._id)}>
+                    Reply
+                  </Button>
+                ) : null}
+                {canModerateAny ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void moderate(comment._id, comment.isVisible === false ? "unhide" : "hide")}
+                  >
+                    {comment.isVisible === false ? "Unhide" : "Hide"}
+                  </Button>
+                ) : null}
+                {showModeration ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    disabled={busy}
+                    onClick={() => void moderate(comment._id, "delete")}
+                  >
+                    Delete
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {replying ? (
+              <form onSubmit={(event) => void submitReply(event, comment._id)} className="mt-3 space-y-3">
+                <Textarea
+                  id={`reply-${comment._id}`}
+                  label="Reply"
+                  value={replyContent}
+                  onChange={(event) => setReplyContent(event.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder="Write a reply…"
+                  required
+                />
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setReplyTo(null);
+                      setReplyContent("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
+                    Post reply
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+
+            {comment.replies && comment.replies.length > 0 ? (
+              <ul className="mt-4 space-y-4 border-l-2 border-primary-100 pl-4 sm:pl-5">
+                {comment.replies.map((reply) => renderComment(reply, true))}
+              </ul>
+            ) : null}
+          </div>
+        </div>
+      </li>
     );
   };
 
   return (
-    <section className="mt-10 pt-8 border-t border-neutral-200">
-      <h2 className="font-display text-xl font-semibold text-ink mb-5">Comments</h2>
+    <section>
+      <h2 className="mb-5 font-display text-xl font-semibold text-ink sm:text-2xl">Comments</h2>
 
-      {status === "authenticated" ? (
-        <form onSubmit={submit} className="mb-10 space-y-3">
+      {isAuthenticated ? (
+        <form onSubmit={submit} className="mb-8 space-y-3 sm:mb-10">
           <Textarea
             id="comment"
             label="Add a comment"
@@ -199,12 +274,14 @@ export function CommentSection({ blogId }: { blogId: string }) {
             placeholder="Share your thoughts..."
             required
           />
-          <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
-            Post comment
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
+              Post comment
+            </Button>
+          </div>
         </form>
       ) : (
-        <p className="mb-10 text-sm text-accent-500">
+        <p className="mb-8 text-sm text-accent-500 sm:mb-10">
           <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-700">
             Sign in
           </Link>{" "}
@@ -212,95 +289,10 @@ export function CommentSection({ blogId }: { blogId: string }) {
         </p>
       )}
 
-      {message && (
-        <p className="mb-4 text-sm text-green-700 rounded-xl border border-green-200 bg-green-50 px-3 py-2">{message}</p>
-      )}
-      {error && (
-        <p className="mb-4 text-sm text-red-600 rounded-xl border border-red-200 bg-red-50 px-3 py-2">{error}</p>
-      )}
-
       {comments.length === 0 ? (
         <p className="text-sm text-accent-500">No comments yet. Be the first to reply.</p>
       ) : (
-        <ul className="space-y-5">
-          {comments.map((comment) => (
-            <li
-              key={comment._id}
-              className={`rounded-2xl border bg-surface p-4 sm:p-5 ${
-                comment.isVisible === false ? "border-amber-200 opacity-80" : "border-neutral-200"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <UserAvatar src={commenterAvatar(comment.userId)} name={commenterName(comment.userId)} size="sm" />
-                <p className="text-sm font-semibold text-ink">{commenterName(comment.userId)}</p>
-                {comment.isVisible === false ? (
-                  <span className="text-xs text-amber-700 border border-amber-200 rounded-lg px-1.5 py-0.5">Hidden</span>
-                ) : null}
-              </div>
-              <p className="mt-2 text-neutral-700 whitespace-pre-wrap break-words leading-relaxed">{comment.content}</p>
-              {renderActions(comment)}
-              {status === "authenticated" ? (
-                <div className="mt-2">
-                  {replyTo === comment._id ? (
-                    <form onSubmit={(event) => void submitReply(event, comment._id)} className="mt-3 space-y-2">
-                      <Textarea
-                        id={`reply-${comment._id}`}
-                        label="Reply"
-                        value={replyContent}
-                        onChange={(event) => setReplyContent(event.target.value)}
-                        maxLength={1000}
-                        rows={3}
-                        placeholder="Write a reply…"
-                        required
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
-                          Post reply
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setReplyTo(null);
-                            setReplyContent("");
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  ) : (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setReplyTo(comment._id)}>
-                      Reply
-                    </Button>
-                  )}
-                </div>
-              ) : null}
-              {comment.replies && comment.replies.length > 0 && (
-                <ul className="mt-4 space-y-3 border-l-2 border-primary-100 pl-4">
-                  {comment.replies.map((reply) => (
-                    <li key={reply._id}>
-                      <div className="flex items-center gap-2.5">
-                        <UserAvatar src={commenterAvatar(reply.userId)} name={commenterName(reply.userId)} size="sm" />
-                        <p className="text-sm font-semibold text-ink">{commenterName(reply.userId)}</p>
-                        {reply.isVisible === false ? (
-                          <span className="text-xs text-amber-700 border border-amber-200 rounded-lg px-1.5 py-0.5">
-                            Hidden
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-neutral-700 whitespace-pre-wrap break-words leading-relaxed">
-                        {reply.content}
-                      </p>
-                      {renderActions(reply)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
+        <ul className="space-y-4 sm:space-y-5">{comments.map((comment) => renderComment(comment))}</ul>
       )}
     </section>
   );
