@@ -1,17 +1,21 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { connectDB } from "../src/lib/mongodb";
-import User from "../src/models/User";
+import { canSignIn } from "../src/lib/session-policy";
+import { passwordSchema } from "../src/lib/validation";
 import Blog from "../src/models/Blog";
-import Comment from "../src/models/Comment";
-import Reaction from "../src/models/Reaction";
 import BlogView from "../src/models/BlogView";
-import RoleUpgradeRequest from "../src/models/RoleUpgradeRequest";
+import Comment from "../src/models/Comment";
 import MediaAsset from "../src/models/MediaAsset";
 import ModerationAction from "../src/models/ModerationAction";
-import { passwordSchema } from "../src/lib/validation";
-import { canSignIn } from "../src/lib/session-policy";
-import { blogFixtures, buildSeedUsers, commentFixtures } from "./seed-data/fixtures.mjs";
+import Reaction from "../src/models/Reaction";
+import RoleUpgradeRequest from "../src/models/RoleUpgradeRequest";
+import User from "../src/models/User";
+import {
+  blogFixtures,
+  buildSeedUsers,
+  commentFixtures,
+} from "./seed-data/fixtures.mjs";
 
 const COLLECTIONS = [
   ModerationAction,
@@ -26,23 +30,47 @@ const COLLECTIONS = [
 
 async function truncateAll() {
   for (const model of COLLECTIONS) {
-    await model.deleteMany({});
+    // No filter arg: iterating a union of Model types breaks `deleteMany({})` overload resolution.
+    await model.deleteMany();
     await model.syncIndexes();
   }
 }
 
 async function hashPassword(password: string) {
   if (!passwordSchema.safeParse(password).success) {
-    throw new Error(`Password does not meet policy: length ≥10 with a letter and a number`);
+    throw new Error(
+      `Password does not meet policy: length ≥10 with a letter and a number`,
+    );
   }
   return bcrypt.hash(password, 12);
+}
+
+type SeedRole = "admin" | "author" | "reader";
+type SeedBlogStatus = "draft" | "published";
+type SeedThumbnailSource = "upload" | "ai" | "none";
+
+function asSeedRole(role: string): SeedRole {
+  if (role === "admin" || role === "author" || role === "reader") return role;
+  throw new Error(`Invalid seed role: ${role}`);
+}
+
+function asBlogStatus(status: string): SeedBlogStatus {
+  if (status === "draft" || status === "published") return status;
+  throw new Error(`Invalid seed blog status: ${status}`);
+}
+
+function asThumbnailSource(source: string | undefined): SeedThumbnailSource {
+  if (!source) return "upload";
+  if (source === "upload" || source === "ai" || source === "none")
+    return source;
+  throw new Error(`Invalid seed thumbnail source: ${source}`);
 }
 
 async function createUser(input: {
   email: string;
   password: string;
   name: string;
-  role: "admin" | "author" | "reader";
+  role: SeedRole;
   profile: Record<string, unknown>;
   isActive?: boolean;
   emailVerified?: boolean;
@@ -66,14 +94,20 @@ async function createUser(input: {
     throw new Error(`Password hash mismatch for ${input.email}`);
   }
   if (!loginOk) {
-    throw new Error(`Seeded user ${input.email} cannot sign in (flags misaligned)`);
+    throw new Error(
+      `Seeded user ${input.email} cannot sign in (flags misaligned)`,
+    );
   }
 
   return user;
 }
 
 async function main() {
-  if (process.env.NODE_ENV === "production" && process.env.SEED_FORCE !== "1" && !process.argv.includes("--force")) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.SEED_FORCE !== "1" &&
+    !process.argv.includes("--force")
+  ) {
     console.error("Refusing to seed while NODE_ENV=production");
     process.exit(1);
   }
@@ -86,7 +120,9 @@ async function main() {
   }
 
   if (!passwordSchema.safeParse(adminPassword).success) {
-    console.error("ADMIN_PASSWORD does not meet the password policy (min 10 chars, letter + number)");
+    console.error(
+      "ADMIN_PASSWORD does not meet the password policy (min 10 chars, letter + number)",
+    );
     process.exit(1);
   }
 
@@ -111,10 +147,14 @@ async function main() {
   for (const author of fixtures.authors) {
     authors.push(
       await createUser({
-        ...author,
+        email: author.email,
+        password: author.password,
+        name: author.name,
+        role: asSeedRole(author.role),
+        profile: author.profile,
         isActive: true,
         emailVerified: true,
-      })
+      }),
     );
   }
 
@@ -122,10 +162,14 @@ async function main() {
   for (const reader of fixtures.readers) {
     readers.push(
       await createUser({
-        ...reader,
+        email: reader.email,
+        password: reader.password,
+        name: reader.name,
+        role: asSeedRole(reader.role),
+        profile: reader.profile,
         isActive: true,
         emailVerified: true,
-      })
+      }),
     );
   }
 
@@ -138,12 +182,16 @@ async function main() {
   console.log("Seeding blogs…");
   const blogsByKey = new Map<
     string,
-    mongoose.Document & { _id: mongoose.Types.ObjectId; authorId: mongoose.Types.ObjectId }
+    mongoose.Document & {
+      _id: mongoose.Types.ObjectId;
+      authorId: mongoose.Types.ObjectId;
+    }
   >();
   for (const fixture of blogFixtures) {
     const author = byEmail.get(fixture.authorEmail);
     if (!author) throw new Error(`Missing author ${fixture.authorEmail}`);
-    const publishedAt = fixture.status === "published" ? new Date() : null;
+    const status = asBlogStatus(fixture.status);
+    const publishedAt = status === "published" ? new Date() : null;
     const blog = await Blog.create({
       title: fixture.title,
       description: fixture.description,
@@ -152,8 +200,8 @@ async function main() {
       authorId: author._id,
       createdBy: author._id,
       thumbnail: fixture.thumbnail,
-      thumbnailSource: fixture.thumbnailSource || "upload",
-      status: fixture.status,
+      thumbnailSource: asThumbnailSource(fixture.thumbnailSource),
+      status,
       publishedAt,
       tags: fixture.tags,
       readingTime: fixture.readingTime,
@@ -173,7 +221,9 @@ async function main() {
     if (!blog || !user) continue;
 
     const parentId =
-      typeof fixture.replyToIndex === "number" ? rootComments[fixture.replyToIndex] || null : null;
+      typeof fixture.replyToIndex === "number"
+        ? rootComments[fixture.replyToIndex] || null
+        : null;
 
     const comment = await Comment.create({
       blogId: blog._id,
@@ -196,30 +246,58 @@ async function main() {
   const indigo = blogsByKey.get("indigo-craft");
   const multi = blogsByKey.get("multi-author");
   if (indigo && readers[0]) {
-    await Reaction.create({ blogId: indigo._id, userId: readers[0]._id, type: "like" });
+    await Reaction.create({
+      blogId: indigo._id,
+      userId: readers[0]._id,
+      type: "like",
+    });
     await Blog.updateOne({ _id: indigo._id }, { $inc: { totalLikes: 1 } });
   }
   if (indigo && readers[1]) {
-    await Reaction.create({ blogId: indigo._id, userId: readers[1]._id, type: "like" });
+    await Reaction.create({
+      blogId: indigo._id,
+      userId: readers[1]._id,
+      type: "like",
+    });
     await Blog.updateOne({ _id: indigo._id }, { $inc: { totalLikes: 1 } });
   }
   if (multi && readers[0]) {
-    await Reaction.create({ blogId: multi._id, userId: readers[0]._id, type: "dislike" });
+    await Reaction.create({
+      blogId: multi._id,
+      userId: readers[0]._id,
+      type: "dislike",
+    });
     await Blog.updateOne({ _id: multi._id }, { $inc: { totalDislikes: 1 } });
   }
   if (multi && authors[0]) {
-    await Reaction.create({ blogId: multi._id, userId: authors[0]._id, type: "like" });
+    await Reaction.create({
+      blogId: multi._id,
+      userId: authors[0]._id,
+      type: "like",
+    });
     await Blog.updateOne({ _id: multi._id }, { $inc: { totalLikes: 1 } });
   }
 
   console.log("Seeding views…");
   if (indigo) {
-    await BlogView.create({ blogId: indigo._id, userId: readers[0]?._id, viewedAt: new Date() });
-    await BlogView.create({ blogId: indigo._id, userId: readers[1]?._id, viewedAt: new Date() });
+    await BlogView.create({
+      blogId: indigo._id,
+      userId: readers[0]?._id,
+      viewedAt: new Date(),
+    });
+    await BlogView.create({
+      blogId: indigo._id,
+      userId: readers[1]?._id,
+      viewedAt: new Date(),
+    });
     await Blog.updateOne({ _id: indigo._id }, { $inc: { totalViews: 2 } });
   }
   if (multi && readers[0]) {
-    await BlogView.create({ blogId: multi._id, userId: readers[0]._id, viewedAt: new Date() });
+    await BlogView.create({
+      blogId: multi._id,
+      userId: readers[0]._id,
+      viewedAt: new Date(),
+    });
     await Blog.updateOne({ _id: multi._id }, { $inc: { totalViews: 1 } });
   }
 
@@ -236,14 +314,31 @@ async function main() {
 
   console.log("Verifying admin login flags…");
   const reloaded = await User.findOne({ email: adminEmail }).lean();
-  if (!reloaded || !(await bcrypt.compare(adminPassword, reloaded.password as string)) || !canSignIn(reloaded)) {
+  if (
+    !reloaded ||
+    !(await bcrypt.compare(adminPassword, reloaded.password as string)) ||
+    !canSignIn(reloaded)
+  ) {
     throw new Error("Post-seed admin login check failed");
   }
-  if (reloaded.role !== "admin" || !reloaded.isActive || !reloaded.emailVerified) {
-    throw new Error("Post-seed admin flags are not aligned (role/isActive/emailVerified)");
+  if (
+    reloaded.role !== "admin" ||
+    !reloaded.isActive ||
+    !reloaded.emailVerified
+  ) {
+    throw new Error(
+      "Post-seed admin flags are not aligned (role/isActive/emailVerified)",
+    );
   }
 
-  const [userCount, blogCount, commentCount, reactionCount, viewCount, upgradeCount] = await Promise.all([
+  const [
+    userCount,
+    blogCount,
+    commentCount,
+    reactionCount,
+    viewCount,
+    upgradeCount,
+  ] = await Promise.all([
     User.countDocuments(),
     Blog.countDocuments(),
     Comment.countDocuments(),
@@ -255,7 +350,7 @@ async function main() {
   console.log(`Seed complete. Admin: ${adminEmail}`);
   console.log("Sign in at /auth/login (requires REDIS_URL for rate limiting).");
   console.log(
-    `Counts — users: ${userCount}, blogs: ${blogCount}, comments: ${commentCount}, reactions: ${reactionCount}, views: ${viewCount}, upgrades: ${upgradeCount}`
+    `Counts — users: ${userCount}, blogs: ${blogCount}, comments: ${commentCount}, reactions: ${reactionCount}, views: ${viewCount}, upgrades: ${upgradeCount}`,
   );
 
   void mongoose.disconnect().catch(() => undefined);
