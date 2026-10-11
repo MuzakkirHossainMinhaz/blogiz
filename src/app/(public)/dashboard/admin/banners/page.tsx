@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { hasPermission, UserRole } from "@/lib/permissions";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { FiArrowLeft, FiImage, FiTrash2, FiUpload } from "react-icons/fi";
 
@@ -54,6 +54,7 @@ export default function AdminBannersPage() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -64,30 +65,38 @@ export default function AdminBannersPage() {
   const [type, setType] = useState("hero");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const response = await fetch(`/api/admin/banners?page=${page}&limit=10`);
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(data.error || "Could not load banners");
-        return;
-      }
-      setBanners(Array.isArray(data.banners) ? data.banners : []);
-      setPages(data.pagination?.pages || 1);
-      setTotal(data.pagination?.total || 0);
-    } catch {
-      setError("Could not load banners");
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
+  const refresh = () => setReloadKey((value) => value + 1);
 
   useEffect(() => {
     if (status === "loading" || !canManage) return;
-    void load();
-  }, [status, canManage, load]);
+
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch(`/api/admin/banners?page=${page}&limit=10`);
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!response.ok) {
+          setError(data.error || "Could not load banners");
+          return;
+        }
+        setBanners(Array.isArray(data.banners) ? data.banners : []);
+        setPages(data.pagination?.pages || 1);
+        setTotal(data.pagination?.total || 0);
+      } catch {
+        if (!cancelled) setError("Could not load banners");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, canManage, page, reloadKey]);
 
   if (status === "loading") {
     return (
@@ -171,7 +180,7 @@ export default function AdminBannersPage() {
       setType("hero");
       setMessage("Banner created");
       setPage(1);
-      await load();
+      refresh();
     } catch {
       setError("Could not create banner");
     } finally {
@@ -191,7 +200,7 @@ export default function AdminBannersPage() {
       setError(result.error || "Could not update banner");
       return;
     }
-    await load();
+    refresh();
   };
 
   const removeBanner = async (id: string) => {
@@ -203,7 +212,7 @@ export default function AdminBannersPage() {
       setError(result.error || "Could not delete banner");
       return;
     }
-    await load();
+    refresh();
   };
 
   return (

@@ -8,6 +8,7 @@ import { hasPermission, type UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import type { IconType } from "react-icons";
 import {
   FiCheck,
   FiClock,
@@ -16,7 +17,6 @@ import {
   FiUserCheck,
   FiUsers,
   FiX,
-  type IconType,
 } from "react-icons/fi";
 
 interface PendingBlog {

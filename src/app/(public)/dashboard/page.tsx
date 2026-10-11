@@ -7,6 +7,7 @@ import { hasPermission, UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import type { IconType } from "react-icons";
 import {
   FiAlertCircle,
   FiArrowRight,
@@ -19,7 +20,6 @@ import {
   FiPlusCircle,
   FiUserCheck,
   FiUsers,
-  type IconType,
 } from "react-icons/fi";
 
 interface DashboardStats {
