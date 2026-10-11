@@ -14,9 +14,9 @@ type FormValues = {
   title: string;
   description: string;
   content: string;
-  publish_date: string;
-  author_name: string;
-  blog_image: string;
+  publishedAt: string;
+  authorName: string;
+  thumbnail: string;
 };
 
 export default function CreateBlogForm() {
@@ -37,7 +37,7 @@ export default function CreateBlogForm() {
     try {
       const blogData = {
         ...data,
-        total_likes: 0,
+        totalLikes: 0,
         status: "published" as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -57,7 +57,6 @@ export default function CreateBlogForm() {
       <Section className="py-12 md:py-16">
         <Container size="md">
           <div className="max-w-3xl mx-auto">
-            {/* Header */}
             <div className="text-center mb-8 md:mb-12">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-semibold tracking-tight mb-4">
                 Create Your Blog Post
@@ -65,7 +64,6 @@ export default function CreateBlogForm() {
               <p className="text-lg text-neutral-600">Share your thoughts and ideas with the community</p>
             </div>
 
-            {/* Form Card */}
             <div className="card bg-white shadow-soft-lg">
               <div className="card-body p-6 md:p-8 lg:p-10">
                 {error && (
@@ -83,7 +81,6 @@ export default function CreateBlogForm() {
                 )}
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Title */}
                   <fieldset className="fieldset">
                     <label htmlFor="title" className="label text-sm font-semibold text-neutral-700 mb-2">
                       Title <FieldRequiredMark />
@@ -108,7 +105,6 @@ export default function CreateBlogForm() {
                     {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>}
                   </fieldset>
 
-                  {/* Description */}
                   <fieldset className="fieldset">
                     <label htmlFor="description" className="label text-sm font-semibold text-neutral-700 mb-2">
                       Description <FieldRequiredMark />
@@ -129,7 +125,6 @@ export default function CreateBlogForm() {
                     {errors.description && <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>}
                   </fieldset>
 
-                  {/* Content */}
                   <fieldset className="fieldset">
                     <label htmlFor="content" className="label text-sm font-semibold text-neutral-700 mb-2">
                       Content <FieldRequiredMark />
@@ -150,35 +145,32 @@ export default function CreateBlogForm() {
                     {errors.content && <p className="text-sm text-red-600 mt-1">{errors.content.message}</p>}
                   </fieldset>
 
-                  {/* Two Column Layout */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Publish Date */}
                     <fieldset className="fieldset">
-                      <label htmlFor="publish_date" className="label text-sm font-semibold text-neutral-700 mb-2">
+                      <label htmlFor="publishedAt" className="label text-sm font-semibold text-neutral-700 mb-2">
                         Publish Date <FieldRequiredMark />
                       </label>
                       <input
-                        id="publish_date"
+                        id="publishedAt"
                         type="date"
-                        {...register("publish_date", {
+                        {...register("publishedAt", {
                           required: "Publish date is required",
                         })}
                         className="input w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
                       />
-                      {errors.publish_date && (
-                        <p className="text-sm text-red-600 mt-1">{errors.publish_date.message}</p>
+                      {errors.publishedAt && (
+                        <p className="text-sm text-red-600 mt-1">{errors.publishedAt.message}</p>
                       )}
                     </fieldset>
 
-                    {/* Author Name */}
                     <fieldset className="fieldset">
-                      <label htmlFor="author_name" className="label text-sm font-semibold text-neutral-700 mb-2">
+                      <label htmlFor="authorName" className="label text-sm font-semibold text-neutral-700 mb-2">
                         Author Name <FieldRequiredMark />
                       </label>
                       <input
-                        id="author_name"
+                        id="authorName"
                         type="text"
-                        {...register("author_name", {
+                        {...register("authorName", {
                           required: "Author name is required",
                           minLength: {
                             value: 2,
@@ -188,19 +180,18 @@ export default function CreateBlogForm() {
                         placeholder="Your name"
                         className="input w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
                       />
-                      {errors.author_name && <p className="text-sm text-red-600 mt-1">{errors.author_name.message}</p>}
+                      {errors.authorName && <p className="text-sm text-red-600 mt-1">{errors.authorName.message}</p>}
                     </fieldset>
                   </div>
 
-                  {/* Blog Image URL */}
                   <fieldset className="fieldset">
-                    <label htmlFor="blog_image" className="label text-sm font-semibold text-neutral-700 mb-2">
+                    <label htmlFor="thumbnail" className="label text-sm font-semibold text-neutral-700 mb-2">
                       Featured Image URL <FieldRequiredMark />
                     </label>
                     <input
-                      id="blog_image"
+                      id="thumbnail"
                       type="url"
-                      {...register("blog_image", {
+                      {...register("thumbnail", {
                         required: "Image URL is required",
                         pattern: {
                           value: /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/i,
@@ -210,11 +201,10 @@ export default function CreateBlogForm() {
                       placeholder="https://example.com/image.jpg"
                       className="input w-full bg-neutral-50 border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
                     />
-                    {errors.blog_image && <p className="text-sm text-red-600 mt-1">{errors.blog_image.message}</p>}
+                    {errors.thumbnail && <p className="text-sm text-red-600 mt-1">{errors.thumbnail.message}</p>}
                     <p className="text-sm text-neutral-500 mt-1">Supported formats: JPG, PNG, WebP, GIF</p>
                   </fieldset>
 
-                  {/* Submit Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <Button
                       type="submit"

@@ -12,12 +12,12 @@ export const blogWriteSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().min(1).max(500),
   content: z.string().min(1).max(BLOG_CONTENT_MAX),
-  author_name: z.string().trim().min(1).max(120),
-  blog_image: z.string().optional(),
-  status: z.enum(["draft", "pending", "published", "rejected"]).optional(),
-  publish_date: z.string().optional(),
+  authorName: z.string().trim().min(1).max(120),
+  thumbnail: z.string().optional(),
+  thumbnailPublicId: z.string().optional(),
+  thumbnailSource: z.enum(["upload", "ai", "none"]).optional(),
+  status: z.enum(["draft", "published"]).optional(),
   tags: z.array(z.string().trim().max(40)).max(20).optional(),
-  enableAI: z.boolean().optional(),
 });
 
 export type BlogWriteInput = z.infer<typeof blogWriteSchema>;

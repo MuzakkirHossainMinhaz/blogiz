@@ -21,7 +21,7 @@ const pillars = [
   },
   {
     title: "Moderate with care",
-    body: "Admins approve authors, posts, and comments. The feed stays intentional because someone is accountable for it.",
+    body: "Admins review author upgrades and can hide or remove content when needed. The feed stays intentional because someone is accountable for it.",
   },
 ];
 
@@ -29,17 +29,15 @@ const roles = [
   {
     name: "Readers",
     detail:
-      "Browse published posts, leave a reaction, comment after approval, and request an author upgrade from the dashboard.",
+      "Browse published posts, leave a reaction, comment, and request an author upgrade from the dashboard.",
   },
   {
     name: "Authors",
-    detail:
-      "Draft and edit their own posts. Publishing goes through review unless the account already has admin privileges.",
+    detail: "Draft, edit, and publish their own posts, and moderate comments on their stories.",
   },
   {
     name: "Admins",
-    detail:
-      "Approve posts, comments, and author accounts, manage banners, and keep the public surface coherent.",
+    detail: "Review author upgrades, manage users, and keep the public surface coherent.",
   },
 ];
 

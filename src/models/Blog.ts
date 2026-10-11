@@ -1,24 +1,25 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+export type BlogStatus = "draft" | "published";
+export type ThumbnailSource = "upload" | "ai" | "none";
+
 export interface IBlog extends Document {
   title: string;
   description: string;
   content: string;
-  author_name: string;
   authorId: mongoose.Types.ObjectId;
-  blog_image: string;
-  publish_date: Date;
-  status: "draft" | "pending" | "published" | "rejected";
-  isApproved: boolean;
-  approvedBy?: mongoose.Types.ObjectId;
-  approvedAt?: Date;
-  rejectionReason?: string;
-  total_likes: number;
-  total_dislikes: number;
-  total_comments: number;
-  total_views: number;
+  authorName: string;
+  thumbnail?: string;
+  thumbnailPublicId?: string;
+  thumbnailSource?: ThumbnailSource;
+  status: BlogStatus;
+  publishedAt?: Date | null;
   tags: string[];
-  readingTime: number; // in minutes
+  readingTime: number;
+  totalLikes: number;
+  totalDislikes: number;
+  totalComments: number;
+  totalViews: number;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -43,62 +44,37 @@ const BlogSchema = new Schema<IBlog>(
       required: [true, "Content is required"],
       maxlength: [100000, "Content cannot exceed 100000 characters"],
     },
-    author_name: {
-      type: String,
-      required: [true, "Author name is required"],
-      trim: true,
-    },
     authorId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    blog_image: {
+    authorName: {
       type: String,
-      required: false,
+      required: [true, "Author name is required"],
+      trim: true,
     },
-    publish_date: {
-      type: Date,
-      default: Date.now,
+    thumbnail: {
+      type: String,
+      default: "",
+    },
+    thumbnailPublicId: {
+      type: String,
+      default: "",
+    },
+    thumbnailSource: {
+      type: String,
+      enum: ["upload", "ai", "none"],
+      default: "none",
     },
     status: {
       type: String,
-      enum: ["draft", "pending", "published", "rejected"],
+      enum: ["draft", "published"],
       default: "draft",
     },
-    isApproved: {
-      type: Boolean,
-      default: false,
-    },
-    approvedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-    approvedAt: {
+    publishedAt: {
       type: Date,
       default: null,
-    },
-    rejectionReason: {
-      type: String,
-      maxlength: [500, "Rejection reason cannot exceed 500 characters"],
-      default: "",
-    },
-    total_likes: {
-      type: Number,
-      default: 0,
-    },
-    total_dislikes: {
-      type: Number,
-      default: 0,
-    },
-    total_comments: {
-      type: Number,
-      default: 0,
-    },
-    total_views: {
-      type: Number,
-      default: 0,
     },
     tags: [
       {
@@ -109,7 +85,23 @@ const BlogSchema = new Schema<IBlog>(
     ],
     readingTime: {
       type: Number,
-      default: 5, // 5 minutes default reading time
+      default: 5,
+    },
+    totalLikes: {
+      type: Number,
+      default: 0,
+    },
+    totalDislikes: {
+      type: Number,
+      default: 0,
+    },
+    totalComments: {
+      type: Number,
+      default: 0,
+    },
+    totalViews: {
+      type: Number,
+      default: 0,
     },
     createdBy: {
       type: Schema.Types.ObjectId,
@@ -122,11 +114,9 @@ const BlogSchema = new Schema<IBlog>(
   }
 );
 
-// Index for better query performance
-BlogSchema.index({ status: 1, publish_date: -1 });
-BlogSchema.index({ authorId: 1 });
+BlogSchema.index({ status: 1, publishedAt: -1 });
+BlogSchema.index({ authorId: 1, status: 1, updatedAt: -1 });
 BlogSchema.index({ createdBy: 1 });
-BlogSchema.index({ isApproved: 1, status: 1 });
 BlogSchema.index({ tags: 1 });
 
 const Blog: Model<IBlog> = mongoose.models.Blog || mongoose.model<IBlog>("Blog", BlogSchema);

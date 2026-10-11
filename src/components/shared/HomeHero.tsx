@@ -5,7 +5,7 @@ import { APP_CONFIG, ROUTES } from "@/config/constants";
 import Image from "next/image";
 import Link from "next/link";
 
-/** Brand fallback hero when no admin banners are published. */
+/** Brand hero for the public home page. */
 export function HomeHero() {
   return (
     <section className="relative overflow-hidden">

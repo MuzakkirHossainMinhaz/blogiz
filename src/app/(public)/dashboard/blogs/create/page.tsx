@@ -12,7 +12,7 @@ import { FiLock } from "react-icons/fi";
 export default function CreateBlogPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const userRole = (session?.user?.role as UserRole) || "user";
+  const userRole = (session?.user?.role as UserRole) || "reader";
   const canCreateBlog = hasPermission(userRole, "createBlog");
 
   useEffect(() => {
@@ -36,8 +36,7 @@ export default function CreateBlogPage() {
         </div>
         <h1 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h1>
         <p className="text-neutral-600 mb-6 max-w-md">
-          You don&apos;t have permission to create blog posts. This feature is only available to authors, admins, and
-          superadmins.
+          You don&apos;t have permission to create blog posts. This feature is only available to authors and admins.
         </p>
         <div className="space-y-3">
           <Link href="/dashboard">
@@ -59,9 +58,13 @@ export default function CreateBlogPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...data,
-        blog_image: data.blog_image || undefined,
-        publish_date: data.status === "published" ? data.publish_date || new Date().toISOString() : undefined,
+        title: data.title,
+        description: data.description,
+        content: data.content,
+        authorName: data.authorName,
+        thumbnail: data.thumbnail || undefined,
+        status: data.status,
+        publishedAt: data.status === "published" ? data.publishedAt || new Date().toISOString() : undefined,
       }),
     });
 

@@ -69,8 +69,8 @@ const authConfig = {
           name: user.name,
           role: user.role,
           sessionVersion: user.sessionVersion ?? 0,
-          isApproved: user.isApproved,
           avatar: user.profile?.avatar || "",
+          commentSuspended: Boolean(user.commentSuspended),
         };
       },
     }),
@@ -107,15 +107,15 @@ const authConfig = {
         const User = (await import("@/models/User")).default;
         await connectDB();
         const dbUser = await User.findById(token.id).select(
-          "role isActive isApproved emailVerified sessionVersion email name profile.avatar"
+          "role isActive emailVerified commentSuspended sessionVersion email name profile.avatar"
         );
         const decision = evaluateSession(
           dbUser
             ? {
                 role: dbUser.role,
                 isActive: dbUser.isActive,
-                isApproved: dbUser.isApproved,
                 emailVerified: dbUser.emailVerified,
+                commentSuspended: dbUser.commentSuspended,
                 sessionVersion: dbUser.sessionVersion ?? 0,
                 email: dbUser.email,
                 name: dbUser.name,
@@ -130,8 +130,8 @@ const authConfig = {
         }
 
         token.role = decision.role;
-        token.isApproved = decision.isApproved;
         token.emailVerified = decision.emailVerified;
+        token.commentSuspended = decision.commentSuspended;
         token.email = decision.email;
         token.name = decision.name;
         token.avatar = decision.avatar;
@@ -152,8 +152,8 @@ const authConfig = {
       session.user.email = token.email || session.user.email;
       session.user.name = token.name || session.user.name;
       session.user.avatar = token.avatar || "";
-      session.user.isApproved = Boolean(token.isApproved);
       session.user.emailVerified = Boolean(token.emailVerified);
+      session.user.commentSuspended = Boolean(token.commentSuspended);
       return session;
     },
   },

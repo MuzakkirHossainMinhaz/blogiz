@@ -1,8 +1,12 @@
 # Blogiz
 
-Blogiz is a multi-user blog. Signed-in readers and authors can comment on published posts and leave one like or dislike. Authors draft their own posts, and they can also comment and react on posts they did not write. Admins approve posts, comments, and author accounts. Each author has a public profile at `/authors/[authorId]`, linked from the byline. Images are stored in Cloudinary. Sign-in, registration, password reset, and the AI routes are rate limited in Redis.
+Blogiz is a multi-role blogging platform. Readers discover and engage with published posts; authors draft and publish writing with optional AI assistance; admins govern users, content, and trust.
 
-Optional Hugging Face helpers can draft text, analyze a post, or generate an image. Those routes stay off until their environment variables are set. Search matches published post text. Content moderation is not configured and that route returns 503.
+Signed-in people can comment and leave one like or dislike on a published post. Authors manage their own drafts and posts, and can engage on others’ writing. Admins moderate accounts, posts, and comments. Each author has a public profile at `/authors/[authorId]`, linked from the byline. Images go to Cloudinary. Sign-in, registration, password reset, and AI routes are rate limited with Redis.
+
+AI is assistive and opt-in (covers, title/content polish)—not a silent rewrite of the author’s voice. Those routes stay off until their environment variables are set.
+
+Roles match [PLAN.md](PLAN.md) and [DATABASE.md](DATABASE.md): exactly three — `admin` | `author` | `reader`. Blogs use a draft / publish lifecycle. See [GUIDE.md](GUIDE.md) for operations.
 
 ## Stack
 
@@ -28,23 +32,26 @@ npm run dev
 
 Fill in `.env.local` from `.env.example`. Every value there is empty on purpose. [GUIDE.md](GUIDE.md) says what each variable is and when it is required.
 
-`npm run seed` truncates all collections and loads realistic fixtures, including a superadmin from `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Sign in at `/auth/login` with those credentials (Redis must be up).
+`npm run seed` truncates all collections and loads realistic fixtures, including an admin from `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Sign in at `/auth/login` with those credentials (Redis must be up).
 
 ## Scripts
 
-| Script | What it does |
-| --- | --- |
-| `npm run dev` | Start the development server |
-| `npm run build` | Production build |
-| `npm start` | Serve the production build |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript |
-| `npm test` | Vitest |
-| `npm run seed` | Truncate all collections and seed fixtures + superadmin |
+| Script              | What it does                                       |
+| ------------------- | -------------------------------------------------- |
+| `npm run dev`       | Start the development server                       |
+| `npm run build`     | Production build                                   |
+| `npm start`         | Serve the production build                         |
+| `npm run lint`      | ESLint                                             |
+| `npm run typecheck` | TypeScript                                         |
+| `npm test`          | Vitest                                             |
+| `npm run seed`      | Truncate all collections and seed fixtures + admin |
 
 Setup, roles, auth, uploads, rate limits, and how to run the checks are in [GUIDE.md](GUIDE.md).
 
 ## Docs
 
-- [PLAN.md](PLAN.md) — Product and engineering plan (vision, roles, features, AI workflows, delivery phases)
-- [DATABASE.md](DATABASE.md) — MongoDB / Mongoose schema design (collections, indexes, relationships)
+| Doc                        | Use it for                                                              |
+| -------------------------- | ----------------------------------------------------------------------- |
+| [PLAN.md](PLAN.md)         | Product vision, roles/capabilities, AI workflows, delivery phases       |
+| [DATABASE.md](DATABASE.md) | MongoDB / Mongoose collections, indexes, and relationships              |
+| [GUIDE.md](GUIDE.md)       | Operations: env vars, roles/routes, seeding, auth, uploads, rate limits |

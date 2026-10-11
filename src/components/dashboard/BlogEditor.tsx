@@ -18,21 +18,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { FiCalendar, FiEye, FiSave } from "react-icons/fi";
+import { FiCalendar, FiEye, FiSave, FiZap } from "react-icons/fi";
 import { z } from "zod";
 
 const blogSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
   description: z.string().min(1, "Description is required").max(500, "Description must be less than 500 characters"),
   content: z.string().min(1, "Content is required").max(BLOG_CONTENT_MAX, "Content is too long"),
-  author_name: z.string().min(1, "Set your name in Settings").max(50),
-  blog_image: z
+  authorName: z.string().min(1, "Set your name in Settings").max(50),
+  thumbnail: z
     .string()
     .refine((value) => value === "" || isCloudinaryDeliveryUrl(value), "Upload or generate a cover")
     .optional()
     .or(z.literal("")),
   status: z.enum(["draft", "published"]),
-  publish_date: z.string().optional(),
+  publishedAt: z.string().optional(),
 });
 
 export type BlogEditorValues = z.infer<typeof blogSchema>;
@@ -58,6 +58,9 @@ export function BlogEditor({
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [content, setContent] = useState(initialValues?.content ?? "");
+  const [optimizing, setOptimizing] = useState<"title" | "content" | null>(null);
+  const [titleSuggestion, setTitleSuggestion] = useState<string | null>(null);
+  const [contentSuggestion, setContentSuggestion] = useState<string | null>(null);
 
   const {
     register,
@@ -72,22 +75,22 @@ export function BlogEditor({
       title: initialValues?.title ?? "",
       description: initialValues?.description ?? "",
       content: initialValues?.content ?? "",
-      author_name: profileName || initialValues?.author_name || "",
-      blog_image: initialValues?.blog_image ?? "",
+      authorName: profileName || initialValues?.authorName || "",
+      thumbnail: initialValues?.thumbnail ?? "",
       status: initialValues?.status === "published" ? "published" : "draft",
-      publish_date:
-        initialValues?.publish_date?.slice(0, 10) ?? new Date().toISOString().split("T")[0],
+      publishedAt:
+        initialValues?.publishedAt?.slice(0, 10) ?? new Date().toISOString().split("T")[0],
     },
   });
 
   const watchedTitle = useWatch({ control, name: "title" });
-  const watchedAuthorName = useWatch({ control, name: "author_name" });
-  const watchedPublishDate = useWatch({ control, name: "publish_date" });
-  const watchedBlogImage = useWatch({ control, name: "blog_image" });
+  const watchedAuthorName = useWatch({ control, name: "authorName" });
+  const watchedPublishedAt = useWatch({ control, name: "publishedAt" });
+  const watchedThumbnail = useWatch({ control, name: "thumbnail" });
 
   useEffect(() => {
     if (profileName) {
-      setValue("author_name", profileName, { shouldValidate: true });
+      setValue("authorName", profileName, { shouldValidate: true });
     }
   }, [profileName, setValue]);
 
@@ -97,11 +100,44 @@ export function BlogEditor({
 
   const ensureAuthorName = () => {
     if (profileName) {
-      setValue("author_name", profileName, { shouldValidate: true });
+      setValue("authorName", profileName, { shouldValidate: true });
       return true;
     }
     setError("Set your name in Settings before saving a post.");
     return false;
+  };
+
+  const optimizeField = async (field: "title" | "content") => {
+    setOptimizing(field);
+    setError(null);
+    try {
+      const currentTitle = getValues("title");
+      const response = await fetch("/api/ai/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field,
+          title: currentTitle,
+          content,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(typeof result.error === "string" ? result.error : "Optimization failed");
+        return;
+      }
+      const optimized = typeof result.optimized === "string" ? result.optimized.trim() : "";
+      if (!optimized) {
+        setError("No suggestion returned");
+        return;
+      }
+      if (field === "title") setTitleSuggestion(optimized.slice(0, 100));
+      else setContentSuggestion(optimized);
+    } catch {
+      setError("Optimization failed");
+    } finally {
+      setOptimizing(null);
+    }
   };
 
   const submit = async (data: BlogEditorValues) => {
@@ -109,7 +145,7 @@ export function BlogEditor({
     setIsSubmitting(true);
     setError(null);
     try {
-      await onSubmit({ ...data, author_name: profileName || data.author_name });
+      await onSubmit({ ...data, authorName: profileName || data.authorName });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -130,7 +166,7 @@ export function BlogEditor({
       return;
     }
     const current = getValues();
-    await submit({ ...current, status: "draft", author_name: profileName });
+    await submit({ ...current, status: "draft", authorName: profileName });
   };
 
   const handlePublish = async () => {
@@ -142,16 +178,16 @@ export function BlogEditor({
     const isValid = await trigger();
     if (!isValid) return;
     const current = getValues();
-    const publishDate = current.publish_date || new Date().toISOString().split("T")[0];
+    const publishedAt = current.publishedAt || new Date().toISOString().split("T")[0];
     await submit({
       ...current,
       status: "published",
-      publish_date: publishDate,
-      author_name: profileName,
+      publishedAt,
+      authorName: profileName,
     });
   };
 
-  const actionsBusy = isSubmitting || isSavingDraft;
+  const actionsBusy = isSubmitting || isSavingDraft || Boolean(optimizing);
   const canPreview = Boolean(content && content.trim().length >= 50);
 
   if (showPreview) {
@@ -185,13 +221,13 @@ export function BlogEditor({
               </div>
               <div className="flex items-center gap-1.5">
                 <FiCalendar className="w-4 h-4" />
-                {watchedPublishDate || new Date().toLocaleDateString()}
+                {watchedPublishedAt || new Date().toLocaleDateString()}
               </div>
             </div>
-            {watchedBlogImage ? (
+            {watchedThumbnail ? (
               <div className="relative w-full aspect-[16/9] mb-6 overflow-hidden rounded-xl">
                 <Image
-                  src={watchedBlogImage}
+                  src={watchedThumbnail}
                   alt={watchedTitle || "Blog preview"}
                   fill
                   className="object-cover"
@@ -261,14 +297,52 @@ export function BlogEditor({
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-stretch">
         <div className="space-y-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6 h-full">
-          <Input
-            {...register("title")}
-            id="title"
-            label="Title"
-            placeholder="Enter your blog title"
-            error={errors.title?.message}
-            required
-          />
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <Input
+                  {...register("title")}
+                  id="title"
+                  label="Title"
+                  placeholder="Enter your blog title"
+                  error={errors.title?.message}
+                  required
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={actionsBusy || !watchedTitle?.trim()}
+                onClick={() => void optimizeField("title")}
+              >
+                <FiZap className="w-4 h-4" />
+                {optimizing === "title" ? "Optimizing…" : "Optimize title"}
+              </Button>
+            </div>
+            {titleSuggestion ? (
+              <div className="rounded-xl border border-primary-200 bg-primary-50/50 p-3 space-y-2">
+                <p className="text-xs font-medium text-primary-800">Suggestion</p>
+                <p className="text-sm text-ink break-words">{titleSuggestion}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      setValue("title", titleSuggestion, { shouldValidate: true, shouldDirty: true });
+                      setTitleSuggestion(null);
+                    }}
+                  >
+                    Apply
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setTitleSuggestion(null)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
 
           <Textarea
             {...register("description")}
@@ -281,22 +355,59 @@ export function BlogEditor({
           />
 
           <div>
-            <label className={fieldLabelClassName}>
-              Content
-              <FieldRequiredMark />
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <label className={fieldLabelClassName}>
+                Content
+                <FieldRequiredMark />
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={actionsBusy || content.trim().length < 20}
+                onClick={() => void optimizeField("content")}
+              >
+                <FiZap className="w-4 h-4" />
+                {optimizing === "content" ? "Optimizing…" : "Optimize content"}
+              </Button>
+            </div>
             <RichTextEditor value={content} onChange={setContent} placeholder="Write your blog content here…" />
             {errors.content ? <p className={fieldErrorClassName}>{errors.content.message}</p> : null}
+            {contentSuggestion ? (
+              <div className="mt-3 rounded-xl border border-primary-200 bg-primary-50/50 p-3 space-y-2">
+                <p className="text-xs font-medium text-primary-800">Suggestion</p>
+                <p className="text-sm text-ink whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+                  {contentSuggestion}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      setContent(contentSuggestion);
+                      setValue("content", contentSuggestion, { shouldValidate: true, shouldDirty: true });
+                      setContentSuggestion(null);
+                    }}
+                  >
+                    Apply
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setContentSuggestion(null)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
         <aside className="flex flex-col gap-6 h-full min-h-0">
           <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
             <FeaturedCoverField
-              value={watchedBlogImage || ""}
+              value={watchedThumbnail || ""}
               title={watchedTitle || ""}
-              onChange={(url) => setValue("blog_image", url, { shouldValidate: true, shouldDirty: true })}
-              error={errors.blog_image?.message}
+              onChange={(url) => setValue("thumbnail", url, { shouldValidate: true, shouldDirty: true })}
+              error={errors.thumbnail?.message}
               disabled={actionsBusy}
               className="flex-1"
             />
@@ -316,7 +427,7 @@ export function BlogEditor({
                 </Link>
                 .
               </p>
-              {errors.author_name ? <p className={fieldErrorClassName}>{errors.author_name.message}</p> : null}
+              {errors.authorName ? <p className={fieldErrorClassName}>{errors.authorName.message}</p> : null}
             </div>
           </div>
         </aside>

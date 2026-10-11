@@ -1,18 +1,18 @@
 import { hasPermission, type UserRole } from "@/lib/permissions";
 
-export const PUBLIC_POST_FILTER = { status: "published" as const, isApproved: true };
+export const PUBLIC_POST_FILTER = { status: "published" as const };
 
 export const PUBLIC_AUTHOR_FIELDS = "name profile.fullName profile.avatar profile.bio";
 
 export const PUBLIC_CARD_FIELDS =
-  "title description author_name authorId blog_image publish_date tags readingTime total_likes total_dislikes total_comments total_views createdAt status isApproved";
+  "title description authorName authorId thumbnail publishedAt tags readingTime totalLikes totalDislikes totalComments totalViews createdAt status";
 
 export const PUBLIC_PROFILE_FIELDS = "name role profile createdAt";
 
 export const PUBLIC_PROFILE_BLOG_FIELDS =
-  "title description author_name blog_image publish_date tags readingTime total_likes total_dislikes";
+  "title description authorName thumbnail publishedAt tags readingTime totalLikes totalDislikes";
 
-const STATUSES = ["draft", "pending", "published", "rejected"] as const;
+const STATUSES = ["draft", "published"] as const;
 export type BlogStatus = (typeof STATUSES)[number];
 
 export function isBlogStatus(value: unknown): value is BlogStatus {
@@ -30,17 +30,18 @@ export function publicPostFilter(extra: Record<string, unknown> = {}) {
 }
 
 export function canViewPost(
-  blog: { status: string; isApproved: boolean; createdBy: { toString(): string } },
+  blog: { status: string; createdBy: { toString(): string }; authorId?: { toString(): string } },
   viewer?: PostViewer | null
 ): boolean {
-  if (blog.status === "published" && blog.isApproved) return true;
+  if (blog.status === "published") return true;
   if (!viewer) return false;
-  if (blog.createdBy.toString() === viewer.id) return true;
-  return hasPermission(viewer.role, "approveBlog");
+  const ownerId = (blog.authorId ?? blog.createdBy).toString();
+  if (ownerId === viewer.id) return true;
+  return hasPermission(viewer.role, "editAnyBlog");
 }
 
 /**
- * List filter. Non-public statuses are limited to the owner, or to a caller who can approve posts.
+ * List filter. Non-public statuses are limited to the owner, or to a caller who can edit any blog.
  */
 export function buildBlogListFilter(
   viewer: PostViewer | null,
@@ -50,68 +51,32 @@ export function buildBlogListFilter(
   const status = isBlogStatus(requestedStatus) ? requestedStatus : null;
 
   if (viewer && scope === "mine") {
-    const filter: Record<string, unknown> = { createdBy: viewer.id };
+    const filter: Record<string, unknown> = { authorId: viewer.id };
     if (status) filter.status = status;
     return filter;
   }
 
   if (viewer && status && status !== "published") {
-    if (hasPermission(viewer.role, "approveBlog")) {
+    if (hasPermission(viewer.role, "editAnyBlog")) {
       return { status };
     }
-    return { createdBy: viewer.id, status };
+    return { authorId: viewer.id, status };
   }
 
   return publicPostFilter();
 }
 
-export function resolveCreateStatus(role: UserRole, requested?: string): { status: BlogStatus; isApproved: boolean } {
-  const asked = isBlogStatus(requested) ? requested : "draft";
-
-  if (asked === "published") {
-    if (hasPermission(role, "approveBlog")) {
-      return { status: "published", isApproved: true };
-    }
-    return { status: "pending", isApproved: false };
-  }
-
-  if (asked === "rejected" || asked === "pending") {
-    if (!hasPermission(role, "approveBlog") && asked === "rejected") {
-      return { status: "draft", isApproved: false };
-    }
-    return { status: asked === "pending" ? "pending" : "rejected", isApproved: false };
-  }
-
-  return { status: "draft", isApproved: false };
+export function resolveCreateStatus(requested?: string): BlogStatus {
+  if (requested === "published") return "published";
+  return "draft";
 }
 
-/** Client status is applied only when the caller can approve posts. */
-export function resolveUpdateStatus(
-  role: UserRole,
-  requested: unknown
-): { status: BlogStatus; isApproved: boolean } | null {
-  if (!hasPermission(role, "approveBlog") || !isBlogStatus(requested)) {
-    return null;
-  }
-  if (requested === "published") return { status: "published", isApproved: true };
-  return { status: requested, isApproved: false };
-}
-
-export function resolvePublishStatus(role: UserRole): {
-  status: "published" | "pending";
-  isApproved: boolean;
+export function resolvePublishStatus(): {
+  status: "published";
   message: string;
 } {
-  if (hasPermission(role, "approveBlog")) {
-    return {
-      status: "published",
-      isApproved: true,
-      message: "Blog published successfully",
-    };
-  }
   return {
-    status: "pending",
-    isApproved: false,
-    message: "Blog submitted for approval",
+    status: "published",
+    message: "Blog published successfully",
   };
 }

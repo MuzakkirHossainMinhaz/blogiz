@@ -4,20 +4,22 @@ import { connectDB } from "../src/lib/mongodb";
 import User from "../src/models/User";
 import Blog from "../src/models/Blog";
 import Comment from "../src/models/Comment";
-import Like from "../src/models/Like";
-import Banner from "../src/models/Banner";
+import Reaction from "../src/models/Reaction";
 import BlogView from "../src/models/BlogView";
 import RoleUpgradeRequest from "../src/models/RoleUpgradeRequest";
+import MediaAsset from "../src/models/MediaAsset";
+import ModerationAction from "../src/models/ModerationAction";
 import { passwordSchema } from "../src/lib/validation";
 import { canSignIn } from "../src/lib/session-policy";
-import { bannerFixtures, blogFixtures, buildSeedUsers, commentFixtures } from "./seed-data/fixtures.mjs";
+import { blogFixtures, buildSeedUsers, commentFixtures } from "./seed-data/fixtures.mjs";
 
 const COLLECTIONS = [
+  ModerationAction,
+  MediaAsset,
   RoleUpgradeRequest,
   BlogView,
-  Like,
+  Reaction,
   Comment,
-  Banner,
   Blog,
   User,
 ] as const;
@@ -25,7 +27,6 @@ const COLLECTIONS = [
 async function truncateAll() {
   for (const model of COLLECTIONS) {
     await model.deleteMany({});
-    // Drop stale indexes (e.g. legacy likes blogId+ipAddress) and match the current schemas.
     await model.syncIndexes();
   }
 }
@@ -41,9 +42,8 @@ async function createUser(input: {
   email: string;
   password: string;
   name: string;
-  role: "superadmin" | "admin" | "author" | "user";
+  role: "admin" | "author" | "reader";
   profile: Record<string, unknown>;
-  isApproved?: boolean;
   isActive?: boolean;
   emailVerified?: boolean;
 }) {
@@ -54,25 +54,19 @@ async function createUser(input: {
     name: input.name,
     role: input.role,
     profile: input.profile,
-    isApproved: input.isApproved ?? true,
     isActive: input.isActive ?? true,
     emailVerified: input.emailVerified ?? true,
+    commentSuspended: false,
     sessionVersion: 0,
   });
 
-  const loginOk = canSignIn({
-    isActive: user.isActive,
-    role: user.role,
-    isApproved: user.isApproved,
-  });
+  const loginOk = canSignIn({ isActive: user.isActive });
   const passwordOk = await bcrypt.compare(input.password, user.password);
   if (!passwordOk) {
     throw new Error(`Password hash mismatch for ${input.email}`);
   }
-  if (input.role !== "author" || input.isApproved !== false) {
-    if (!loginOk) {
-      throw new Error(`Seeded user ${input.email} cannot sign in (flags misaligned)`);
-    }
+  if (!loginOk) {
+    throw new Error(`Seeded user ${input.email} cannot sign in (flags misaligned)`);
   }
 
   return user;
@@ -107,29 +101,17 @@ async function main() {
     email: fixtures.admin.email,
     password: adminPassword,
     name: fixtures.admin.name,
-    role: "superadmin",
+    role: "admin",
     profile: fixtures.admin.profile,
-    isApproved: true,
     isActive: true,
     emailVerified: true,
   });
-
-  const siteAdmin =
-    fixtures.siteAdmin.email.toLowerCase() === adminEmail
-      ? admin
-      : await createUser({
-          ...fixtures.siteAdmin,
-          isApproved: true,
-          isActive: true,
-          emailVerified: true,
-        });
 
   const authors = [];
   for (const author of fixtures.authors) {
     authors.push(
       await createUser({
         ...author,
-        isApproved: true,
         isActive: true,
         emailVerified: true,
       })
@@ -141,68 +123,72 @@ async function main() {
     readers.push(
       await createUser({
         ...reader,
-        isApproved: true,
         isActive: true,
         emailVerified: true,
       })
     );
   }
 
-  await createUser({
-    ...fixtures.pendingAuthor,
-    isApproved: false,
-    isActive: true,
-    emailVerified: true,
-  });
-
   const byEmail = new Map<string, typeof admin>([
     [admin.email, admin],
-    [siteAdmin.email, siteAdmin],
     ...authors.map((u) => [u.email, u] as const),
     ...readers.map((u) => [u.email, u] as const),
   ]);
 
   console.log("Seeding blogs…");
-  const blogsByKey = new Map<string, mongoose.Document & { _id: mongoose.Types.ObjectId; authorId: mongoose.Types.ObjectId }>();
+  const blogsByKey = new Map<
+    string,
+    mongoose.Document & { _id: mongoose.Types.ObjectId; authorId: mongoose.Types.ObjectId }
+  >();
   for (const fixture of blogFixtures) {
     const author = byEmail.get(fixture.authorEmail);
     if (!author) throw new Error(`Missing author ${fixture.authorEmail}`);
+    const publishedAt = fixture.status === "published" ? new Date() : null;
     const blog = await Blog.create({
       title: fixture.title,
       description: fixture.description,
       content: fixture.content,
-      author_name: author.profile?.fullName || author.name,
+      authorName: author.profile?.fullName || author.name,
       authorId: author._id,
       createdBy: author._id,
-      blog_image: fixture.blog_image,
+      thumbnail: fixture.thumbnail,
+      thumbnailSource: fixture.thumbnailSource || "upload",
       status: fixture.status,
-      isApproved: fixture.isApproved,
-      publish_date: fixture.status === "published" ? new Date() : undefined,
-      approvedBy: fixture.isApproved ? siteAdmin._id : undefined,
-      approvedAt: fixture.isApproved ? new Date() : undefined,
+      publishedAt,
       tags: fixture.tags,
       readingTime: fixture.readingTime,
-      total_likes: 0,
-      total_dislikes: 0,
-      total_comments: 0,
-      total_views: 0,
+      totalLikes: 0,
+      totalDislikes: 0,
+      totalComments: 0,
+      totalViews: 0,
     });
     blogsByKey.set(fixture.key, blog as never);
   }
 
   console.log("Seeding comments…");
+  const rootComments: mongoose.Types.ObjectId[] = [];
   for (const fixture of commentFixtures) {
     const blog = blogsByKey.get(fixture.blogKey);
     const user = byEmail.get(fixture.authorEmail);
     if (!blog || !user) continue;
-    await Comment.create({
+
+    const parentId =
+      typeof fixture.replyToIndex === "number" ? rootComments[fixture.replyToIndex] || null : null;
+
+    const comment = await Comment.create({
       blogId: blog._id,
       userId: user._id,
       content: fixture.content,
-      isApproved: fixture.isApproved,
+      parentId,
+      isVisible: fixture.isVisible !== false,
     });
-    if (fixture.isApproved) {
-      await Blog.updateOne({ _id: blog._id }, { $inc: { total_comments: 1 } });
+
+    if (!parentId) {
+      rootComments.push(comment._id as mongoose.Types.ObjectId);
+    }
+
+    if (fixture.isVisible !== false) {
+      await Blog.updateOne({ _id: blog._id }, { $inc: { totalComments: 1 } });
     }
   }
 
@@ -210,39 +196,31 @@ async function main() {
   const indigo = blogsByKey.get("indigo-craft");
   const multi = blogsByKey.get("multi-author");
   if (indigo && readers[0]) {
-    await Like.create({ blogId: indigo._id, userId: readers[0]._id, type: "like" });
-    await Blog.updateOne({ _id: indigo._id }, { $inc: { total_likes: 1 } });
+    await Reaction.create({ blogId: indigo._id, userId: readers[0]._id, type: "like" });
+    await Blog.updateOne({ _id: indigo._id }, { $inc: { totalLikes: 1 } });
   }
   if (indigo && readers[1]) {
-    await Like.create({ blogId: indigo._id, userId: readers[1]._id, type: "like" });
-    await Blog.updateOne({ _id: indigo._id }, { $inc: { total_likes: 1 } });
+    await Reaction.create({ blogId: indigo._id, userId: readers[1]._id, type: "like" });
+    await Blog.updateOne({ _id: indigo._id }, { $inc: { totalLikes: 1 } });
   }
   if (multi && readers[0]) {
-    await Like.create({ blogId: multi._id, userId: readers[0]._id, type: "dislike" });
-    await Blog.updateOne({ _id: multi._id }, { $inc: { total_dislikes: 1 } });
+    await Reaction.create({ blogId: multi._id, userId: readers[0]._id, type: "dislike" });
+    await Blog.updateOne({ _id: multi._id }, { $inc: { totalDislikes: 1 } });
   }
   if (multi && authors[0]) {
-    await Like.create({ blogId: multi._id, userId: authors[0]._id, type: "like" });
-    await Blog.updateOne({ _id: multi._id }, { $inc: { total_likes: 1 } });
-  }
-
-  console.log("Seeding banners…");
-  for (const fixture of bannerFixtures) {
-    await Banner.create({
-      ...fixture,
-      createdBy: admin._id,
-    });
+    await Reaction.create({ blogId: multi._id, userId: authors[0]._id, type: "like" });
+    await Blog.updateOne({ _id: multi._id }, { $inc: { totalLikes: 1 } });
   }
 
   console.log("Seeding views…");
   if (indigo) {
     await BlogView.create({ blogId: indigo._id, userId: readers[0]?._id, viewedAt: new Date() });
     await BlogView.create({ blogId: indigo._id, userId: readers[1]?._id, viewedAt: new Date() });
-    await Blog.updateOne({ _id: indigo._id }, { $inc: { total_views: 2 } });
+    await Blog.updateOne({ _id: indigo._id }, { $inc: { totalViews: 2 } });
   }
   if (multi && readers[0]) {
     await BlogView.create({ blogId: multi._id, userId: readers[0]._id, viewedAt: new Date() });
-    await Blog.updateOne({ _id: multi._id }, { $inc: { total_views: 1 } });
+    await Blog.updateOne({ _id: multi._id }, { $inc: { totalViews: 1 } });
   }
 
   console.log("Seeding role upgrade request…");
@@ -250,7 +228,7 @@ async function main() {
     await RoleUpgradeRequest.create({
       userId: readers[1]._id,
       requestedRole: "author",
-      currentRole: "user",
+      currentRole: "reader",
       reason: "I want to publish short essays about independent software.",
       status: "pending",
     });
@@ -258,30 +236,28 @@ async function main() {
 
   console.log("Verifying admin login flags…");
   const reloaded = await User.findOne({ email: adminEmail }).lean();
-  if (!reloaded || !(await bcrypt.compare(adminPassword, reloaded.password as string)) || !canSignIn(reloaded as never)) {
+  if (!reloaded || !(await bcrypt.compare(adminPassword, reloaded.password as string)) || !canSignIn(reloaded)) {
     throw new Error("Post-seed admin login check failed");
   }
-  if (reloaded.role !== "superadmin" || !reloaded.isActive || !reloaded.isApproved || !reloaded.emailVerified) {
-    throw new Error("Post-seed admin flags are not aligned (role/isActive/isApproved/emailVerified)");
+  if (reloaded.role !== "admin" || !reloaded.isActive || !reloaded.emailVerified) {
+    throw new Error("Post-seed admin flags are not aligned (role/isActive/emailVerified)");
   }
 
-  const [userCount, blogCount, commentCount, likeCount, bannerCount, viewCount, upgradeCount] = await Promise.all([
+  const [userCount, blogCount, commentCount, reactionCount, viewCount, upgradeCount] = await Promise.all([
     User.countDocuments(),
     Blog.countDocuments(),
     Comment.countDocuments(),
-    Like.countDocuments(),
-    Banner.countDocuments(),
+    Reaction.countDocuments(),
     BlogView.countDocuments(),
     RoleUpgradeRequest.countDocuments(),
   ]);
 
-  console.log(`Seed complete. Superadmin: ${adminEmail}`);
+  console.log(`Seed complete. Admin: ${adminEmail}`);
   console.log("Sign in at /auth/login (requires REDIS_URL for rate limiting).");
   console.log(
-    `Counts — users: ${userCount}, blogs: ${blogCount}, comments: ${commentCount}, likes: ${likeCount}, banners: ${bannerCount}, views: ${viewCount}, upgrades: ${upgradeCount}`
+    `Counts — users: ${userCount}, blogs: ${blogCount}, comments: ${commentCount}, reactions: ${reactionCount}, views: ${viewCount}, upgrades: ${upgradeCount}`
   );
 
-  // Do not await disconnect — open pool handles can hang Node exit in scripts.
   void mongoose.disconnect().catch(() => undefined);
   process.exit(0);
 }

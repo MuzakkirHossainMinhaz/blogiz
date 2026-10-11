@@ -29,7 +29,7 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
         <header className="mb-8 md:mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium bg-primary-50 text-primary-800 border border-primary-100 mb-4">
             <FiCalendar className="w-3.5 h-3.5 shrink-0" />
-            <span>{formatDate(blog.publish_date || blog.createdAt)}</span>
+            <span>{formatDate(blog.publishedAt || blog.createdAt)}</span>
           </div>
 
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-ink mb-6 leading-tight tracking-tight break-words">
@@ -38,17 +38,17 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
 
           <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 mb-2">
             <div className="flex items-center gap-3">
-              <UserAvatar src={authorAvatarUrl(blog.authorId)} name={blog.author_name} size="lg" />
+              <UserAvatar src={authorAvatarUrl(blog.authorId)} name={blog.authorName} size="lg" />
               <div className="text-left min-w-0">
                 {profileId ? (
                   <Link
                     href={ROUTES.AUTHOR(profileId)}
                     className="font-semibold text-ink hover:text-primary-600 break-words"
                   >
-                    {blog.author_name}
+                    {blog.authorName}
                   </Link>
                 ) : (
-                  <p className="font-semibold text-ink break-words">{blog.author_name}</p>
+                  <p className="font-semibold text-ink break-words">{blog.authorName}</p>
                 )}
                 <p className="text-sm text-accent-500">Author</p>
               </div>
@@ -57,11 +57,11 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
         </header>
       </FadeIn>
 
-      {blog.blog_image && isCloudinaryDeliveryUrl(blog.blog_image) && (
+      {blog.thumbnail && isCloudinaryDeliveryUrl(blog.thumbnail) && (
         <FadeIn delay={0.06}>
           <figure className="mb-8 md:mb-10 rounded-2xl overflow-hidden shadow-soft border border-neutral-200/80">
             <Image
-              src={blog.blog_image}
+              src={blog.thumbnail}
               width={1200}
               height={600}
               alt={blog.title}
@@ -84,8 +84,8 @@ export function BlogDetailClient({ blog }: BlogDetailClientProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-neutral-200 bg-surface/95 backdrop-blur-md shadow-soft p-3 sm:p-4 sm:border-0 sm:bg-transparent sm:shadow-none sm:backdrop-blur-none sm:p-0">
           <ReactionButtons
             blogId={blog._id}
-            initialLikes={blog.total_likes}
-            initialDislikes={blog.total_dislikes ?? 0}
+            initialLikes={blog.totalLikes}
+            initialDislikes={blog.totalDislikes ?? 0}
             size="md"
             showSignInHint
           />

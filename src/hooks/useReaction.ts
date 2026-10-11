@@ -30,8 +30,8 @@ export function useReaction(blogId: string, initialLikes = 0, initialDislikes = 
       .then((result) => {
         if (cancelled) return;
         setCurrent(result.reaction);
-        setLikes(result.total_likes);
-        setDislikes(result.total_dislikes);
+        setLikes(result.totalLikes);
+        setDislikes(result.totalDislikes);
       })
       .catch(() => undefined);
     return () => {
@@ -47,8 +47,8 @@ export function useReaction(blogId: string, initialLikes = 0, initialDislikes = 
       try {
         const result = await setReaction(blogId, next);
         setCurrent(result.reaction);
-        setLikes(result.total_likes);
-        setDislikes(result.total_dislikes);
+        setLikes(result.totalLikes);
+        setDislikes(result.totalDislikes);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not save reaction");
       } finally {

@@ -34,7 +34,7 @@ describe("full database seed", () => {
 
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
-  }, 120_000);
+  }, 300_000);
 
   afterAll(async () => {
     await mongoose.disconnect().catch(() => undefined);
@@ -62,32 +62,27 @@ describe("full database seed", () => {
     const users = db.collection("users");
     const blogs = db.collection("blogs");
     const comments = db.collection("comments");
-    const likes = db.collection("likes");
-    const banners = db.collection("banners");
+    const reactions = db.collection("reactions");
     const views = db.collection("blogviews");
     const upgrades = db.collection("roleupgraderequests");
 
-    expect(await users.countDocuments()).toBeGreaterThanOrEqual(6);
-    expect(await blogs.countDocuments()).toBeGreaterThanOrEqual(4);
+    expect(await users.countDocuments()).toBeGreaterThanOrEqual(5);
+    expect(await blogs.countDocuments()).toBeGreaterThanOrEqual(3);
     expect(await comments.countDocuments()).toBeGreaterThanOrEqual(2);
-    expect(await likes.countDocuments()).toBeGreaterThanOrEqual(2);
-    expect(await banners.countDocuments()).toBeGreaterThanOrEqual(1);
+    expect(await reactions.countDocuments()).toBeGreaterThanOrEqual(2);
     expect(await views.countDocuments()).toBeGreaterThanOrEqual(1);
     expect(await upgrades.countDocuments()).toBeGreaterThanOrEqual(1);
+    expect(await db.collection("banners").countDocuments()).toBe(0);
 
     const admin = await users.findOne({ email: adminEmail });
     expect(admin).toBeTruthy();
-    expect(admin?.role).toBe("superadmin");
+    expect(admin?.role).toBe("admin");
     expect(admin?.isActive).toBe(true);
-    expect(admin?.isApproved).toBe(true);
     expect(admin?.emailVerified).toBe(true);
     expect(await bcrypt.compare(adminPassword, admin!.password as string)).toBe(true);
-    expect(
-      canSignIn({
-        isActive: Boolean(admin?.isActive),
-        role: admin?.role as "superadmin",
-        isApproved: Boolean(admin?.isApproved),
-      })
-    ).toBe(true);
+    expect(canSignIn({ isActive: Boolean(admin?.isActive) })).toBe(true);
+
+    const roles = await users.distinct("role");
+    expect(roles.sort()).toEqual(["admin", "author", "reader"]);
   }, 120_000);
 });

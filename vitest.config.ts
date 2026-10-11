@@ -6,7 +6,7 @@ export default defineConfig({
     environment: "node",
     fileParallelism: false,
     testTimeout: 60_000,
-    hookTimeout: 120_000,
+    hookTimeout: 600_000,
     env: {
       AUTH_SECRET: "test-secret-not-for-production",
       AUTH_URL: "http://localhost:3000",

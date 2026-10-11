@@ -33,15 +33,15 @@ const sections = [
     title: "Create an account",
     content: (
       <p>
-        Register as a reader or author from{" "}
+        Register as a reader from{" "}
         <Link
           href="/auth/register"
           className="font-medium text-primary-700 hover:text-primary-800 underline-offset-2 hover:underline"
         >
           Create account
         </Link>
-        . New accounts verify email before uploads and other verified actions. Authors also need an admin to approve the
-        account before they can sign in.
+        . New accounts verify email before uploads and other verified actions. Readers can later request an author
+        upgrade from Settings.
       </p>
     ),
   },
@@ -50,8 +50,8 @@ const sections = [
     title: "Become an author",
     content: (
       <p>
-        Readers can request an upgrade from Dashboard → Settings. An admin or superadmin reviews the request. Until
-        approval, you keep reading and reacting as a regular user.
+        Readers can request an upgrade from Dashboard → Settings. An admin reviews the request. Until approval, you keep
+        reading and reacting as a reader.
       </p>
     ),
   },
@@ -60,9 +60,8 @@ const sections = [
     title: "Drafting and publishing",
     content: (
       <p>
-        Authors write from the dashboard. Asking to publish marks a post pending until someone with approval rights
-        reviews it. Admins and superadmins can publish without that wait. Comments from regular users also need approval
-        before they appear publicly.
+        Authors write from the dashboard and can save drafts or publish directly. Comments appear when visible; admins
+        and post authors can hide or delete them when needed.
       </p>
     ),
   },

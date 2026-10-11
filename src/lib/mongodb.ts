@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { requireMongoUri } from "@/lib/env";
-import { backfillMissingLikeTypes } from "@/lib/engagement";
-import Like from "@/models/Like";
+import Reaction from "@/models/Reaction";
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -20,17 +19,15 @@ if (!global.mongoose) {
 }
 
 /** Runs once per process after a successful connect. Cached reconnects skip it. */
-let likeCollectionReadyPromise: Promise<void> | null = null;
+let reactionIndexesReadyPromise: Promise<void> | null = null;
 
-async function ensureLikeCollectionReady(): Promise<void> {
-  if (!likeCollectionReadyPromise) {
-    likeCollectionReadyPromise = (async () => {
-      // Remove legacy unique indexes such as blogId+ipAddress that break multi-user reactions.
-      await Like.syncIndexes();
-      await backfillMissingLikeTypes();
+async function ensureReactionIndexesReady(): Promise<void> {
+  if (!reactionIndexesReadyPromise) {
+    reactionIndexesReadyPromise = (async () => {
+      await Reaction.syncIndexes();
     })();
   }
-  await likeCollectionReadyPromise;
+  await reactionIndexesReadyPromise;
 }
 
 export async function connectDB() {
@@ -58,6 +55,6 @@ export async function connectDB() {
     throw error;
   }
 
-  await ensureLikeCollectionReady();
+  await ensureReactionIndexesReady();
   return cached.conn;
 }

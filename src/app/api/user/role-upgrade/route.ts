@@ -6,7 +6,6 @@ import { denied, requireUser } from "@/lib/authz";
 import { isDuplicateKey } from "@/lib/engagement";
 import { jsonError, serverError } from "@/lib/http";
 
-// POST /api/user/role-upgrade - Request role upgrade
 export async function POST(request: NextRequest) {
   try {
     const actor = await requireUser();
@@ -16,72 +15,38 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const userId = actor.id;
-    const body = await request.json();
-    const { requestedRole, reason } = body;
+    const body = await request.json().catch(() => null);
+    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
 
-    if (!requestedRole || !reason) {
-      return NextResponse.json(
-        { error: "Requested role and reason are required" },
-        { status: 400 }
-      );
+    if (!reason || reason.length > 1000) {
+      return jsonError("Reason is required", 400);
     }
 
-    if (!["author", "admin"].includes(requestedRole)) {
-      return NextResponse.json(
-        { error: "Invalid requested role" },
-        { status: 400 }
-      );
-    }
-
-    // Get current user
     const user = await User.findById(userId);
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return jsonError("User not found", 404);
     }
 
-    // Validate role upgrade path
-    if (requestedRole === "author" && user.role !== "user") {
-      return NextResponse.json(
-        { error: "Only users can request author role" },
-        { status: 400 }
-      );
+    if (user.role !== "reader") {
+      return jsonError("Only readers can request author role", 400);
     }
 
-    if (requestedRole === "admin" && user.role !== "author") {
-      return NextResponse.json(
-        { error: "Only authors can request admin role" },
-        { status: 400 }
-      );
-    }
-
-    // The guards above leave only user→author and author→admin. Mongoose's
-    // create() input is narrower than User.role, so record that pair explicitly.
-    const currentRole: "user" | "author" = requestedRole === "author" ? "user" : "author";
-
-    // Check if there's already a pending request
     const existingRequest = await RoleUpgradeRequest.findOne({
       userId,
       status: "pending",
     });
 
     if (existingRequest) {
-      return NextResponse.json(
-        { error: "You already have a pending role upgrade request" },
-        { status: 409 }
-      );
+      return jsonError("You already have a pending role upgrade request", 409);
     }
 
-    // Create role upgrade request
     let upgradeRequest;
     try {
       upgradeRequest = await RoleUpgradeRequest.create({
         userId,
-        requestedRole,
-        currentRole,
-        reason: reason.trim(),
+        requestedRole: "author",
+        currentRole: "reader",
+        reason,
       });
     } catch (error) {
       if (isDuplicateKey(error)) {
@@ -99,7 +64,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/user/role-upgrade - Get user's role upgrade requests
 export async function GET(request: NextRequest) {
   try {
     const actor = await requireUser();
@@ -107,9 +71,7 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const userId = actor.id;
-
-    const requests = await RoleUpgradeRequest.find({ userId })
+    const requests = await RoleUpgradeRequest.find({ userId: actor.id })
       .populate("reviewedBy", "name profile.fullName")
       .sort({ createdAt: -1 })
       .lean();

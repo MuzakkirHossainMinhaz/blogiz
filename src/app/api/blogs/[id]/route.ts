@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
-import Like from "@/models/Like";
+import Reaction from "@/models/Reaction";
 import Comment from "@/models/Comment";
 import BlogView from "@/models/BlogView";
+import ModerationAction from "@/models/ModerationAction";
 import { denied, requirePermission, requireUser } from "@/lib/authz";
 import { withOptionalTransaction } from "@/lib/engagement";
 import { jsonError, serverError } from "@/lib/http";
 import { canPerformAction } from "@/lib/permissions";
-import { PUBLIC_AUTHOR_FIELDS, canViewPost, resolveUpdateStatus } from "@/lib/public-posts";
+import { PUBLIC_AUTHOR_FIELDS, canViewPost, isBlogStatus } from "@/lib/public-posts";
 import { deleteStoredImage } from "@/lib/object-storage";
 import { UploadError } from "@/lib/uploads";
 import { isStoredImageUrl } from "@/lib/urls";
@@ -17,6 +18,10 @@ import { blogWriteSchema } from "@/lib/validation";
 
 function invalidId() {
   return jsonError("Invalid blog ID", 400);
+}
+
+function ownerId(blog: { authorId: { toString(): string }; createdBy: { toString(): string } }) {
+  return blog.authorId.toString();
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,10 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     await connectDB();
 
-    const blog = await Blog.findById(id)
-      .populate("authorId", PUBLIC_AUTHOR_FIELDS)
-      .populate("approvedBy", "name profile.fullName")
-      .lean();
+    const blog = await Blog.findById(id).populate("authorId", PUBLIC_AUTHOR_FIELDS).lean();
 
     if (!blog || !canViewPost(blog, viewer)) {
       return jsonError("Blog not found", 404);
@@ -58,7 +60,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!existingBlog) return jsonError("Blog not found", 404);
 
     const canEdit =
-      canPerformAction(actor.role, "editOwnBlog", existingBlog.createdBy.toString(), actor.id) ||
+      canPerformAction(actor.role, "editOwnBlog", ownerId(existingBlog), actor.id) ||
       canPerformAction(actor.role, "editAnyBlog");
     if (!canEdit) return jsonError("Forbidden", 403);
 
@@ -66,39 +68,57 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const parsed = blogWriteSchema.partial().safeParse(body);
     if (!parsed.success) return jsonError("Invalid input", 400);
 
-    const { title, description, content, author_name, blog_image, publish_date } = parsed.data;
+    const { title, description, content, authorName, thumbnail, thumbnailPublicId, thumbnailSource, tags } =
+      parsed.data;
     let nextImage: string | undefined;
-    if (blog_image !== undefined) {
-      nextImage = blog_image.trim();
+    if (thumbnail !== undefined) {
+      nextImage = thumbnail.trim();
       if (nextImage && !isStoredImageUrl(nextImage)) {
         return jsonError("Image must be an uploaded file", 400);
       }
-      if (existingBlog.blog_image && existingBlog.blog_image !== nextImage) {
-        await deleteStoredImage(existingBlog.blog_image);
+      if (existingBlog.thumbnail && existingBlog.thumbnail !== nextImage) {
+        await deleteStoredImage(existingBlog.thumbnail);
       }
     }
 
-    const statusUpdate = resolveUpdateStatus(actor.role, body.status);
+    const updates: Record<string, unknown> = {
+      ...(title && { title }),
+      ...(description && { description }),
+      ...(content && { content }),
+      ...(authorName && { authorName }),
+      ...(nextImage !== undefined && { thumbnail: nextImage }),
+      ...(thumbnailPublicId !== undefined && { thumbnailPublicId }),
+      ...(thumbnailSource && { thumbnailSource }),
+      ...(tags && { tags }),
+    };
 
-    const updatedBlog = await Blog.findByIdAndUpdate(
-      id,
-      {
-        ...(title && { title }),
-        ...(description && { description }),
-        ...(content && { content }),
-        ...(author_name && { author_name }),
-        ...(nextImage !== undefined && { blog_image: nextImage }),
-        ...(publish_date && { publish_date }),
-        ...(statusUpdate
-          ? {
-              status: statusUpdate.status,
-              isApproved: statusUpdate.isApproved,
-              ...(statusUpdate.isApproved ? { approvedBy: actor.id, approvedAt: new Date() } : {}),
-            }
-          : {}),
-      },
-      { returnDocument: "after", runValidators: true }
-    );
+    if (content) {
+      const wordCount = content.split(/\s+/).filter(Boolean).length;
+      updates.readingTime = Math.max(1, Math.ceil(wordCount / 200));
+    }
+
+    if (isBlogStatus(body.status)) {
+      updates.status = body.status;
+      if (body.status === "published") {
+        updates.publishedAt = existingBlog.publishedAt || new Date();
+      }
+      if (
+        body.status === "draft" &&
+        existingBlog.status === "published" &&
+        canPerformAction(actor.role, "editAnyBlog")
+      ) {
+        await ModerationAction.create({
+          actorId: actor.id,
+          subjectBlogId: id,
+          action: "unpublish_blog",
+        });
+      }
+    }
+
+    const updatedBlog = await Blog.findByIdAndUpdate(id, updates, {
+      returnDocument: "after",
+      runValidators: true,
+    });
 
     return NextResponse.json({
       message: "Blog updated successfully",
@@ -124,17 +144,33 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!existingBlog) return jsonError("Blog not found", 404);
 
     const canDelete =
-      canPerformAction(actor.role, "deleteOwnBlog", existingBlog.createdBy.toString(), actor.id) ||
+      canPerformAction(actor.role, "deleteOwnBlog", ownerId(existingBlog), actor.id) ||
       canPerformAction(actor.role, "deleteAnyBlog");
     if (!canDelete) return jsonError("Forbidden", 403);
 
-    await deleteStoredImage(existingBlog.blog_image);
+    if (existingBlog.thumbnail) {
+      await deleteStoredImage(existingBlog.thumbnail);
+    }
+
+    const isAdminDelete = canPerformAction(actor.role, "deleteAnyBlog") && ownerId(existingBlog) !== actor.id;
 
     await withOptionalTransaction(async (session) => {
-      await Like.deleteMany({ blogId: id }, { session: session ?? undefined });
+      await Reaction.deleteMany({ blogId: id }, { session: session ?? undefined });
       await Comment.deleteMany({ blogId: id }, { session: session ?? undefined });
       await BlogView.deleteMany({ blogId: id }, { session: session ?? undefined });
       await Blog.findByIdAndDelete(id, { session: session ?? undefined });
+      if (isAdminDelete) {
+        await ModerationAction.create(
+          [
+            {
+              actorId: actor.id,
+              subjectBlogId: id,
+              action: "delete_blog",
+            },
+          ],
+          { session: session ?? undefined }
+        );
+      }
     });
 
     return NextResponse.json({

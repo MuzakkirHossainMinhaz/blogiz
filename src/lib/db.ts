@@ -1,6 +1,6 @@
 /**
  * Server-only database access functions.
- * Public reads go through the shared published + approved filter.
+ * Public reads go through the shared published filter.
  */
 
 import BlogModel from "@/models/Blog";
@@ -26,13 +26,13 @@ export interface PublicAuthorBlog {
   _id: string;
   title: string;
   description: string;
-  author_name: string;
-  blog_image?: string;
-  publish_date?: string;
+  authorName: string;
+  thumbnail?: string;
+  publishedAt?: string;
   tags?: string[];
   readingTime?: number;
-  total_likes: number;
-  total_dislikes: number;
+  totalLikes: number;
+  totalDislikes: number;
 }
 
 export interface PublicAuthorProfile {
@@ -81,7 +81,7 @@ export async function getBlogsPage(paging: PageQuery): Promise<{
     BlogModel.find(filter)
       .select(PUBLIC_CARD_FIELDS)
       .populate("authorId", PUBLIC_AUTHOR_FIELDS)
-      .sort({ publish_date: -1 })
+      .sort({ publishedAt: -1 })
       .skip(skip)
       .limit(safeLimit)
       .lean(),
@@ -121,7 +121,7 @@ export async function getPublicAuthorProfile(
   const [blogs, total] = await Promise.all([
     BlogModel.find(filter)
       .select(PUBLIC_PROFILE_BLOG_FIELDS)
-      .sort({ publish_date: -1 })
+      .sort({ publishedAt: -1 })
       .skip(paging.skip)
       .limit(paging.limit)
       .lean(),
@@ -153,13 +153,13 @@ export async function getPublicAuthorProfile(
       _id: blog._id,
       title: blog.title,
       description: blog.description,
-      author_name: blog.author_name,
-      blog_image: blog.blog_image,
-      publish_date: blog.publish_date,
+      authorName: blog.authorName,
+      thumbnail: blog.thumbnail,
+      publishedAt: blog.publishedAt,
       tags: blog.tags,
       readingTime: blog.readingTime,
-      total_likes: blog.total_likes ?? 0,
-      total_dislikes: blog.total_dislikes ?? 0,
+      totalLikes: blog.totalLikes ?? 0,
+      totalDislikes: blog.totalDislikes ?? 0,
     })),
     pagination: {
       page: paging.page,

@@ -1,5 +1,3 @@
-import { huggingFaceAI } from "@/lib/huggingface";
-import { huggingFaceConfigured } from "@/lib/ai-provider";
 import { connectDB } from "@/lib/mongodb";
 import { denied, requirePermission, requireUser } from "@/lib/authz";
 import { jsonError, serverError } from "@/lib/http";
@@ -35,7 +33,7 @@ export async function GET(request: NextRequest) {
       query.$or = [
         { title: { $regex: pattern, $options: "i" } },
         { description: { $regex: pattern, $options: "i" } },
-        { author_name: { $regex: pattern, $options: "i" } },
+        { authorName: { $regex: pattern, $options: "i" } },
       ];
     }
 
@@ -43,7 +41,7 @@ export async function GET(request: NextRequest) {
       Blog.find(query)
         .select(PUBLIC_CARD_FIELDS)
         .populate("authorId", PUBLIC_AUTHOR_FIELDS)
-        .sort({ publish_date: -1, updatedAt: -1 })
+        .sort({ publishedAt: -1, updatedAt: -1 })
         .skip(paging.skip)
         .limit(paging.limit)
         .lean(),
@@ -78,58 +76,42 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid input", 400);
     }
 
-    const { title, description, content, author_name, blog_image, status, publish_date, tags, enableAI } = parsed.data;
+    const { title, description, content, authorName, thumbnail, thumbnailPublicId, thumbnailSource, status, tags } =
+      parsed.data;
 
-    if (blog_image && !isStoredImageUrl(blog_image)) {
+    if (thumbnail && !isStoredImageUrl(thumbnail)) {
       return jsonError("Image must be an uploaded file", 400);
     }
 
-    const finalStatus = resolveCreateStatus(actor.role, status);
+    const finalStatus = resolveCreateStatus(status);
     const wordCount = content.split(/\s+/).filter(Boolean).length;
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
-
-    let aiAnalysis: Record<string, unknown> | undefined;
-    if (enableAI && huggingFaceConfigured()) {
-      try {
-        const finalTags = tags?.length ? tags : await huggingFaceAI.generateTags(content);
-        const seo = await huggingFaceAI.generateSEOMetadata(title, content);
-        const summary = await huggingFaceAI.generateBlogSummary(content);
-        const sentiment = await huggingFaceAI.analyzeSentiment(content);
-        if (!finalTags.length && !summary) {
-          return jsonError("Writing assistant is unavailable", 502);
-        }
-        aiAnalysis = { tags: finalTags, seo, summary, sentiment, readingTime, wordCount };
-      } catch (error) {
-        console.error("AI analysis failed:", error);
-        return jsonError("Writing assistant is unavailable", 502);
-      }
-    }
+    const now = new Date();
 
     const blog = await Blog.create({
       title,
       description,
       content,
-      author_name,
+      authorName,
       authorId: actor.id,
-      ...(blog_image ? { blog_image } : {}),
-      status: finalStatus.status,
-      isApproved: finalStatus.isApproved,
-      ...(finalStatus.isApproved ? { approvedBy: actor.id, approvedAt: new Date() } : {}),
-      publish_date: publish_date ? new Date(publish_date) : new Date(),
-      tags: (aiAnalysis?.tags as string[] | undefined) || tags || [],
+      ...(thumbnail ? { thumbnail } : {}),
+      ...(thumbnailPublicId ? { thumbnailPublicId } : {}),
+      thumbnailSource: thumbnailSource || (thumbnail ? "upload" : "none"),
+      status: finalStatus,
+      publishedAt: finalStatus === "published" ? now : null,
+      tags: tags || [],
       readingTime,
       createdBy: actor.id,
-      total_likes: 0,
-      total_dislikes: 0,
-      total_comments: 0,
-      total_views: 0,
+      totalLikes: 0,
+      totalDislikes: 0,
+      totalComments: 0,
+      totalViews: 0,
     });
 
     return NextResponse.json(
       {
-        message: finalStatus.status === "pending" ? "Blog submitted for approval" : "Blog created successfully",
+        message: finalStatus === "published" ? "Blog published successfully" : "Draft saved successfully",
         blog,
-        ...(aiAnalysis ? { aiAnalysis } : {}),
       },
       { status: 201 }
     );

@@ -8,8 +8,8 @@ export interface AuthContext {
   role: UserRole;
   email: string;
   name: string;
-  isApproved: boolean;
   emailVerified: boolean;
+  commentSuspended: boolean;
 }
 
 export function denied(result: AuthContext | NextResponse): result is NextResponse {
@@ -28,14 +28,14 @@ export async function requireUser(): Promise<AuthContext | NextResponse> {
     role: user.role,
     email: user.email || "",
     name: user.name || "",
-    isApproved: Boolean(user.isApproved),
     emailVerified: Boolean(user.emailVerified),
+    commentSuspended: Boolean(user.commentSuspended),
   };
 }
 
 /**
  * Single permission check for route handlers.
- * Authors must be approved before any permitted write. Pass verified for privileged actions.
+ * Pass verified for privileged actions (uploads, AI).
  */
 export async function requirePermission(
   permission: keyof Permission["can"],
@@ -46,10 +46,6 @@ export async function requirePermission(
 
   if (!hasPermission(actor.role, permission)) {
     return jsonError("Insufficient permissions", 403);
-  }
-
-  if (actor.role === "author" && !actor.isApproved) {
-    return jsonError("Author account is not approved", 403);
   }
 
   if (options?.verified && !actor.emailVerified) {

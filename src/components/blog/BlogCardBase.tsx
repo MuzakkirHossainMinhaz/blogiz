@@ -33,7 +33,7 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
       <figure className="relative overflow-hidden">
         <Link href={ROUTES.BLOG_DETAIL(blog._id)}>
           <Image
-            src={blog.blog_image && isCloudinaryDeliveryUrl(blog.blog_image) ? blog.blog_image : "/placeholder-blog.jpg"}
+            src={blog.thumbnail && isCloudinaryDeliveryUrl(blog.thumbnail) ? blog.thumbnail : "/placeholder-blog.jpg"}
             width={600}
             height={isFeatured ? 400 : 300}
             alt={blog.title}
@@ -54,7 +54,7 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
         {/* Date Badge */}
         <Badge variant="accent" size="sm" className="w-fit mb-3">
           <FiCalendar className="w-3 h-3" />
-          <span>{formatDate(blog.publish_date || blog.createdAt)}</span>
+          <span>{formatDate(blog.publishedAt || blog.createdAt)}</span>
         </Badge>
 
         {/* Title */}
@@ -99,20 +99,20 @@ export function BlogCardBase({ blog, variant = "default", className }: BlogCardB
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-neutral-100">
           {/* Author */}
           <div className="flex items-center gap-2 min-w-0">
-            <UserAvatar src={authorAvatarUrl(blog.authorId)} name={blog.author_name} size="sm" />
+            <UserAvatar src={authorAvatarUrl(blog.authorId)} name={blog.authorName} size="sm" />
             {profileId ? (
               <Link href={ROUTES.AUTHOR(profileId)} className="text-sm text-neutral-700 font-medium hover:text-primary-600 truncate">
-                {blog.author_name}
+                {blog.authorName}
               </Link>
             ) : (
-              <span className="text-sm text-neutral-700 font-medium truncate">{blog.author_name}</span>
+              <span className="text-sm text-neutral-700 font-medium truncate">{blog.authorName}</span>
             )}
           </div>
 
           <ReactionButtons
             blogId={blog._id}
-            initialLikes={blog.total_likes}
-            initialDislikes={blog.total_dislikes ?? 0}
+            initialLikes={blog.totalLikes}
+            initialDislikes={blog.totalDislikes ?? 0}
             size="sm"
           />
         </div>

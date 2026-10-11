@@ -7,7 +7,7 @@ import { parsePageLimit } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
-    const actor = await requirePermission("changeUserRole", { verified: true });
+    const actor = await requirePermission("reviewRoleUpgrades", { verified: true });
     if (denied(actor)) return actor;
 
     const { searchParams } = new URL(request.url);

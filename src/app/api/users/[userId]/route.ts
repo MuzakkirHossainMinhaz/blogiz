@@ -12,7 +12,7 @@ import Blog from "@/models/Blog";
 import BlogView from "@/models/BlogView";
 import User from "@/models/User";
 import Comment from "@/models/Comment";
-import Like from "@/models/Like";
+import Reaction from "@/models/Reaction";
 import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
 
 // GET /api/users/[userId] - Get user profile (public information)
@@ -111,6 +111,10 @@ export async function PUT(
           return jsonError("Avatar must be an uploaded image", 400);
         }
         updateData["profile.avatar"] = nextAvatar;
+        if (profile.avatarPublicId !== undefined) {
+          updateData["profile.avatarPublicId"] =
+            typeof profile.avatarPublicId === "string" ? profile.avatarPublicId : "";
+        }
         const previous = existingUser.profile?.avatar || "";
         if (previous && previous !== nextAvatar) {
           await deleteStoredImage(previous);
@@ -175,9 +179,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!matches) return jsonError("Invalid input", 400);
 
     await Promise.all([
-      Blog.updateMany({ createdBy: userId }, { status: "draft", isApproved: false }),
+      Blog.updateMany({ authorId: userId }, { status: "draft" }),
       Comment.deleteMany({ userId }),
-      Like.deleteMany({ userId }),
+      Reaction.deleteMany({ userId }),
       BlogView.deleteMany({ userId }),
       RoleUpgradeRequest.deleteMany({ userId }),
     ]);

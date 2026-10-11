@@ -10,8 +10,8 @@ declare module "next-auth" {
       email?: string | null;
       name?: string | null;
       avatar?: string | null;
-      isApproved?: boolean;
       emailVerified?: boolean;
+      commentSuspended?: boolean;
     };
   }
 
@@ -19,8 +19,8 @@ declare module "next-auth" {
     id: string;
     role: UserRole;
     sessionVersion?: number;
-    isApproved?: boolean;
     avatar?: string | null;
+    commentSuspended?: boolean;
   }
 }
 
@@ -29,9 +29,9 @@ declare module "next-auth/jwt" {
     id?: string;
     role?: UserRole;
     sessionVersion?: number;
-    isApproved?: boolean;
     emailVerified?: boolean;
     avatar?: string;
+    commentSuspended?: boolean;
     invalid?: boolean;
   }
 }

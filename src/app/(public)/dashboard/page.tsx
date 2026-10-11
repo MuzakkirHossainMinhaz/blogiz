@@ -19,7 +19,6 @@ import {
   FiHeart,
   FiPlusCircle,
   FiUserCheck,
-  FiUsers,
 } from "react-icons/fi";
 
 interface DashboardStats {
@@ -32,8 +31,8 @@ interface DashboardStats {
     title: string;
     status: string;
     createdAt?: string;
-    publish_date?: string;
-    total_likes: number;
+    publishedAt?: string;
+    totalLikes: number;
   }>;
 }
 
@@ -45,15 +44,13 @@ interface ReaderDashboard {
     likedBlogsCount?: number;
   };
   activity: {
-    readBlogs?: Array<{ _id: string; title: string; author_name?: string }>;
-    likedBlogs?: Array<{ _id: string; title: string; author_name?: string }>;
+    readBlogs?: Array<{ _id: string; title: string; authorName?: string }>;
+    likedBlogs?: Array<{ _id: string; title: string; authorName?: string }>;
     recentComments?: Array<{ _id: string; content: string }>;
   };
 }
 
 interface AdminAttention {
-  pendingPosts: number | null;
-  pendingUsers: number | null;
   pendingUpgrades: number | null;
 }
 
@@ -105,10 +102,8 @@ function statusBadge(status: string) {
   const variants: Record<string, string> = {
     published: "bg-green-50 text-green-800 border-green-200",
     draft: "bg-yellow-50 text-yellow-800 border-yellow-200",
-    pending: "bg-orange-50 text-orange-800 border-orange-200",
-    rejected: "bg-red-50 text-red-800 border-red-200",
   };
-  const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : "Draft";
+  const label = status === "published" || status === "draft" ? status.charAt(0).toUpperCase() + status.slice(1) : "Draft";
 
   return (
     <span
@@ -133,14 +128,12 @@ function formatDate(dateString?: string) {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const userRole = (session?.user?.role as UserRole) || "user";
+  const userRole = (session?.user?.role as UserRole) || "reader";
   const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User";
 
   const canCreateBlog = hasPermission(userRole, "createBlog");
   const canViewAdmin = hasPermission(userRole, "viewAdminDashboard");
-  const canApproveBlog = hasPermission(userRole, "approveBlog");
-  const canViewUsers = hasPermission(userRole, "viewUsers");
-  const canChangeRole = hasPermission(userRole, "changeUserRole");
+  const canReviewUpgrades = hasPermission(userRole, "reviewRoleUpgrades");
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [reader, setReader] = useState<ReaderDashboard | null>(null);
@@ -199,75 +192,35 @@ export default function DashboardPage() {
   }, [canCreateBlog]);
 
   useEffect(() => {
-    if (!canViewAdmin) return;
+    if (!canViewAdmin || !canReviewUpgrades) return;
     let cancelled = false;
 
     (async () => {
       try {
-        const [postsRes, usersRes, upgradesRes] = await Promise.all([
-          canApproveBlog
-            ? fetch("/api/blogs?status=pending&limit=1").then((r) => r.json().then((d) => ({ ok: r.ok, d })))
-            : Promise.resolve(null),
-          canViewUsers
-            ? fetch("/api/admin/users?status=pending&limit=1").then((r) => r.json().then((d) => ({ ok: r.ok, d })))
-            : Promise.resolve(null),
-          canChangeRole
-            ? fetch("/api/admin/role-upgrades?status=pending&limit=1").then((r) =>
-                r.json().then((d) => ({ ok: r.ok, d }))
-              )
-            : Promise.resolve(null),
-        ]);
-
+        const response = await fetch("/api/admin/role-upgrades?status=pending&limit=1");
+        const data = await response.json();
         if (cancelled) return;
         setAttention({
-          pendingPosts: postsRes?.ok ? (postsRes.d.pagination?.total ?? 0) : canApproveBlog ? 0 : null,
-          pendingUsers: usersRes?.ok ? (usersRes.d.pagination?.total ?? 0) : canViewUsers ? 0 : null,
-          pendingUpgrades: upgradesRes?.ok
-            ? (upgradesRes.d.pagination?.total ?? 0)
-            : canChangeRole
-              ? 0
-              : null,
+          pendingUpgrades: response.ok ? (data.pagination?.total ?? 0) : 0,
         });
       } catch {
-        if (!cancelled) {
-          setAttention({
-            pendingPosts: canApproveBlog ? 0 : null,
-            pendingUsers: canViewUsers ? 0 : null,
-            pendingUpgrades: canChangeRole ? 0 : null,
-          });
-        }
+        if (!cancelled) setAttention({ pendingUpgrades: 0 });
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [canViewAdmin, canApproveBlog, canViewUsers, canChangeRole]);
+  }, [canViewAdmin, canReviewUpgrades]);
 
   const welcome =
-    userRole === "superadmin"
-      ? "Full platform control — users, banners, and review queues."
-      : userRole === "admin"
-        ? "Review content, manage users, and keep the public feed intentional."
-        : userRole === "author"
-          ? "Draft, publish, and track how your posts perform."
-          : "Your reading activity, likes, and upgrade path live here.";
+    userRole === "admin"
+      ? "Review role upgrades, manage users, and keep the public feed intentional."
+      : userRole === "author"
+        ? "Draft, publish, and track how your posts perform."
+        : "Your reading activity, likes, and upgrade path live here.";
 
   const attentionItems = [
-    attention?.pendingPosts != null && attention.pendingPosts > 0
-      ? {
-          label: `${attention.pendingPosts} Pending Post${attention.pendingPosts === 1 ? "" : "s"}`,
-          href: "/dashboard/admin#pending-posts",
-          icon: FiFileText,
-        }
-      : null,
-    attention?.pendingUsers != null && attention.pendingUsers > 0
-      ? {
-          label: `${attention.pendingUsers} Pending User${attention.pendingUsers === 1 ? "" : "s"}`,
-          href: "/dashboard/admin/users",
-          icon: FiUsers,
-        }
-      : null,
     attention?.pendingUpgrades != null && attention.pendingUpgrades > 0
       ? {
           label: `${attention.pendingUpgrades} Role Request${attention.pendingUpgrades === 1 ? "" : "s"}`,
@@ -277,12 +230,7 @@ export default function DashboardPage() {
       : null,
   ].filter(Boolean) as Array<{ label: string; href: string; icon: IconType }>;
 
-  const needsAttention =
-    canViewAdmin &&
-    attention &&
-    ((attention.pendingPosts ?? 0) > 0 ||
-      (attention.pendingUsers ?? 0) > 0 ||
-      (attention.pendingUpgrades ?? 0) > 0);
+  const needsAttention = canViewAdmin && attention && (attention.pendingUpgrades ?? 0) > 0;
 
   if (!canCreateBlog) {
     const liked = reader?.activity.likedBlogs || [];
@@ -337,7 +285,7 @@ export default function DashboardPage() {
                     >
                       {blog.title}
                     </Link>
-                    {blog.author_name ? <p className="text-xs text-accent-500 mt-0.5">{blog.author_name}</p> : null}
+                    {blog.authorName ? <p className="text-xs text-accent-500 mt-0.5">{blog.authorName}</p> : null}
                   </li>
                 ))}
               </ul>
@@ -470,11 +418,11 @@ export default function DashboardPage() {
                     <div className="flex flex-wrap items-center gap-3 text-sm text-accent-500">
                       <span className="inline-flex items-center gap-1">
                         <FiHeart className="w-4 h-4 text-primary-500" />
-                        {blog.total_likes}
+                        {blog.totalLikes}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <FiClock className="w-4 h-4" />
-                        {formatDate(blog.publish_date || blog.createdAt)}
+                        {formatDate(blog.publishedAt || blog.createdAt)}
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -524,13 +472,13 @@ export default function DashboardPage() {
                         <td className="px-4 lg:px-5 py-4">
                           <div className="flex items-center text-sm text-accent-600">
                             <FiHeart className="w-4 h-4 mr-1 text-primary-500" />
-                            {blog.total_likes}
+                            {blog.totalLikes}
                           </div>
                         </td>
                         <td className="px-4 lg:px-5 py-4">
                           <div className="flex items-center text-sm text-accent-600">
                             <FiClock className="w-4 h-4 mr-1" />
-                            {formatDate(blog.publish_date || blog.createdAt)}
+                            {formatDate(blog.publishedAt || blog.createdAt)}
                           </div>
                         </td>
                         <td className="px-4 lg:px-5 py-4 text-right">

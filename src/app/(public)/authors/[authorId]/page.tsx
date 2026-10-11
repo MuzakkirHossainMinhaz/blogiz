@@ -129,14 +129,14 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
                   >
                     {blog.title}
                   </Link>
-                  {blog.publish_date && (
-                    <p className="text-sm text-accent-500 mt-1">{formatDate(blog.publish_date)}</p>
+                  {blog.publishedAt && (
+                    <p className="text-sm text-accent-500 mt-1">{formatDate(blog.publishedAt)}</p>
                   )}
                   <p className="text-neutral-600 mt-2 break-words leading-relaxed">{blog.description}</p>
                   <p className="text-sm text-accent-500 mt-3">
-                    <span className="font-medium text-ink">{blog.total_likes}</span> likes
+                    <span className="font-medium text-ink">{blog.totalLikes}</span> likes
                     <span className="mx-2 text-neutral-300">·</span>
-                    <span className="font-medium text-ink">{blog.total_dislikes}</span> dislikes
+                    <span className="font-medium text-ink">{blog.totalDislikes}</span> dislikes
                   </p>
                 </li>
               ))}

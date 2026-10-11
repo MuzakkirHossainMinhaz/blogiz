@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Blog from "@/models/Blog";
 import Comment from "@/models/Comment";
-import Like from "@/models/Like";
+import Reaction from "@/models/Reaction";
 import BlogView from "@/models/BlogView";
-import Banner from "@/models/Banner";
 import { denied, requireUser } from "@/lib/authz";
 import { serverError } from "@/lib/http";
 
-// GET /api/user/dashboard - Get comprehensive user dashboard data
 export async function GET(request: NextRequest) {
   try {
     const actor = await requireUser();
@@ -19,125 +18,100 @@ export async function GET(request: NextRequest) {
 
     const userId = actor.id;
     const userRole = actor.role;
+    const objectId = new mongoose.Types.ObjectId(userId);
 
-    // Get user info
     const user = await User.findById(userId).select("-password");
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Initialize dashboard data
-    const dashboardData: any = {
+    const dashboardData: Record<string, unknown> = {
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         profile: user.profile,
-        isApproved: user.isApproved,
+        commentSuspended: user.commentSuspended,
         createdAt: user.createdAt,
       },
-      stats: {},
-      activity: {},
+      stats: {} as Record<string, unknown>,
+      activity: {} as Record<string, unknown>,
       recentActivity: [],
     };
 
-    // Common stats for all users
-    const [totalComments, totalLikes] = await Promise.all([
-      Comment.countDocuments({ userId, isApproved: true }),
-      Like.countDocuments({ userId }),
+    const stats = dashboardData.stats as Record<string, unknown>;
+    const activity = dashboardData.activity as Record<string, unknown>;
+
+    const [totalComments, totalReactions] = await Promise.all([
+      Comment.countDocuments({ userId, isVisible: true }),
+      Reaction.countDocuments({ userId }),
     ]);
 
-    dashboardData.stats.comments = totalComments;
-    dashboardData.stats.likes = totalLikes;
+    stats.comments = totalComments;
+    stats.likes = totalReactions;
 
-    // User-specific data
-    if (userRole === "user") {
-      // Get user's reading activity
+    if (userRole === "reader") {
       const viewedBlogs = await BlogView.distinct("blogId", { userId });
       const readBlogs = await Blog.find({
         _id: { $in: viewedBlogs },
         status: "published",
-        isApproved: true,
       })
-        .select("title author_name publish_date total_likes total_comments")
+        .select("title authorName publishedAt totalLikes totalComments")
         .populate("authorId", "profile.fullName profile.avatar name")
-        .sort({ publish_date: -1 })
+        .sort({ publishedAt: -1 })
         .limit(10);
 
-      dashboardData.activity.readBlogs = readBlogs;
-      dashboardData.stats.readBlogsCount = viewedBlogs.length;
+      activity.readBlogs = readBlogs;
+      stats.readBlogsCount = viewedBlogs.length;
 
-      // Get recent comments
-      const recentComments = await Comment.find({ userId, isApproved: true })
-        .populate("blogId", "title author_name")
+      const recentComments = await Comment.find({ userId, isVisible: true })
+        .populate("blogId", "title authorName")
         .sort({ createdAt: -1 })
         .limit(5);
 
-      dashboardData.activity.recentComments = recentComments;
+      activity.recentComments = recentComments;
 
-      // Get liked blogs
-      const likedBlogIds = await Like.distinct("blogId", { userId });
+      const likedBlogIds = await Reaction.distinct("blogId", { userId, type: "like" });
       const likedBlogs = await Blog.find({
         _id: { $in: likedBlogIds },
         status: "published",
-        isApproved: true,
       })
-        .select("title author_name publish_date total_likes total_comments")
-        .sort({ publish_date: -1 })
+        .select("title authorName publishedAt totalLikes totalComments")
+        .sort({ publishedAt: -1 })
         .limit(10);
 
-      dashboardData.activity.likedBlogs = likedBlogs;
-      dashboardData.stats.likedBlogsCount = likedBlogIds.length;
-
-    } else if (userRole === "author" || userRole === "admin" || userRole === "superadmin") {
-      // Author/Admin specific data
-      
-      // Blog statistics
-      const [
-        totalBlogs,
-        publishedBlogs,
-        draftBlogs,
-        pendingBlogs,
-        rejectedBlogs,
-      ] = await Promise.all([
-        Blog.countDocuments({ createdBy: userId }),
-        Blog.countDocuments({ createdBy: userId, status: "published", isApproved: true }),
-        Blog.countDocuments({ createdBy: userId, status: "draft" }),
-        Blog.countDocuments({ createdBy: userId, status: "pending" }),
-        Blog.countDocuments({ createdBy: userId, status: "rejected" }),
+      activity.likedBlogs = likedBlogs;
+      stats.likedBlogsCount = likedBlogIds.length;
+    } else if (userRole === "author" || userRole === "admin") {
+      const [totalBlogs, publishedBlogs, draftBlogs] = await Promise.all([
+        Blog.countDocuments({ authorId: userId }),
+        Blog.countDocuments({ authorId: userId, status: "published" }),
+        Blog.countDocuments({ authorId: userId, status: "draft" }),
       ]);
 
-      dashboardData.stats.blogs = {
+      stats.blogs = {
         total: totalBlogs,
         published: publishedBlogs,
         draft: draftBlogs,
-        pending: pendingBlogs,
-        rejected: rejectedBlogs,
       };
 
-      // Get blog views
-      const blogIds = await Blog.distinct("_id", { createdBy: userId });
+      const blogIds = await Blog.distinct("_id", { authorId: userId });
       const totalViews = await BlogView.countDocuments({
         blogId: { $in: blogIds },
       });
 
-      dashboardData.stats.totalViews = totalViews;
+      stats.totalViews = totalViews;
 
-      // Get recent blogs
-      const recentBlogs = await Blog.find({ createdBy: userId })
-        .select("title status publish_date total_likes total_comments readingTime isApproved")
+      const recentBlogs = await Blog.find({ authorId: userId })
+        .select("title status publishedAt totalLikes totalComments readingTime")
         .sort({ createdAt: -1 })
         .limit(5);
 
-      dashboardData.activity.recentBlogs = recentBlogs;
+      activity.recentBlogs = recentBlogs;
 
-      // Get top performing blogs
       const topBlogs = await Blog.aggregate([
-        { $match: { createdBy: userId, status: "published", isApproved: true } },
+        { $match: { authorId: objectId, status: "published" } },
         {
           $lookup: {
             from: "blogviews",
@@ -151,36 +125,33 @@ export async function GET(request: NextRequest) {
             viewCount: { $size: "$views" },
           },
         },
-        { $sort: { viewCount: -1, total_likes: -1 } },
+        { $sort: { viewCount: -1, totalLikes: -1 } },
         { $limit: 5 },
         {
           $project: {
             title: 1,
-            publish_date: 1,
-            total_likes: 1,
-            total_comments: 1,
+            publishedAt: 1,
+            totalLikes: 1,
+            totalComments: 1,
             viewCount: 1,
             readingTime: 1,
           },
         },
       ]);
 
-      dashboardData.activity.topBlogs = topBlogs;
+      activity.topBlogs = topBlogs;
 
-      // Get recent comments on user's blogs
-      const userBlogIds = await Blog.distinct("_id", { createdBy: userId });
       const recentBlogComments = await Comment.find({
-        blogId: { $in: userBlogIds },
-        isApproved: true,
+        blogId: { $in: blogIds },
+        isVisible: true,
       })
         .populate("userId", "profile.fullName profile.avatar name")
         .populate("blogId", "title")
         .sort({ createdAt: -1 })
         .limit(5);
 
-      dashboardData.activity.recentBlogComments = recentBlogComments;
+      activity.recentBlogComments = recentBlogComments;
 
-      // Reading analytics (last 30 days)
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const recentViews = await BlogView.aggregate([
         {
@@ -202,11 +173,10 @@ export async function GET(request: NextRequest) {
 
       dashboardData.analytics = {
         dailyViews: recentViews,
-        totalViewsLast30Days: recentViews.reduce((sum: number, day: any) => sum + day.views, 0),
+        totalViewsLast30Days: recentViews.reduce((sum: number, day: { views: number }) => sum + day.views, 0),
       };
     }
 
-    // Get recent activity timeline
     const timeline: Array<{
       type: string;
       action: string;
@@ -214,54 +184,39 @@ export async function GET(request: NextRequest) {
       content?: string;
       createdAt: Date;
     }> = [];
-    
-    // Recent comments
-    const recentComments = await Comment.find({ userId, isApproved: true })
+
+    const recentComments = await Comment.find({ userId, isVisible: true })
       .select("content createdAt blogId")
       .populate("blogId", "title")
       .sort({ createdAt: -1 })
       .limit(3);
 
-    recentComments.forEach((comment: any) => {
+    recentComments.forEach((comment) => {
+      const blog = comment.blogId as unknown as { title?: string } | null;
       timeline.push({
         type: "comment",
         action: "commented on",
-        target: comment.blogId?.title || "a blog",
+        target: blog?.title || "a blog",
         content: comment.content.substring(0, 100) + (comment.content.length > 100 ? "..." : ""),
         createdAt: comment.createdAt,
       });
     });
 
-    // Recent likes
-    const recentLikes = await Like.find({ userId })
+    const recentReactions = await Reaction.find({ userId })
       .populate("blogId", "title")
       .sort({ createdAt: -1 })
       .limit(3);
 
-    recentLikes.forEach((like: any) => {
+    recentReactions.forEach((reaction) => {
+      const blog = reaction.blogId as unknown as { title?: string } | null;
       timeline.push({
         type: "like",
-        action: "liked",
-        target: like.blogId?.title || "a blog",
-        createdAt: like.createdAt,
+        action: reaction.type === "like" ? "liked" : "disliked",
+        target: blog?.title || "a blog",
+        createdAt: reaction.createdAt,
       });
     });
 
-    // Add banner statistics for admins
-    if (userRole === "admin" || userRole === "superadmin") {
-      const [totalBanners, activeBanners] = await Promise.all([
-        Banner.countDocuments(),
-        Banner.countDocuments({ isActive: true }),
-      ]);
-      
-      dashboardData.stats.banners = {
-        total: totalBanners,
-        active: activeBanners,
-        inactive: totalBanners - activeBanners,
-      };
-    }
-
-    // Sort timeline by date
     timeline.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     dashboardData.recentActivity = timeline.slice(0, 5);
 

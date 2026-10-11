@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
-import Like from "@/models/Like";
+import Reaction from "@/models/Reaction";
 import { jsonError, serverError } from "@/lib/http";
 import { parsePageLimit } from "@/lib/pagination";
 
@@ -22,13 +22,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB();
 
     const [reactions, total] = await Promise.all([
-      Like.find({ blogId })
+      Reaction.find({ blogId })
         .sort({ createdAt: -1 })
         .skip(paging.skip)
         .limit(paging.limit)
         .select("userId type createdAt")
         .lean(),
-      Like.countDocuments({ blogId }),
+      Reaction.countDocuments({ blogId }),
     ]);
 
     return NextResponse.json({

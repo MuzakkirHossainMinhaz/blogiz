@@ -1,6 +1,6 @@
-import Banner from "@/components/shared/Banner";
 import BlogCard from "@/components/ui/BlogCard";
 import LatestBlogCard from "@/components/ui/LatestBlogCard";
+import { HomeHero } from "@/components/shared/HomeHero";
 import { APP_CONFIG, ROUTES } from "@/config/constants";
 import { getBlogs } from "@/lib/db";
 import { buildPageMetadata, DEFAULT_DESCRIPTION } from "@/lib/seo";
@@ -23,7 +23,7 @@ export default async function HomePage() {
 
   return (
     <main className="bg-paper">
-      <Banner />
+      <HomeHero />
 
       <section className="container-custom py-14 sm:py-16 md:py-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10 md:mb-12">
@@ -48,7 +48,7 @@ export default async function HomePage() {
           <div className="py-14 text-center border-y border-neutral-200">
             <h3 className="font-display text-xl font-semibold text-ink mb-2">No stories yet</h3>
             <p className="text-accent-500 max-w-md mx-auto">
-              Published posts will appear here. Authors can draft from the dashboard once they are approved.
+              Published posts will appear here. Authors can draft and publish from the dashboard.
             </p>
           </div>
         ) : (

@@ -4,9 +4,9 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import { NextRequest } from "next/server";
 import User from "@/models/User";
 import Blog from "@/models/Blog";
-import Like from "@/models/Like";
+import Reaction from "@/models/Reaction";
 import { PUBLIC_PROFILE_PAGE_LIMIT, getPublicAuthorProfile } from "@/lib/db";
-import { backfillMissingLikeTypes, syncReactionCounts } from "@/lib/engagement";
+import { syncReactionCounts } from "@/lib/engagement";
 
 const authMock = vi.hoisted(() => vi.fn(async (): Promise<{ user: Record<string, unknown> } | null> => null));
 
@@ -23,8 +23,8 @@ function sessionFor(user: {
   role: string;
   email: string;
   name: string;
-  isApproved: boolean;
   emailVerified: boolean;
+  commentSuspended?: boolean;
 }) {
   return {
     user: {
@@ -32,8 +32,8 @@ function sessionFor(user: {
       role: user.role,
       email: user.email,
       name: user.name,
-      isApproved: user.isApproved,
       emailVerified: user.emailVerified,
+      commentSuspended: Boolean(user.commentSuspended),
     },
   };
 }
@@ -43,11 +43,11 @@ async function makeUser(overrides: Record<string, unknown> = {}) {
     email: `user-${new mongoose.Types.ObjectId().toString()}@example.com`,
     password: "$2b$12$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012",
     name: "Tester",
-    role: "user",
+    role: "reader",
     profile: { fullName: "Tester Person" },
-    isApproved: true,
     isActive: true,
     emailVerified: true,
+    commentSuspended: false,
     sessionVersion: 0,
     ...overrides,
   });
@@ -58,11 +58,11 @@ async function makeBlog(authorId: mongoose.Types.ObjectId, overrides: Record<str
     title: "Published post",
     description: "Visible description",
     content: "Public body",
-    author_name: "Owner",
+    authorName: "Owner",
     authorId,
     createdBy: authorId,
     status: "published",
-    isApproved: true,
+    publishedAt: new Date(),
     ...overrides,
   });
 }
@@ -80,7 +80,7 @@ beforeAll(async () => {
   process.env.MONGODB_URI = mongo.getUri();
   const { connectDB } = await import("@/lib/mongodb");
   await connectDB();
-});
+}, 300_000);
 
 afterAll(async () => {
   await mongoose.disconnect();
@@ -97,53 +97,55 @@ beforeEach(async () => {
 describe("blog reactions", () => {
   it("keeps one reaction per user and switches between like and dislike", async () => {
     const author = await makeUser({ role: "author" });
-    const reader = await makeUser({ role: "user" });
-    const other = await makeUser({ role: "user" });
+    const reader = await makeUser({ role: "reader" });
+    const other = await makeUser({ role: "reader" });
     const blog = await makeBlog(author._id);
-    const draft = await makeBlog(author._id, { title: "Secret draft", status: "draft", isApproved: false });
-    const { POST } = await import("@/app/api/likes/route");
+    const draft = await makeBlog(author._id, { title: "Secret draft", status: "draft", publishedAt: null });
+    const { POST } = await import("@/app/api/reactions/route");
     const blogId = blog._id.toString();
 
     authMock.mockResolvedValue(null);
-    const anonymous = await POST(postJson("http://localhost:3000/api/likes", { blogId, reaction: "like" }));
+    const anonymous = await POST(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "like" }));
     expect(anonymous.status).toBe(401);
 
     authMock.mockResolvedValue(sessionFor(reader));
-    const liked = await POST(postJson("http://localhost:3000/api/likes", { blogId, reaction: "like" }));
+    const liked = await POST(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "like" }));
     expect(liked.status).toBe(200);
-    expect(await liked.json()).toMatchObject({ reaction: "like", total_likes: 1, total_dislikes: 0 });
-    expect(await Like.countDocuments({ blogId, userId: reader._id })).toBe(1);
+    expect(await liked.json()).toMatchObject({ reaction: "like", totalLikes: 1, totalDislikes: 0 });
+    expect(await Reaction.countDocuments({ blogId, userId: reader._id })).toBe(1);
 
-    const removed = await POST(postJson("http://localhost:3000/api/likes", { blogId, reaction: "like" }));
-    expect(await removed.json()).toMatchObject({ reaction: null, total_likes: 0, total_dislikes: 0 });
-    expect(await Like.countDocuments({ blogId, userId: reader._id })).toBe(0);
+    const removed = await POST(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "like" }));
+    expect(await removed.json()).toMatchObject({ reaction: null, totalLikes: 0, totalDislikes: 0 });
+    expect(await Reaction.countDocuments({ blogId, userId: reader._id })).toBe(0);
 
-    await POST(postJson("http://localhost:3000/api/likes", { blogId, reaction: "like" }));
-    const switched = await POST(postJson("http://localhost:3000/api/likes", { blogId, reaction: "dislike" }));
-    expect(await switched.json()).toMatchObject({ reaction: "dislike", total_likes: 0, total_dislikes: 1 });
-    expect(await Like.countDocuments({ blogId, userId: reader._id })).toBe(1);
-    expect(await Like.findOne({ blogId, userId: reader._id })).toMatchObject({ type: "dislike" });
+    await POST(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "like" }));
+    const switched = await POST(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "dislike" }));
+    expect(await switched.json()).toMatchObject({ reaction: "dislike", totalLikes: 0, totalDislikes: 1 });
+    expect(await Reaction.countDocuments({ blogId, userId: reader._id })).toBe(1);
+    expect(await Reaction.findOne({ blogId, userId: reader._id })).toMatchObject({ type: "dislike" });
 
     authMock.mockResolvedValue(sessionFor(other));
-    const second = await POST(postJson("http://localhost:3000/api/likes", { blogId, reaction: "like" }));
-    expect(await second.json()).toMatchObject({ reaction: "like", total_likes: 1, total_dislikes: 1 });
-    expect(await Like.countDocuments({ blogId })).toBe(2);
+    const second = await POST(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "like" }));
+    expect(await second.json()).toMatchObject({ reaction: "like", totalLikes: 1, totalDislikes: 1 });
+    expect(await Reaction.countDocuments({ blogId })).toBe(2);
 
-    const hidden = await POST(postJson("http://localhost:3000/api/likes", { blogId: draft._id.toString(), reaction: "like" }));
+    const hidden = await POST(
+      postJson("http://localhost:3000/api/reactions", { blogId: draft._id.toString(), reaction: "like" })
+    );
     expect(hidden.status).toBe(404);
-    expect(await Like.countDocuments({ blogId: draft._id })).toBe(0);
+    expect(await Reaction.countDocuments({ blogId: draft._id })).toBe(0);
   });
 
-  it("lets an author comment and react on someone else's published post without skipping moderation", async () => {
+  it("lets an author comment and react on someone else's published post", async () => {
     const owner = await makeUser({ role: "author", profile: { fullName: "Post Owner" } });
     const author = await makeUser({ role: "author", profile: { fullName: "Guest Author" } });
-    const blog = await makeBlog(owner._id, { title: "Someone else's post", author_name: "Post Owner" });
+    const blog = await makeBlog(owner._id, { title: "Someone else's post", authorName: "Post Owner" });
     const blogId = blog._id.toString();
 
     authMock.mockResolvedValue(sessionFor(author));
     const { POST: comment } = await import("@/app/api/comments/route");
     const { GET: listComments } = await import("@/app/api/comments/route");
-    const { POST: react } = await import("@/app/api/likes/route");
+    const { POST: react } = await import("@/app/api/reactions/route");
     const { PUT } = await import("@/app/api/blogs/[id]/route");
 
     const created = await comment(
@@ -151,20 +153,20 @@ describe("blog reactions", () => {
     );
     expect(created.status).toBe(201);
     const createdBody = await created.json();
-    expect(createdBody.comment.isApproved).toBe(false);
+    expect(createdBody.comment.isVisible).toBe(true);
     expect(createdBody.comment.userId._id.toString()).toBe(author._id.toString());
 
     const listed = await listComments(new NextRequest(`http://localhost:3000/api/comments?blogId=${blogId}`));
     const listedBody = await listed.json();
-    expect(listedBody.comments).toHaveLength(0);
+    expect(listedBody.comments).toHaveLength(1);
 
-    const liked = await react(postJson("http://localhost:3000/api/likes", { blogId, reaction: "like" }));
+    const liked = await react(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "like" }));
     expect(liked.status).toBe(200);
-    expect(await liked.json()).toMatchObject({ reaction: "like", total_likes: 1, total_dislikes: 0 });
+    expect(await liked.json()).toMatchObject({ reaction: "like", totalLikes: 1, totalDislikes: 0 });
 
-    const disliked = await react(postJson("http://localhost:3000/api/likes", { blogId, reaction: "dislike" }));
-    expect(await disliked.json()).toMatchObject({ reaction: "dislike", total_likes: 0, total_dislikes: 1 });
-    expect(await Like.countDocuments({ blogId, userId: author._id })).toBe(1);
+    const disliked = await react(postJson("http://localhost:3000/api/reactions", { blogId, reaction: "dislike" }));
+    expect(await disliked.json()).toMatchObject({ reaction: "dislike", totalLikes: 0, totalDislikes: 1 });
+    expect(await Reaction.countDocuments({ blogId, userId: author._id })).toBe(1);
 
     const edited = await PUT(
       new NextRequest(`http://localhost:3000/api/blogs/${blogId}`, {
@@ -174,7 +176,7 @@ describe("blog reactions", () => {
           title: "Taken over",
           description: "nope",
           content: "nope",
-          author_name: "Guest Author",
+          authorName: "Guest Author",
         }),
       }),
       { params: Promise.resolve({ id: blogId }) }
@@ -182,7 +184,7 @@ describe("blog reactions", () => {
     expect(edited.status).toBe(403);
     const stored = await Blog.findById(blogId);
     expect(stored?.title).toBe("Someone else's post");
-    expect(stored?.createdBy.toString()).toBe(owner._id.toString());
+    expect(stored?.authorId.toString()).toBe(owner._id.toString());
   });
 });
 
@@ -195,15 +197,14 @@ describe("public author profile", () => {
       name: "Ada Writer",
       profile: { fullName: "Ada Writer", bio: "Writes in public" },
     });
-    await makeBlog(author._id, { title: "Hidden draft 9f3a", status: "draft", isApproved: false });
-    await makeBlog(author._id, { title: "Waiting review", status: "pending", isApproved: false });
+    await makeBlog(author._id, { title: "Hidden draft 9f3a", status: "draft", publishedAt: null });
     await makeBlog(author._id, {
       title: "Published profile post",
       description: "On the public profile",
       status: "published",
-      isApproved: true,
-      total_likes: 4,
-      total_dislikes: 2,
+      publishedAt: new Date(),
+      totalLikes: 4,
+      totalDislikes: 2,
     });
 
     const profile = await getPublicAuthorProfile(author._id.toString());
@@ -211,12 +212,11 @@ describe("public author profile", () => {
     const profileJson = JSON.stringify(profile);
     expect(profileJson).not.toContain(email);
     expect(profileJson).not.toContain("Hidden draft 9f3a");
-    expect(profileJson).not.toContain("Waiting review");
     expect(profile?.blogs).toHaveLength(1);
     expect(profile?.blogs[0]).toMatchObject({
       title: "Published profile post",
-      total_likes: 4,
-      total_dislikes: 2,
+      totalLikes: 4,
+      totalDislikes: 2,
     });
     expect(profile).not.toHaveProperty("email");
 
@@ -230,9 +230,8 @@ describe("public author profile", () => {
     expect(body.user.email).toBeUndefined();
     expect(bodyJson).not.toContain(email);
     expect(bodyJson).not.toContain("Hidden draft 9f3a");
-    expect(bodyJson).not.toContain("Waiting review");
     expect(body.user.recentBlogs).toHaveLength(1);
-    expect(body.user.recentBlogs[0]).toMatchObject({ total_likes: 4, total_dislikes: 2 });
+    expect(body.user.recentBlogs[0]).toMatchObject({ totalLikes: 4, totalDislikes: 2 });
     expect(body.user.profile.fullName).toBe("Ada Writer");
     expect(body.user.stats.publishedBlogsCount).toBe(1);
   });
@@ -242,7 +241,7 @@ describe("public author profile", () => {
     for (let index = 0; index < 6; index += 1) {
       await makeBlog(author._id, {
         title: `Post ${index}`,
-        publish_date: new Date(Date.UTC(2024, 0, index + 1)),
+        publishedAt: new Date(Date.UTC(2024, 0, index + 1)),
       });
     }
 
@@ -274,66 +273,17 @@ describe("public author profile", () => {
   });
 });
 
-describe("like type backfill", () => {
-  it("sets a missing type to like and leaves an existing dislike", async () => {
+describe("reaction count sync", () => {
+  it("counts likes and dislikes on the blog document", async () => {
     const author = await makeUser({ role: "author" });
     const reader = await makeUser();
     const blog = await makeBlog(author._id);
-    await Like.collection.insertOne({
-      blogId: blog._id,
-      userId: reader._id,
-      createdAt: new Date(),
-    });
-    await Like.create({ blogId: blog._id, userId: author._id, type: "dislike" });
+    await Reaction.create({ blogId: blog._id, userId: reader._id, type: "like" });
+    await Reaction.create({ blogId: blog._id, userId: author._id, type: "dislike" });
 
-    expect(await backfillMissingLikeTypes()).toBe(1);
-    const legacy = await Like.collection.findOne({ userId: reader._id });
-    expect(legacy?.type).toBe("like");
-    expect((await Like.findOne({ userId: author._id }))?.type).toBe("dislike");
-    expect(await backfillMissingLikeTypes()).toBe(0);
-  });
-
-  it("counts a missing type as a like when syncing reaction totals", async () => {
-    const author = await makeUser({ role: "author" });
-    const reader = await makeUser();
-    const blog = await makeBlog(author._id);
-    await Like.collection.insertOne({
-      blogId: blog._id,
-      userId: reader._id,
-      createdAt: new Date(),
-    });
-    await Like.create({ blogId: blog._id, userId: author._id, type: "dislike" });
-
-    await expect(syncReactionCounts(blog._id)).resolves.toEqual({ total_likes: 1, total_dislikes: 1 });
-    const stored = await Blog.findById(blog._id).select("total_likes total_dislikes");
-    expect(stored?.total_likes).toBe(1);
-    expect(stored?.total_dislikes).toBe(1);
-  });
-
-  it("repairs missing like types when connectDB establishes a connection", async () => {
-    const author = await makeUser({ role: "author" });
-    const reader = await makeUser();
-    const blog = await makeBlog(author._id);
-    await Like.collection.insertOne({
-      blogId: blog._id,
-      userId: reader._id,
-      createdAt: new Date(),
-    });
-
-    // Fresh module state so the once-per-process ensure runs again after reconnect.
-    await mongoose.disconnect();
-    global.mongoose = { conn: null, promise: null, uri: null };
-    vi.resetModules();
-    vi.doMock("@/lib/auth", () => ({
-      auth: authMock,
-      handlers: {},
-      authConfig: {},
-    }));
-
-    const { connectDB } = await import("@/lib/mongodb");
-    await connectDB();
-
-    const legacy = await Like.collection.findOne({ userId: reader._id });
-    expect(legacy?.type).toBe("like");
+    await expect(syncReactionCounts(blog._id)).resolves.toEqual({ totalLikes: 1, totalDislikes: 1 });
+    const stored = await Blog.findById(blog._id).select("totalLikes totalDislikes");
+    expect(stored?.totalLikes).toBe(1);
+    expect(stored?.totalDislikes).toBe(1);
   });
 });

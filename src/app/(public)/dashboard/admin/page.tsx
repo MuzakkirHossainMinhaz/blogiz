@@ -2,30 +2,13 @@
 
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { hasPermission, type UserRole } from "@/lib/permissions";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { IconType } from "react-icons";
-import {
-  FiCheck,
-  FiClock,
-  FiFileText,
-  FiImage,
-  FiUserCheck,
-  FiUsers,
-  FiX,
-} from "react-icons/fi";
-
-interface PendingBlog {
-  _id: string;
-  title: string;
-  author_name?: string;
-  createdAt?: string;
-  description?: string;
-}
+import { FiClock, FiUserCheck, FiUsers } from "react-icons/fi";
 
 interface RoleUpgrade {
   _id: string;
@@ -114,19 +97,12 @@ function QueueEmpty({
 
 export default function AdminPanelPage() {
   const { data: session } = useSession();
-  const userRole = (session?.user?.role as UserRole) || "user";
-  const canApproveBlog = hasPermission(userRole, "approveBlog");
+  const userRole = (session?.user?.role as UserRole) || "reader";
   const canViewUsers = hasPermission(userRole, "viewUsers");
-  const canManageBanners = hasPermission(userRole, "manageBanners");
-  const canChangeRole = hasPermission(userRole, "changeUserRole");
+  const canReviewUpgrades = hasPermission(userRole, "reviewRoleUpgrades");
 
-  const [pendingBlogs, setPendingBlogs] = useState<PendingBlog[]>([]);
   const [upgrades, setUpgrades] = useState<RoleUpgrade[]>([]);
-  const [bannerCount, setBannerCount] = useState<number | null>(null);
-  const [pendingUsers, setPendingUsers] = useState<number | null>(null);
-  const [pendingBlogsTotal, setPendingBlogsTotal] = useState(0);
-  const [pendingBlogsPages, setPendingBlogsPages] = useState(1);
-  const [blogsPage, setBlogsPage] = useState(1);
+  const [userCount, setUserCount] = useState<number | null>(null);
   const [upgradesTotal, setUpgradesTotal] = useState(0);
   const [upgradesPages, setUpgradesPages] = useState(1);
   const [upgradesPage, setUpgradesPage] = useState(1);
@@ -134,7 +110,6 @@ export default function AdminPanelPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [reloadKey, setReloadKey] = useState(0);
 
   const refresh = useCallback(() => setReloadKey((value) => value + 1), []);
@@ -146,44 +121,19 @@ export default function AdminPanelPage() {
       setError("");
       setLoading(true);
       try {
-        let nextBlogs: PendingBlog[] = [];
-        let nextPendingUsers: number | null = null;
-        let nextBannerCount: number | null = null;
+        let nextUserCount: number | null = null;
         let nextUpgrades: RoleUpgrade[] = [];
-        let nextBlogsTotal = 0;
-        let nextBlogsPages = 1;
         let nextUpgradesTotal = 0;
         let nextUpgradesPages = 1;
 
-        if (canApproveBlog) {
-          const params = new URLSearchParams({
-            status: "pending",
-            page: String(blogsPage),
-            limit: String(QUEUE_PAGE_SIZE),
-          });
-          const response = await fetch(`/api/blogs?${params.toString()}`);
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || "Could not load pending posts");
-          nextBlogs = data.blogs || [];
-          nextBlogsTotal = data.pagination?.total ?? nextBlogs.length;
-          nextBlogsPages = data.pagination?.pages ?? 1;
-        }
-
         if (canViewUsers) {
-          const response = await fetch("/api/admin/users?status=pending&limit=1");
+          const response = await fetch("/api/admin/users?limit=1");
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "Could not load users");
-          nextPendingUsers = data.pagination?.total ?? 0;
+          nextUserCount = data.pagination?.total ?? 0;
         }
 
-        if (canManageBanners) {
-          const response = await fetch("/api/admin/banners?limit=1");
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || "Could not load banners");
-          nextBannerCount = data.pagination?.total ?? 0;
-        }
-
-        if (canChangeRole) {
+        if (canReviewUpgrades) {
           const params = new URLSearchParams({
             status: "pending",
             page: String(upgradesPage),
@@ -198,11 +148,7 @@ export default function AdminPanelPage() {
         }
 
         if (cancelled) return;
-        setPendingBlogs(nextBlogs);
-        setPendingBlogsTotal(nextBlogsTotal);
-        setPendingBlogsPages(nextBlogsPages);
-        setPendingUsers(nextPendingUsers);
-        setBannerCount(nextBannerCount);
+        setUserCount(nextUserCount);
         setUpgrades(nextUpgrades);
         setUpgradesTotal(nextUpgradesTotal);
         setUpgradesPages(nextUpgradesPages);
@@ -218,52 +164,7 @@ export default function AdminPanelPage() {
     return () => {
       cancelled = true;
     };
-  }, [canApproveBlog, canViewUsers, canManageBanners, canChangeRole, blogsPage, upgradesPage, reloadKey]);
-
-  const approveBlog = async (blogId: string) => {
-    setBusyId(blogId);
-    setError("");
-    setMessage("");
-    try {
-      const response = await fetch(`/api/admin/blogs/${blogId}/approve`, { method: "POST" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not approve post");
-      setMessage("Post approved");
-      if (pendingBlogs.length === 1 && blogsPage > 1) setBlogsPage((p) => p - 1);
-      else refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not approve post");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const rejectBlog = async (blogId: string) => {
-    const reason = (rejectReason[blogId] || "").trim();
-    if (!reason) {
-      setError("A rejection reason is required");
-      return;
-    }
-    setBusyId(blogId);
-    setError("");
-    setMessage("");
-    try {
-      const response = await fetch(`/api/admin/blogs/${blogId}/reject`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rejectionReason: reason }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not reject post");
-      setMessage("Post rejected");
-      if (pendingBlogs.length === 1 && blogsPage > 1) setBlogsPage((p) => p - 1);
-      else refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not reject post");
-    } finally {
-      setBusyId(null);
-    }
-  };
+  }, [canViewUsers, canReviewUpgrades, upgradesPage, reloadKey]);
 
   const reviewUpgrade = async (requestId: string, action: "approve" | "reject") => {
     setBusyId(requestId);
@@ -296,13 +197,11 @@ export default function AdminPanelPage() {
     });
   };
 
-  const hasMetrics = canApproveBlog || canViewUsers || canManageBanners;
-
   return (
     <div className="w-full space-y-6">
       <DashboardPageHeader
         title="Admin Panel"
-        description="Review pending posts, accounts, and site content."
+        description="Review author upgrades and manage accounts."
       />
 
       {error ? (
@@ -312,118 +211,32 @@ export default function AdminPanelPage() {
         <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{message}</p>
       ) : null}
 
-      {hasMetrics ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {canApproveBlog ? (
+      {(canViewUsers || canReviewUpgrades) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {canReviewUpgrades ? (
             <MetricTile
-              title="Pending Posts"
-              value={loading ? "—" : pendingBlogsTotal}
-              icon={FiFileText}
-              href="#pending-posts"
+              title="Pending Upgrades"
+              value={loading ? "—" : upgradesTotal}
+              icon={FiUserCheck}
+              href="#role-upgrades"
             />
           ) : null}
           {canViewUsers ? (
             <MetricTile
-              title="Pending Users"
-              value={loading || pendingUsers === null ? "—" : pendingUsers}
+              title="Users"
+              value={loading || userCount === null ? "—" : userCount}
               icon={FiUsers}
               href="/dashboard/admin/users"
             />
           ) : null}
-          {canManageBanners ? (
-            <MetricTile
-              title="Banners"
-              value={loading || bannerCount === null ? "—" : bannerCount}
-              icon={FiImage}
-              href="/dashboard/admin/banners"
-            />
-          ) : null}
         </div>
-      ) : null}
+      )}
 
-      {canApproveBlog ? (
-        <section id="pending-posts" className="space-y-4 scroll-mt-24">
-          <SectionHeading
-            title="Pending Posts"
-            description="Approve or reject submissions waiting for review."
-          />
-          <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
-            {loading ? (
-              <p className="p-6 text-sm text-accent-500">Loading pending posts…</p>
-            ) : pendingBlogs.length === 0 ? (
-              <QueueEmpty
-                icon={FiCheck}
-                title="No Pending Posts"
-                description="New submissions will show up here."
-              />
-            ) : (
-              <ul className="divide-y divide-neutral-100">
-                {pendingBlogs.map((blog) => (
-                  <li key={blog._id} className="p-4 sm:p-5 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                      <div className="min-w-0 space-y-1">
-                        <p className="font-medium text-ink wrap-break-word">{blog.title}</p>
-                        <p className="text-sm text-accent-500">
-                          {blog.author_name || "Unknown author"} · {formatDate(blog.createdAt)}
-                        </p>
-                        {blog.description ? (
-                          <p className="text-sm text-neutral-600 line-clamp-2">{blog.description}</p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-wrap gap-2 shrink-0">
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          disabled={busyId === blog._id}
-                          onClick={() => void approveBlog(blog._id)}
-                        >
-                          <FiCheck className="h-4 w-4" />
-                          Approve
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={busyId === blog._id}
-                          onClick={() => void rejectBlog(blog._id)}
-                        >
-                          <FiX className="h-4 w-4" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                    <Input
-                      id={`reject-reason-${blog._id}`}
-                      label="Rejection reason"
-                      value={rejectReason[blog._id] || ""}
-                      onChange={(event) =>
-                        setRejectReason((current) => ({ ...current, [blog._id]: event.target.value }))
-                      }
-                      placeholder="Required to reject"
-                      required
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          {pendingBlogsPages > 1 ? (
-            <div className="rounded-xl border border-neutral-200 bg-white px-4 sm:px-5 py-3">
-              <Pagination
-                page={blogsPage}
-                pages={pendingBlogsPages}
-                total={pendingBlogsTotal}
-                onPageChange={setBlogsPage}
-              />
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {canChangeRole ? (
+      {canReviewUpgrades ? (
         <section id="role-upgrades" className="space-y-4 scroll-mt-24">
           <SectionHeading
             title="Role Upgrade Requests"
-            description="Approve authors and other role changes."
+            description="Approve readers who want to become authors."
           />
           <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
             {loading ? (

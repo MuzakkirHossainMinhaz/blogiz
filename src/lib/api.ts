@@ -84,8 +84,8 @@ export async function deleteBlog(id: string): Promise<void> {
 
 export interface ReactionState {
   reaction: ReactionKind | null;
-  total_likes: number;
-  total_dislikes: number;
+  totalLikes: number;
+  totalDislikes: number;
 }
 
 async function readJson(response: Response): Promise<Record<string, unknown>> {
@@ -97,7 +97,7 @@ async function readJson(response: Response): Promise<Record<string, unknown>> {
  * Save a like or dislike. Sending the current reaction again removes it.
  */
 export async function setReaction(blogId: string, reaction: ReactionKind): Promise<ReactionState> {
-  const response = await fetch("/api/likes", {
+  const response = await fetch("/api/reactions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ blogId, reaction }),
@@ -109,8 +109,8 @@ export async function setReaction(blogId: string, reaction: ReactionKind): Promi
   }
   return {
     reaction: data.reaction === "like" || data.reaction === "dislike" ? data.reaction : null,
-    total_likes: typeof data.total_likes === "number" ? data.total_likes : 0,
-    total_dislikes: typeof data.total_dislikes === "number" ? data.total_dislikes : 0,
+    totalLikes: typeof data.totalLikes === "number" ? data.totalLikes : 0,
+    totalDislikes: typeof data.totalDislikes === "number" ? data.totalDislikes : 0,
   };
 }
 
@@ -118,7 +118,7 @@ export async function setReaction(blogId: string, reaction: ReactionKind): Promi
  * The signed-in user's reaction on a blog, plus both counts.
  */
 export async function getReaction(blogId: string): Promise<ReactionState> {
-  const response = await fetch(`/api/likes/check?blogId=${encodeURIComponent(blogId)}`, {
+  const response = await fetch(`/api/reactions/check?blogId=${encodeURIComponent(blogId)}`, {
     cache: "no-store",
   });
   const data = await readJson(response);
@@ -127,8 +127,8 @@ export async function getReaction(blogId: string): Promise<ReactionState> {
   }
   return {
     reaction: data.reaction === "like" || data.reaction === "dislike" ? data.reaction : null,
-    total_likes: typeof data.total_likes === "number" ? data.total_likes : 0,
-    total_dislikes: typeof data.total_dislikes === "number" ? data.total_dislikes : 0,
+    totalLikes: typeof data.totalLikes === "number" ? data.totalLikes : 0,
+    totalDislikes: typeof data.totalDislikes === "number" ? data.totalDislikes : 0,
   };
 }
 

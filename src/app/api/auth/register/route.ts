@@ -16,11 +16,10 @@ const registerSchema = z.object({
   email: z.email(),
   password: passwordSchema,
   fullName: z.string().trim().min(2).max(120),
-  role: z.enum(["user", "author"]).default("user"),
 });
 
 const GENERIC_MESSAGE =
-  "If this address can be registered, check your email to verify the account. Author accounts also need admin approval before they can publish.";
+  "If this address can be registered, check your email to verify the account.";
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const { name, password, fullName, role } = validation.data;
+    const { name, password, fullName } = validation.data;
     const token = createSecretToken();
     const existingUser = await User.findOne({ email });
 
@@ -51,9 +50,8 @@ export async function POST(request: NextRequest) {
           name,
           email,
           password: hashedPassword,
-          role,
+          role: "reader",
           profile: { fullName, bio: "" },
-          isApproved: role !== "author",
           emailVerified: false,
           emailVerificationTokenHash: token.hash,
           emailVerificationExpires: token.expires,

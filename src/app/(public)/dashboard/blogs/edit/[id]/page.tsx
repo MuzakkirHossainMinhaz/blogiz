@@ -9,10 +9,10 @@ type LoadedBlog = {
   title: string;
   description: string;
   content: string;
-  author_name: string;
-  blog_image?: string;
+  authorName: string;
+  thumbnail?: string;
   status?: string;
-  publish_date?: string;
+  publishedAt?: string;
 };
 
 export default function EditBlogPage() {
@@ -33,11 +33,11 @@ export default function EditBlogPage() {
           title: data.blog.title || "",
           description: data.blog.description || "",
           content: data.blog.content || "",
-          author_name: data.blog.author_name || "",
-          blog_image: data.blog.blog_image || "",
+          authorName: data.blog.authorName || "",
+          thumbnail: data.blog.thumbnail || "",
           status: data.blog.status || "draft",
-          publish_date: data.blog.publish_date
-            ? String(data.blog.publish_date).slice(0, 10)
+          publishedAt: data.blog.publishedAt
+            ? String(data.blog.publishedAt).slice(0, 10)
             : undefined,
         });
       })
@@ -76,10 +76,10 @@ export default function EditBlogPage() {
         title: data.title,
         description: data.description,
         content: data.content,
-        author_name: data.author_name,
-        blog_image: data.blog_image ?? "",
+        authorName: data.authorName,
+        thumbnail: data.thumbnail ?? "",
         status: data.status,
-        publish_date: data.status === "published" ? data.publish_date || new Date().toISOString() : undefined,
+        publishedAt: data.status === "published" ? data.publishedAt || new Date().toISOString() : undefined,
       }),
     });
     const result = await response.json().catch(() => ({}));
@@ -98,10 +98,10 @@ export default function EditBlogPage() {
         title: blog.title,
         description: blog.description,
         content: blog.content,
-        author_name: blog.author_name,
-        blog_image: blog.blog_image || "",
+        authorName: blog.authorName,
+        thumbnail: blog.thumbnail || "",
         status: blog.status === "published" ? "published" : "draft",
-        publish_date: blog.publish_date,
+        publishedAt: blog.publishedAt,
       }}
       onSubmit={handleSubmit}
     />

@@ -44,15 +44,22 @@ vi.mock("cloudinary", async () => {
 
 let mongo: MongoMemoryServer;
 
-function sessionFor(user: { _id: { toString(): string }; role: string; email: string; name: string; isApproved: boolean; emailVerified: boolean }) {
+function sessionFor(user: {
+  _id: { toString(): string };
+  role: string;
+  email: string;
+  name: string;
+  emailVerified: boolean;
+  commentSuspended?: boolean;
+}) {
   return {
     user: {
       id: user._id.toString(),
       role: user.role,
       email: user.email,
       name: user.name,
-      isApproved: user.isApproved,
       emailVerified: user.emailVerified,
+      commentSuspended: Boolean(user.commentSuspended),
     },
   };
 }
@@ -62,11 +69,11 @@ async function makeUser(overrides: Record<string, unknown> = {}) {
     email: `user-${new mongoose.Types.ObjectId().toString()}@example.com`,
     password: "$2b$12$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012",
     name: "Tester",
-    role: "user",
+    role: "reader",
     profile: { fullName: "Tester Person" },
-    isApproved: true,
     isActive: true,
     emailVerified: true,
+    commentSuspended: false,
     sessionVersion: 0,
     ...overrides,
   });
@@ -77,7 +84,7 @@ beforeAll(async () => {
   process.env.MONGODB_URI = mongo.getUri();
   const { connectDB } = await import("@/lib/mongodb");
   await connectDB();
-});
+}, 300_000);
 
 afterAll(async () => {
   await mongoose.disconnect();
@@ -98,21 +105,20 @@ describe("blog authorization", () => {
       title: "Secret draft",
       description: "hidden",
       content: "draft body",
-      author_name: "Tester",
+      authorName: "Tester",
       authorId: author._id,
       createdBy: author._id,
       status: "draft",
-      isApproved: false,
     });
     await Blog.create({
       title: "Public",
       description: "visible",
       content: "public body",
-      author_name: "Tester",
+      authorName: "Tester",
       authorId: author._id,
       createdBy: author._id,
       status: "published",
-      isApproved: true,
+      publishedAt: new Date(),
     });
 
     const { GET } = await import("@/app/api/blogs/route");
@@ -131,59 +137,45 @@ describe("blog authorization", () => {
     expect(hidden.status).toBe(404);
   });
 
-  it("requires createBlog and ignores client publish status", async () => {
-    const reader = await makeUser({ role: "user" });
-    const author = await makeUser({ role: "author", isApproved: true });
-    const admin = await makeUser({ role: "admin" });
+  it("lets authors self-publish", async () => {
+    const reader = await makeUser({ role: "reader" });
+    const author = await makeUser({ role: "author" });
     const { POST } = await import("@/app/api/blogs/route");
-    const { PUT } = await import("@/app/api/blogs/[id]/route");
     const { POST: publish } = await import("@/app/api/blogs/[id]/publish/route");
 
     const payload = {
       title: "A post",
       description: "desc",
       content: "hello world",
-      author_name: "Tester",
+      authorName: "Tester",
       status: "published",
     };
 
     authMock.mockResolvedValue(sessionFor(reader));
-    const denied = await POST(new NextRequest("http://localhost:3000/api/blogs", { method: "POST", body: JSON.stringify(payload) }));
+    const denied = await POST(
+      new NextRequest("http://localhost:3000/api/blogs", { method: "POST", body: JSON.stringify(payload) })
+    );
     expect(denied.status).toBe(403);
 
     authMock.mockResolvedValue(sessionFor(author));
-    const pending = await POST(new NextRequest("http://localhost:3000/api/blogs", { method: "POST", body: JSON.stringify(payload) }));
-    expect(pending.status).toBe(201);
-    const pendingBody = await pending.json();
-    expect(pendingBody.blog.status).toBe("pending");
-    expect(pendingBody.blog.isApproved).toBe(false);
-
-    const updated = await PUT(
-      new NextRequest("http://localhost:3000/api/blogs/" + pendingBody.blog._id, {
-        method: "PUT",
-        body: JSON.stringify({ ...payload, status: "published" }),
-      }),
-      { params: Promise.resolve({ id: pendingBody.blog._id }) }
+    const created = await POST(
+      new NextRequest("http://localhost:3000/api/blogs", {
+        method: "POST",
+        body: JSON.stringify({ ...payload, status: "draft" }),
+      })
     );
-    const updatedBody = await updated.json();
-    expect(updated.status).toBe(200);
-    expect(updatedBody.blog.status).toBe("pending");
-    expect(updatedBody.blog.isApproved).toBe(false);
+    expect(created.status).toBe(201);
+    const createdBody = await created.json();
+    expect(createdBody.blog.status).toBe("draft");
 
-    const queued = await publish(new NextRequest("http://localhost:3000/api/blogs/" + pendingBody.blog._id + "/publish", { method: "POST" }), {
-      params: Promise.resolve({ id: pendingBody.blog._id }),
-    });
-    const queuedBody = await queued.json();
-    expect(queuedBody.blog.status).toBe("pending");
-    expect(queuedBody.blog.isApproved).toBe(false);
-
-    authMock.mockResolvedValue(sessionFor(admin));
-    const published = await publish(new NextRequest("http://localhost:3000/api/blogs/" + pendingBody.blog._id + "/publish", { method: "POST" }), {
-      params: Promise.resolve({ id: pendingBody.blog._id }),
-    });
+    const published = await publish(
+      new NextRequest("http://localhost:3000/api/blogs/" + createdBody.blog._id + "/publish", { method: "POST" }),
+      { params: Promise.resolve({ id: createdBody.blog._id }) }
+    );
     const publishedBody = await published.json();
+    expect(published.status).toBe(200);
     expect(publishedBody.blog.status).toBe("published");
-    expect(publishedBody.blog.isApproved).toBe(true);
+    expect(publishedBody.blog.publishedAt).toBeTruthy();
   });
 });
 
@@ -222,35 +214,34 @@ describe("upload and admin actions", () => {
     expect(rejected.status).toBe(400);
   });
 
-  it("stops an admin from deactivating a superadmin and an author from managing banners", async () => {
+  it("lets an admin deactivate a reader and suspend commenting", async () => {
     const admin = await makeUser({ role: "admin" });
-    const superadmin = await makeUser({ role: "superadmin" });
-    const author = await makeUser({ role: "author" });
+    const reader = await makeUser({ role: "reader" });
     const { PUT } = await import("@/app/api/admin/users/route");
-    const { POST } = await import("@/app/api/admin/banners/route");
 
     authMock.mockResolvedValue(sessionFor(admin));
-    const locked = await PUT(
+    const deactivated = await PUT(
       new NextRequest("http://localhost:3000/api/admin/users", {
         method: "PUT",
-        body: JSON.stringify({ userId: superadmin._id.toString(), action: "deactivate" }),
+        body: JSON.stringify({ userId: reader._id.toString(), action: "deactivate" }),
       })
     );
-    expect(locked.status).toBe(403);
-    const stillActive = await User.findById(superadmin._id);
-    expect(stillActive?.isActive).toBe(true);
+    expect(deactivated.status).toBe(200);
+    expect((await User.findById(reader._id))?.isActive).toBe(false);
 
-    authMock.mockResolvedValue(sessionFor(author));
-    const banner = await POST(
-      new NextRequest("http://localhost:3000/api/admin/banners", {
-        method: "POST",
+    const other = await makeUser({ role: "reader" });
+    const suspended = await PUT(
+      new NextRequest("http://localhost:3000/api/admin/users", {
+        method: "PUT",
         body: JSON.stringify({
-          title: "Hi",
-          image: "https://res.cloudinary.com/blogiztest/image/upload/v1/blogiz/aaaaaaaaaaaaaaaaaaaaaaaa.png",
-          ctaLink: "javascript:alert(1)",
+          userId: other._id.toString(),
+          action: "suspendCommenting",
+          reason: "Spam",
         }),
       })
     );
-    expect(banner.status).toBe(403);
+    expect(suspended.status).toBe(200);
+    const reloaded = await User.findById(other._id);
+    expect(reloaded?.commentSuspended).toBe(true);
   });
 });

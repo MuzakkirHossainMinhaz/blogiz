@@ -2,12 +2,12 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IRoleUpgradeRequest extends Document {
   userId: mongoose.Types.ObjectId;
-  requestedRole: "author" | "admin";
-  currentRole: "user" | "author";
+  requestedRole: "author";
+  currentRole: "reader";
   reason: string;
   status: "pending" | "approved" | "rejected";
-  reviewedBy?: mongoose.Types.ObjectId;
-  reviewedAt?: Date;
+  reviewedBy?: mongoose.Types.ObjectId | null;
+  reviewedAt?: Date | null;
   rejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -22,13 +22,15 @@ const RoleUpgradeRequestSchema = new Schema<IRoleUpgradeRequest>(
     },
     requestedRole: {
       type: String,
-      enum: ["author", "admin"],
+      enum: ["author"],
       required: true,
+      default: "author",
     },
     currentRole: {
       type: String,
-      enum: ["user", "author"],
+      enum: ["reader"],
       required: true,
+      default: "reader",
     },
     reason: {
       type: String,
@@ -60,15 +62,13 @@ const RoleUpgradeRequestSchema = new Schema<IRoleUpgradeRequest>(
   }
 );
 
-// Index for better query performance
 RoleUpgradeRequestSchema.index({ userId: 1 });
 RoleUpgradeRequestSchema.index(
   { userId: 1 },
   { unique: true, partialFilterExpression: { status: "pending" }, name: "unique_pending_role_upgrade" }
 );
-RoleUpgradeRequestSchema.index({ status: 1 });
+RoleUpgradeRequestSchema.index({ status: 1, createdAt: -1 });
 RoleUpgradeRequestSchema.index({ requestedRole: 1, status: 1 });
-RoleUpgradeRequestSchema.index({ createdAt: -1 });
 
 const RoleUpgradeRequest: Model<IRoleUpgradeRequest> =
   mongoose.models.RoleUpgradeRequest ||

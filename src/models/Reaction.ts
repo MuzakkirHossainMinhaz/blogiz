@@ -2,14 +2,15 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export type ReactionKind = "like" | "dislike";
 
-export interface ILike extends Document {
+export interface IReaction extends Document {
   blogId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   type: ReactionKind;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const LikeSchema = new Schema<ILike>(
+const ReactionSchema = new Schema<IReaction>(
   {
     blogId: {
       type: Schema.Types.ObjectId,
@@ -32,9 +33,10 @@ const LikeSchema = new Schema<ILike>(
   }
 );
 
-LikeSchema.index({ blogId: 1, userId: 1 }, { unique: true });
-LikeSchema.index({ blogId: 1, type: 1 });
+ReactionSchema.index({ blogId: 1, userId: 1 }, { unique: true });
+ReactionSchema.index({ blogId: 1, type: 1 });
 
-const Like: Model<ILike> = mongoose.models.Like || mongoose.model<ILike>("Like", LikeSchema);
+const Reaction: Model<IReaction> =
+  mongoose.models.Reaction || mongoose.model<IReaction>("Reaction", ReactionSchema);
 
-export default Like;
+export default Reaction;

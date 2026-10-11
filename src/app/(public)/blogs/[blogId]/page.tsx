@@ -27,10 +27,10 @@ export async function generateMetadata({ params }: BlogDetailPageProps): Promise
     });
   }
 
-  const image = blog.blog_image && isCloudinaryDeliveryUrl(blog.blog_image) ? blog.blog_image : undefined;
+  const image = blog.thumbnail && isCloudinaryDeliveryUrl(blog.thumbnail) ? blog.thumbnail : undefined;
   return buildPageMetadata({
     title: blog.title,
-    description: blog.description || `A story by ${blog.author_name} on Blogiz.`,
+    description: blog.description || `A story by ${blog.authorName} on Blogiz.`,
     path: `/blogs/${blogId}`,
     image,
     type: "article",

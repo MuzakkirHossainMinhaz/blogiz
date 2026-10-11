@@ -13,12 +13,18 @@ export interface Blog {
   title: string;
   description: string;
   content: string;
-  publish_date?: string;
-  author_name: string;
+  publishedAt?: string | null;
+  authorName: string;
   authorId?: string | BlogAuthorRef;
-  blog_image?: string;
-  total_likes: number;
-  total_dislikes?: number;
+  thumbnail?: string;
+  thumbnailPublicId?: string;
+  thumbnailSource?: "upload" | "ai" | "none";
+  totalLikes: number;
+  totalDislikes?: number;
+  totalComments?: number;
+  totalViews?: number;
+  tags?: string[];
+  readingTime?: number;
   status: "draft" | "published";
   createdAt: string;
   updatedAt: string;
@@ -28,8 +34,8 @@ export interface BlogFormData {
   title: string;
   description: string;
   content: string;
-  publish_date?: string;
-  author_name: string;
-  blog_image?: string;
+  publishedAt?: string | null;
+  authorName: string;
+  thumbnail?: string;
   status: "draft" | "published";
 }

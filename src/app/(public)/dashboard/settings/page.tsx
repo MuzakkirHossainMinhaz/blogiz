@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
-import { hasPermission, UserRole } from "@/lib/permissions";
+import { UserRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { passwordSchema } from "@/lib/validation";
 import { signOut, useSession } from "next-auth/react";
@@ -53,7 +53,7 @@ function SettingsSection({
 export default function SettingsPage() {
   const { data: session, update } = useSession();
   const userId = session?.user?.id;
-  const userRole = (session?.user?.role as UserRole) || "user";
+  const userRole = (session?.user?.role as UserRole) || "reader";
   const emailVerified = Boolean(session?.user?.emailVerified);
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -70,8 +70,7 @@ export default function SettingsPage() {
   const [upgradeReason, setUpgradeReason] = useState("");
   const [upgradeStatus, setUpgradeStatus] = useState<string | null>(null);
 
-  const canRequestAuthor = userRole === "user";
-  const canRequestAdmin = userRole === "author" && hasPermission(userRole, "createBlog");
+  const canRequestAuthor = userRole === "reader";
 
   useEffect(() => {
     if (!userId) return;
@@ -87,19 +86,19 @@ export default function SettingsPage() {
   }, [userId]);
 
   useEffect(() => {
-    if (!canRequestAuthor && !canRequestAdmin) return;
+    if (!canRequestAuthor) return;
     fetch("/api/user/role-upgrade")
       .then((response) => response.json())
       .then((data) => {
         const pending = Array.isArray(data.requests)
           ? data.requests.find((r: { status: string }) => r.status === "pending")
           : null;
-        setUpgradeStatus(pending ? `Pending ${pending.requestedRole} request` : null);
+        setUpgradeStatus(pending ? "Pending author request" : null);
       })
       .catch(() => {
         /* ignore */
       });
-  }, [canRequestAuthor, canRequestAdmin]);
+  }, [canRequestAuthor]);
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -240,17 +239,16 @@ export default function SettingsPage() {
       setError("Verify your email before requesting a role upgrade.");
       return;
     }
-    const requestedRole = canRequestAuthor ? "author" : "admin";
     const response = await fetch("/api/user/role-upgrade", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestedRole, reason: upgradeReason }),
+      body: JSON.stringify({ reason: upgradeReason }),
     });
     const result = await response.json();
     if (!response.ok) setError(result.error || "Could not submit request");
     else {
       setMessage("Role upgrade request submitted.");
-      setUpgradeStatus(`Pending ${requestedRole} request`);
+      setUpgradeStatus("Pending author request");
       setUpgradeReason("");
     }
   };
@@ -329,17 +327,13 @@ export default function SettingsPage() {
             </SettingsSection>
           </form>
 
-          {(canRequestAuthor || canRequestAdmin) && (
+          {canRequestAuthor && (
             <form id="role-upgrade" onSubmit={requestUpgrade} className="shrink-0">
               <SettingsSection
                 id="role-upgrade"
                 tone="accent"
                 title="Role upgrade"
-                description={
-                  canRequestAuthor
-                    ? "Request the author role to draft and publish posts."
-                    : "Request the admin role for moderation tools."
-                }
+                description="Request the author role to draft and publish posts."
               >
                 <div className="space-y-3">
                   {upgradeStatus ? <p className="text-sm font-medium text-primary-800">{upgradeStatus}</p> : null}
@@ -352,7 +346,7 @@ export default function SettingsPage() {
                     required
                   />
                   <Button type="submit" variant="primary" size="sm" disabled={Boolean(upgradeStatus)}>
-                    {canRequestAuthor ? "Request author role" : "Request admin role"}
+                    Request author role
                   </Button>
                 </div>
               </SettingsSection>

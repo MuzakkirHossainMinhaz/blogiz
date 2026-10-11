@@ -30,8 +30,8 @@ const sections = [
     content: (
       <p>
         You are responsible for the credentials you use and for activity under your account. Keep passwords private.
-        Operators may deactivate accounts that appear compromised, abusive, or inactive. Authors must remain approved to
-        sign in; inactive accounts cannot sign in.
+        Operators may deactivate accounts that appear compromised, abusive, or inactive. Inactive accounts cannot sign
+        in.
       </p>
     ),
   },
@@ -51,9 +51,8 @@ const sections = [
     title: "Moderation",
     content: (
       <p>
-        Blogiz is designed for reviewed publishing. Posts and comments may stay pending until an admin approves them.
-        Operators and admins may reject, hide, or delete content that violates these terms or local house rules,
-        including spam, harassment, illegal material, or misleading impersonation.
+        Authors publish drafts when ready. Operators and admins may hide or delete posts and comments that violate these
+        terms or local house rules, including spam, harassment, illegal material, or misleading impersonation.
       </p>
     ),
   },

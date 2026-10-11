@@ -12,7 +12,6 @@ import {
   FiFileText,
   FiGrid,
   FiHome,
-  FiImage,
   FiSettings,
   FiUsers,
   FiShield,
@@ -91,13 +90,6 @@ const adminNavigation: NavItem[] = [
     current: (pathname: string) => pathname.startsWith("/dashboard/admin/users"),
     requiredPermission: "viewUsers",
   },
-  {
-    name: "Banners",
-    href: "/dashboard/admin/banners",
-    icon: FiImage,
-    current: (pathname: string) => pathname.startsWith("/dashboard/admin/banners"),
-    requiredPermission: "manageBanners",
-  },
 ];
 
 interface SidebarProps {
@@ -107,9 +99,9 @@ interface SidebarProps {
 export default function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const userRole = (session?.user?.role as UserRole) || "user";
+  const userRole = (session?.user?.role as UserRole) || "reader";
   const canCreateBlog = hasPermission(userRole, "createBlog");
-  const isReader = userRole === "user";
+  const isReader = userRole === "reader";
 
   const mainNav = (isReader ? readerNavigation : authorNavigation).filter((item) =>
     hasPermission(userRole, item.requiredPermission)

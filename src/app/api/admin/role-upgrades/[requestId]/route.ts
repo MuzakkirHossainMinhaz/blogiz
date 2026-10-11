@@ -2,16 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
+import ModerationAction from "@/models/ModerationAction";
 import { denied, requirePermission } from "@/lib/authz";
-import { serverError } from "@/lib/http";
+import { jsonError, serverError } from "@/lib/http";
 
-// PUT /api/admin/role-upgrades/[requestId] - Approve or reject role upgrade request
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ requestId: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ requestId: string }> }) {
   try {
-    const actor = await requirePermission("changeUserRole", { verified: true });
+    const actor = await requirePermission("reviewRoleUpgrades", { verified: true });
     if (denied(actor)) return actor;
 
     await connectDB();
@@ -19,54 +16,51 @@ export async function PUT(
 
     const upgradeRequest = await RoleUpgradeRequest.findById(requestId);
     if (!upgradeRequest) {
-      return NextResponse.json(
-        { error: "Role upgrade request not found" },
-        { status: 404 }
-      );
+      return jsonError("Role upgrade request not found", 404);
     }
 
     if (upgradeRequest.status !== "pending") {
-      return NextResponse.json(
-        { error: "Request has already been processed" },
-        { status: 400 }
-      );
+      return jsonError("Request has already been processed", 400);
     }
 
-    const body = await request.json();
-    const { action, rejectionReason } = body; // action: "approve" or "reject"
+    const body = await request.json().catch(() => null);
+    const action = body?.action;
+    const rejectionReason = typeof body?.rejectionReason === "string" ? body.rejectionReason.trim() : "";
 
     if (!["approve", "reject"].includes(action)) {
-      return NextResponse.json(
-        { error: "Invalid action" },
-        { status: 400 }
-      );
+      return jsonError("Invalid action", 400);
     }
 
-    const adminId = actor.id;
-
-    // Update request
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status: action === "approve" ? "approved" : "rejected",
-      reviewedBy: adminId,
+      reviewedBy: actor.id,
       reviewedAt: new Date(),
     };
 
     if (action === "reject" && rejectionReason) {
-      updateData.rejectionReason = rejectionReason.trim();
+      updateData.rejectionReason = rejectionReason.slice(0, 500);
     }
 
-    const updatedRequest = await RoleUpgradeRequest.findByIdAndUpdate(
-      requestId,
-      updateData,
-      { returnDocument: "after" }
-    ).populate("reviewedBy", "name profile.fullName");
+    const updatedRequest = await RoleUpgradeRequest.findByIdAndUpdate(requestId, updateData, {
+      returnDocument: "after",
+    }).populate("reviewedBy", "name profile.fullName");
 
-    // If approved, update user role
     if (action === "approve") {
       await User.findByIdAndUpdate(upgradeRequest.userId, {
-        role: upgradeRequest.requestedRole,
-        isApproved: true,
+        role: "author",
         $inc: { sessionVersion: 1 },
+      });
+      await ModerationAction.create({
+        actorId: actor.id,
+        subjectUserId: upgradeRequest.userId,
+        action: "approve_role_upgrade",
+      });
+    } else {
+      await ModerationAction.create({
+        actorId: actor.id,
+        subjectUserId: upgradeRequest.userId,
+        action: "reject_role_upgrade",
+        reason: rejectionReason || undefined,
       });
     }
 

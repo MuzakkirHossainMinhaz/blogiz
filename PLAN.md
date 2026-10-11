@@ -21,16 +21,16 @@ The writing experience should feel author-led. AI is an on-demand helper for thu
 
 ## Tech stack
 
-| Layer | Choice |
-| --- | --- |
-| Framework | Next.js (App Router), React |
-| Language | TypeScript |
-| Database | MongoDB with Mongoose (server-side only) |
-| Auth | Session-based email/password (e.g. Auth.js / NextAuth) |
-| Media | Cloud image hosting for avatars and blog thumbnails (e.g. Cloudinary) |
-| AI | External image + text APIs, called from server routes with rate limits |
-| Rate limiting | Redis (auth and AI routes) |
-| UI | Tailwind CSS + component layer; accessible light theme |
+| Layer         | Choice                                                                 |
+| ------------- | ---------------------------------------------------------------------- |
+| Framework     | Next.js (App Router), React                                            |
+| Language      | TypeScript                                                             |
+| Database      | MongoDB with Mongoose (server-side only)                               |
+| Auth          | Session-based email/password (e.g. Auth.js / NextAuth)                 |
+| Media         | Cloud image hosting for avatars and blog thumbnails (e.g. Cloudinary)  |
+| AI            | External image + text APIs, called from server routes with rate limits |
+| Rate limiting | Redis (auth and AI routes)                                             |
+| UI            | Tailwind CSS + component layer; accessible light theme                 |
 
 Server routes and server components own all MongoDB access. Secrets (DB URI, auth secret, AI keys, cloud media credentials) stay in environment configuration.
 
@@ -42,25 +42,25 @@ Schema details live in [DATABASE.md](DATABASE.md).
 
 Exactly three roles. Enum values in the data model:
 
-| Product role | Stored `role` value | Notes |
-| --- | --- | --- |
-| Admin | `admin` | Full moderation + can author content |
-| Author | `author` | Own blogs and comments on those blogs |
-| Reader | `reader` | Default for new public accounts |
+| Product role | Stored `role` value | Notes                                 |
+| ------------ | ------------------- | ------------------------------------- |
+| Admin        | `admin`             | Full moderation + can author content  |
+| Author       | `author`            | Own blogs and comments on those blogs |
+| Reader       | `reader`            | Default for new public accounts       |
 
-**Capability summary**
+### **Capability summary**
 
-| Capability | Reader | Author | Admin |
-| --- | --- | --- | --- |
-| Update profile / password / avatar | ✓ | ✓ | ✓ |
-| Read published blogs | ✓ | ✓ | ✓ |
-| React, comment, reply | ✓* | ✓* | ✓* |
-| Request author role | ✓ | — | — |
-| Create / draft / publish / edit / delete **own** blogs | — | ✓ | ✓ (as author) |
-| Manage comments on **own** blogs | — | ✓ | ✓ |
-| Manage any user, blog, or comment | — | — | ✓ |
-| Approve / reject reader→author requests | — | — | ✓ |
-| Suspend accounts / comment privileges; reset passwords | — | — | ✓ |
+| Capability                                             | Reader | Author | Admin         |
+| ------------------------------------------------------ | ------ | ------ | ------------- |
+| Update profile / password / avatar                     | ✓      | ✓      | ✓             |
+| Read published blogs                                   | ✓      | ✓      | ✓             |
+| React, comment, reply                                  | ✓\*    | ✓\*    | ✓\*           |
+| Request author role                                    | ✓      | —      | —             |
+| Create / draft / publish / edit / delete **own** blogs | —      | ✓      | ✓ (as author) |
+| Manage comments on **own** blogs                       | —      | ✓      | ✓             |
+| Manage any user, blog, or comment                      | —      | —      | ✓             |
+| Approve / reject reader→author requests                | —      | —      | ✓             |
+| Suspend accounts / comment privileges; reset passwords | —      | —      | ✓             |
 
 \* Subject to account status and comment-suspension flags.
 
@@ -144,13 +144,13 @@ Counters (likes, dislikes, comments, views) are denormalized on the blog documen
 
 ## Admin capabilities
 
-| Area | Actions |
-| --- | --- |
-| Users | View, search, deactivate/suspend, delete (soft or hard per policy), reset password, adjust role |
-| Role upgrades | Approve or reject pending `reader` → `author` requests |
-| Commenting | Suspend / unsuspend commenting for a user; moderate individual comments |
-| Blogs | Unpublish, delete, or edit any blog when needed for policy |
-| Self as author | Full authoring toolkit on blogs they create |
+| Area           | Actions                                                                                         |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| Users          | View, search, deactivate/suspend, delete (soft or hard per policy), reset password, adjust role |
+| Role upgrades  | Approve or reject pending `reader` → `author` requests                                          |
+| Commenting     | Suspend / unsuspend commenting for a user; moderate individual comments                         |
+| Blogs          | Unpublish, delete, or edit any blog when needed for policy                                      |
+| Self as author | Full authoring toolkit on blogs they create                                                     |
 
 Admin tools should leave an audit trail where practical (who approved a request, when a user was suspended) — at minimum timestamps and reviewer refs on upgrade requests and suspension records.
 

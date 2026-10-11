@@ -1,14 +1,17 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+export type UserRole = "admin" | "author" | "reader";
+
 export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  role: "superadmin" | "admin" | "author" | "user";
+  role: UserRole;
   profile: {
     fullName: string;
     bio: string;
     avatar?: string;
+    avatarPublicId?: string;
     website?: string;
     socialLinks?: {
       twitter?: string;
@@ -19,7 +22,10 @@ export interface IUser extends Document {
     expertise?: string[];
   };
   isActive: boolean;
-  isApproved: boolean;
+  commentSuspended: boolean;
+  commentSuspendedAt?: Date;
+  commentSuspendedReason?: string;
+  commentSuspendedBy?: mongoose.Types.ObjectId;
   emailVerified: boolean;
   sessionVersion: number;
   emailVerificationTokenHash?: string;
@@ -52,8 +58,8 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["superadmin", "admin", "author", "user"],
-      default: "user",
+      enum: ["admin", "author", "reader"],
+      default: "reader",
     },
     profile: {
       fullName: {
@@ -67,6 +73,10 @@ const UserSchema = new Schema<IUser>(
         default: "",
       },
       avatar: {
+        type: String,
+        default: "",
+      },
+      avatarPublicId: {
         type: String,
         default: "",
       },
@@ -94,9 +104,18 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: true,
     },
-    isApproved: {
+    commentSuspended: {
       type: Boolean,
-      default: false, // Only authors need approval
+      default: false,
+    },
+    commentSuspendedAt: Date,
+    commentSuspendedReason: {
+      type: String,
+      maxlength: [500, "Comment suspension reason cannot exceed 500 characters"],
+    },
+    commentSuspendedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
     emailVerified: {
       type: Boolean,
@@ -117,9 +136,9 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-// Index for better query performance
 UserSchema.index({ role: 1 });
-UserSchema.index({ isActive: 1, isApproved: 1 });
+UserSchema.index({ isActive: 1, role: 1 });
+UserSchema.index({ commentSuspended: 1 });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 

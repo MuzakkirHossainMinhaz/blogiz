@@ -27,10 +27,10 @@ interface Blog {
   title: string;
   description: string;
   status: "draft" | "published";
-  total_likes: number;
+  totalLikes: number;
   createdAt: string;
-  publish_date?: string;
-  author_name: string;
+  publishedAt?: string;
+  authorName: string;
 }
 
 type PendingAction =
@@ -82,7 +82,7 @@ export default function BlogsPage() {
         (blog) =>
           blog.title.toLowerCase().includes(query) ||
           blog.description.toLowerCase().includes(query) ||
-          blog.author_name.toLowerCase().includes(query)
+          blog.authorName.toLowerCase().includes(query)
       );
     }
 
@@ -290,11 +290,11 @@ export default function BlogsPage() {
                 <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600">
                   <span className="inline-flex items-center gap-1">
                     <FiHeart className="w-4 h-4 text-red-500" />
-                    {blog.total_likes}
+                    {blog.totalLikes}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <FiCalendar className="w-4 h-4" />
-                    {formatDate(blog.createdAt)}
+                    {formatDate(blog.publishedAt || blog.createdAt)}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -369,7 +369,7 @@ export default function BlogsPage() {
                         </div>
                       </td>
                       <td className="px-4 lg:px-6 py-4">
-                        <div className="text-sm text-neutral-900">{blog.author_name}</div>
+                        <div className="text-sm text-neutral-900">{blog.authorName}</div>
                       </td>
                       <td className="px-4 lg:px-6 py-4">
                         {getStatusBadge(blog.status)}
@@ -377,7 +377,7 @@ export default function BlogsPage() {
                       <td className="px-4 lg:px-6 py-4">
                         <div className="flex items-center text-sm text-neutral-600">
                           <FiHeart className="w-4 h-4 mr-1 text-red-500" />
-                          {blog.total_likes}
+                          {blog.totalLikes}
                         </div>
                       </td>
                       <td className="px-4 lg:px-6 py-4">
@@ -433,7 +433,7 @@ export default function BlogsPage() {
                   {getStatusBadge(blog.status)}
                   <div className="flex items-center text-sm text-neutral-600">
                     <FiHeart className="w-4 h-4 mr-1 text-red-500" />
-                    {blog.total_likes}
+                    {blog.totalLikes}
                   </div>
                 </div>
                 <h3 className="text-lg font-semibold text-neutral-900 mb-2 line-clamp-2">

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Comment from "@/models/Comment";
 import Blog from "@/models/Blog";
-import { denied, requirePermission } from "@/lib/authz";
+import User from "@/models/User";
+import { denied, requirePermission, requireUser } from "@/lib/authz";
 import { syncCommentCount } from "@/lib/engagement";
 import { jsonError, serverError } from "@/lib/http";
 import { parsePageLimit } from "@/lib/pagination";
@@ -23,7 +24,20 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const filter = { blogId, parentId: null, isApproved: true };
+    const actor = await requireUser();
+    const viewer = denied(actor) ? null : actor;
+    const canModerateAny = viewer && hasPermission(viewer.role, "deleteAnyComment");
+
+    let canModerateOwn = false;
+    if (viewer && hasPermission(viewer.role, "moderateOwnBlogComments")) {
+      const blog = await Blog.findById(blogId).select("authorId").lean();
+      canModerateOwn = Boolean(blog && blog.authorId.toString() === viewer.id);
+    }
+
+    const showHidden = Boolean(canModerateAny || canModerateOwn);
+    const visibilityFilter = showHidden ? {} : { isVisible: true };
+
+    const filter = { blogId, parentId: null, ...visibilityFilter };
     const [comments, total] = await Promise.all([
       Comment.find(filter)
         .populate("userId", "profile.fullName profile.avatar name")
@@ -36,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     const commentsWithReplies = await Promise.all(
       comments.map(async (comment) => {
-        const replies = await Comment.find({ parentId: comment._id, isApproved: true })
+        const replies = await Comment.find({ parentId: comment._id, ...visibilityFilter })
           .populate("userId", "profile.fullName profile.avatar name")
           .sort({ createdAt: 1 })
           .lean();
@@ -63,6 +77,10 @@ export async function POST(request: NextRequest) {
     const actor = await requirePermission("createComment", { verified: true });
     if (denied(actor)) return actor;
 
+    if (actor.commentSuspended) {
+      return jsonError("Your commenting privileges are suspended", 403);
+    }
+
     const body = await request.json().catch(() => null);
     const blogId = typeof body?.blogId === "string" ? body.blogId : "";
     const content = typeof body?.content === "string" ? body.content.trim() : "";
@@ -74,27 +92,33 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
+    const dbUser = await User.findById(actor.id).select("commentSuspended isActive");
+    if (!dbUser?.isActive) return jsonError("Account inactive", 403);
+    if (dbUser.commentSuspended) return jsonError("Your commenting privileges are suspended", 403);
+
     const blog = await Blog.findOne({ _id: blogId, ...publicPostFilter() }).select("_id");
     if (!blog) return jsonError("Blog not found", 404);
 
     if (parentId) {
       if (!mongoose.Types.ObjectId.isValid(parentId)) return jsonError("Parent comment not found", 404);
-      const parentComment = await Comment.findOne({ _id: parentId, blogId }).select("_id");
+      const parentComment = await Comment.findOne({ _id: parentId, blogId, isVisible: true }).select(
+        "_id parentId"
+      );
       if (!parentComment) return jsonError("Parent comment not found", 404);
+      if (parentComment.parentId) {
+        return jsonError("Replies are limited to one level", 400);
+      }
     }
 
-    const isApproved = hasPermission(actor.role, "approveComment");
     const comment = await Comment.create({
       blogId,
       userId: actor.id,
       content,
       parentId: parentId || null,
-      isApproved,
+      isVisible: true,
     });
 
-    if (isApproved) {
-      await syncCommentCount(blogId);
-    }
+    await syncCommentCount(blogId);
 
     const populatedComment = await Comment.findById(comment._id)
       .populate("userId", "profile.fullName profile.avatar name")
@@ -102,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: isApproved ? "Comment posted successfully" : "Comment submitted for approval",
+        message: "Comment posted successfully",
         comment: populatedComment,
       },
       { status: 201 }

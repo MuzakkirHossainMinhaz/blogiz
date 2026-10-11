@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
-import Like from "@/models/Like";
 import { denied, requireUser } from "@/lib/authz";
 import { serverError } from "@/lib/http";
 
-// GET /api/blogs/stats - Get blog statistics (auth required)
 export async function GET(request: NextRequest) {
   try {
     const actor = await requireUser();
@@ -15,30 +13,26 @@ export async function GET(request: NextRequest) {
 
     const userId = actor.id;
 
-    // Get counts
-    const [totalBlogs, publishedBlogs, draftBlogs, totalLikes] =
-      await Promise.all([
-        Blog.countDocuments({ createdBy: userId }),
-        Blog.countDocuments({ createdBy: userId, status: "published" }),
-        Blog.countDocuments({ createdBy: userId, status: "draft" }),
-        Blog.aggregate([
-          { $match: { createdBy: userId } },
-          { $group: { _id: null, total: { $sum: "$total_likes" } } },
-        ]),
-      ]);
+    const [totalBlogs, publishedBlogs, draftBlogs, totalLikes] = await Promise.all([
+      Blog.countDocuments({ authorId: userId }),
+      Blog.countDocuments({ authorId: userId, status: "published" }),
+      Blog.countDocuments({ authorId: userId, status: "draft" }),
+      Blog.aggregate([
+        { $match: { authorId: actor.id } },
+        { $group: { _id: null, total: { $sum: "$totalLikes" } } },
+      ]),
+    ]);
 
-    // Get most liked blogs
-    const mostLikedBlogs = await Blog.find({ createdBy: userId })
-      .sort({ total_likes: -1 })
+    const mostLikedBlogs = await Blog.find({ authorId: userId })
+      .sort({ totalLikes: -1 })
       .limit(5)
-      .select("title total_likes publish_date")
+      .select("title totalLikes publishedAt")
       .lean();
 
-    // Get recent blogs
-    const recentBlogs = await Blog.find({ createdBy: userId })
+    const recentBlogs = await Blog.find({ authorId: userId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("title status publish_date total_likes")
+      .select("title status publishedAt totalLikes")
       .lean();
 
     return NextResponse.json({

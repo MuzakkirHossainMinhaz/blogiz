@@ -17,39 +17,48 @@ interface AdminUser {
   email: string;
   role: UserRole;
   isActive: boolean;
-  isApproved: boolean;
+  commentSuspended?: boolean;
   createdAt?: string;
   profile?: { fullName?: string };
 }
 
+type UserAction =
+  | "activate"
+  | "deactivate"
+  | "changeRole"
+  | "suspendCommenting"
+  | "unsuspendCommenting"
+  | "resetPassword"
+  | "delete";
+
 const ROLE_OPTIONS = [
   { value: "", label: "All roles" },
-  { value: "user", label: "User" },
+  { value: "reader", label: "Reader" },
   { value: "author", label: "Author" },
   { value: "admin", label: "Admin" },
-  { value: "superadmin", label: "Superadmin" },
 ];
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
-  { value: "pending", label: "Pending approval" },
-  { value: "approved", label: "Approved" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
+  { value: "comment_suspended", label: "Commenting suspended" },
 ];
 
 const CHANGEABLE_ROLES = [
-  { value: "user", label: "User" },
+  { value: "reader", label: "Reader" },
   { value: "author", label: "Author" },
   { value: "admin", label: "Admin" },
 ];
 
 export default function AdminUsersPage() {
   const { data: session } = useSession();
-  const actorRole = (session?.user?.role as UserRole) || "user";
-  const canApprove = hasPermission(actorRole, "approveUser");
+  const actorRole = (session?.user?.role as UserRole) || "reader";
   const canDeactivate = hasPermission(actorRole, "deactivateUser");
   const canChangeRole = hasPermission(actorRole, "changeUserRole");
+  const canSuspendCommenting = hasPermission(actorRole, "suspendCommenting");
+  const canResetPassword = hasPermission(actorRole, "resetUserPassword");
+  const canDelete = hasPermission(actorRole, "deleteUser");
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
@@ -100,11 +109,7 @@ export default function AdminUsersPage() {
 
   const refresh = () => setReloadKey((value) => value + 1);
 
-  const runAction = async (
-    userId: string,
-    action: "approve" | "activate" | "deactivate" | "changeRole",
-    newRole?: string
-  ) => {
+  const runAction = async (userId: string, action: UserAction, newRole?: string) => {
     setBusyId(userId);
     setError("");
     setMessage("");
@@ -138,7 +143,7 @@ export default function AdminUsersPage() {
     <div className="w-full space-y-6">
       <DashboardPageHeader
         title="User Management"
-        description="Search, approve, and manage accounts you are allowed to act on."
+        description="Search, deactivate, and manage accounts you are allowed to act on."
         actions={
           <Link href="/dashboard/admin">
             <Button variant="ghost" size="sm">
@@ -221,16 +226,18 @@ export default function AdminUsersPage() {
                       <p className="font-medium text-ink">{user.profile?.fullName || user.name}</p>
                       <p className="text-sm text-accent-500 break-all">{user.email}</p>
                       <p className="mt-1 text-xs text-neutral-500">
-                        {user.role} · {user.isApproved ? "approved" : "pending"} ·{" "}
-                        {user.isActive ? "active" : "inactive"} · {formatDate(user.createdAt)}
+                        {user.role} · {user.isActive ? "active" : "inactive"}
+                        {user.commentSuspended ? " · comments suspended" : ""} · {formatDate(user.createdAt)}
                       </p>
                     </div>
                     <UserActions
                       user={user}
                       manageable={manageable}
-                      canApprove={canApprove}
                       canDeactivate={canDeactivate}
                       canChangeRole={canChangeRole}
+                      canSuspendCommenting={canSuspendCommenting}
+                      canResetPassword={canResetPassword}
+                      canDelete={canDelete}
                       busy={busyId === user._id}
                       roleDraft={roleDrafts[user._id] || user.role}
                       onRoleDraft={(value) => setRoleDrafts((current) => ({ ...current, [user._id]: value }))}
@@ -274,8 +281,10 @@ export default function AdminUsersPage() {
                         <td className="px-4 py-4 text-sm capitalize text-neutral-700">{user.role}</td>
                         <td className="px-4 py-4 text-sm text-neutral-700">
                           <span className="inline-flex flex-wrap gap-1.5">
-                            <StatusChip ok={user.isApproved} yes="Approved" no="Pending" />
                             <StatusChip ok={user.isActive} yes="Active" no="Inactive" />
+                            {user.commentSuspended ? (
+                              <StatusChip ok={false} yes="" no="Comments off" />
+                            ) : null}
                           </span>
                         </td>
                         <td className="px-4 py-4 text-sm text-accent-500">{formatDate(user.createdAt)}</td>
@@ -284,11 +293,13 @@ export default function AdminUsersPage() {
                             <UserActions
                               user={user}
                               manageable={manageable}
-                              canApprove={canApprove}
                               canDeactivate={canDeactivate}
                               canChangeRole={canChangeRole}
+                              canSuspendCommenting={canSuspendCommenting}
+                              canResetPassword={canResetPassword}
+                              canDelete={canDelete}
                               busy={busyId === user._id}
-                              roleDraft={roleDrafts[user._id] || (user.role === "superadmin" ? "admin" : user.role)}
+                              roleDraft={roleDrafts[user._id] || user.role}
                               onRoleDraft={(value) =>
                                 setRoleDrafts((current) => ({ ...current, [user._id]: value }))
                               }
@@ -328,9 +339,11 @@ function StatusChip({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
 function UserActions({
   user,
   manageable,
-  canApprove,
   canDeactivate,
   canChangeRole,
+  canSuspendCommenting,
+  canResetPassword,
+  canDelete,
   busy,
   roleDraft,
   onRoleDraft,
@@ -338,17 +351,15 @@ function UserActions({
 }: {
   user: AdminUser;
   manageable: boolean;
-  canApprove: boolean;
   canDeactivate: boolean;
   canChangeRole: boolean;
+  canSuspendCommenting: boolean;
+  canResetPassword: boolean;
+  canDelete: boolean;
   busy: boolean;
   roleDraft: string;
   onRoleDraft: (value: string) => void;
-  onAction: (
-    userId: string,
-    action: "approve" | "activate" | "deactivate" | "changeRole",
-    newRole?: string
-  ) => Promise<void>;
+  onAction: (userId: string, action: UserAction, newRole?: string) => Promise<void>;
 }) {
   if (!manageable) {
     return <span className="text-xs text-accent-400">No actions</span>;
@@ -356,11 +367,6 @@ function UserActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2 justify-end">
-      {canApprove && !user.isApproved && (
-        <Button variant="primary" size="sm" disabled={busy} onClick={() => void onAction(user._id, "approve")}>
-          Approve
-        </Button>
-      )}
       {canDeactivate && user.isActive && (
         <Button
           variant="outline"
@@ -381,13 +387,47 @@ function UserActions({
           Activate
         </Button>
       )}
-      {canChangeRole && user.role !== "superadmin" && (
+      {canSuspendCommenting && !user.commentSuspended && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => void onAction(user._id, "suspendCommenting")}
+        >
+          Suspend comments
+        </Button>
+      )}
+      {canSuspendCommenting && user.commentSuspended && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => void onAction(user._id, "unsuspendCommenting")}
+        >
+          Restore comments
+        </Button>
+      )}
+      {canResetPassword && (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm(`Send a password reset for ${user.email}?`)) {
+              void onAction(user._id, "resetPassword");
+            }
+          }}
+        >
+          Reset password
+        </Button>
+      )}
+      {canChangeRole && (
         <div className="flex items-center gap-2">
           <Select
             id={`role-${user._id}`}
             aria-label={`Change role for ${user.name}`}
             options={CHANGEABLE_ROLES}
-            value={roleDraft === "superadmin" ? "admin" : roleDraft}
+            value={roleDraft}
             onChange={(event) => onRoleDraft(event.target.value)}
             size="sm"
             className="min-w-28"
@@ -401,6 +441,21 @@ function UserActions({
             Set role
           </Button>
         </div>
+      )}
+      {canDelete && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-red-600"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm(`Permanently delete ${user.email}? This cannot be undone.`)) {
+              void onAction(user._id, "delete");
+            }
+          }}
+        >
+          Delete
+        </Button>
       )}
     </div>
   );

@@ -85,7 +85,7 @@ const sections = [
     content: (
       <p>
         Blogiz does not sell personal data. Data stays with the operator of your instance and the infrastructure they
-        connect (database, Redis, mail, image hosting). Public posts and approved comments are visible to anyone who can
+        connect (database, Redis, mail, image hosting). Public posts and visible comments are available to anyone who can
         reach the site.
       </p>
     ),

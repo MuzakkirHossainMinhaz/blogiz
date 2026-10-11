@@ -11,10 +11,9 @@ import { FiChevronDown, FiLogOut, FiMenu, FiSettings, FiX } from "react-icons/fi
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  superadmin: "Superadmin",
   admin: "Admin",
   author: "Author",
-  user: "Reader",
+  reader: "Reader",
 };
 
 interface DashboardNavProps {
@@ -25,7 +24,7 @@ interface DashboardNavProps {
 export default function DashboardNav({ onToggleSidebar, sidebarOpen }: DashboardNavProps) {
   const { data: session } = useSession();
   const user = session?.user;
-  const role = (user?.role as UserRole) || "user";
+  const role = (user?.role as UserRole) || "reader";
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

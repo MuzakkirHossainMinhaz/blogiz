@@ -3,13 +3,7 @@ import { spawnSync } from "child_process";
 import { describe, expect, it } from "vitest";
 import { dashboardAccess, hasPermission } from "@/lib/permissions";
 import { parsePageLimit, escapeRegex } from "@/lib/pagination";
-import {
-  buildBlogListFilter,
-  publicPostFilter,
-  resolveCreateStatus,
-  resolvePublishStatus,
-  resolveUpdateStatus,
-} from "@/lib/public-posts";
+import { buildBlogListFilter, publicPostFilter, resolveCreateStatus, resolvePublishStatus } from "@/lib/public-posts";
 import { renderMarkdown } from "@/lib/sanitize";
 import { canSignIn, evaluateSession } from "@/lib/session-policy";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT } from "@/lib/uploads";
@@ -17,48 +11,40 @@ import { cloudinaryPublicId, isCloudinaryDeliveryUrl, isSafeNavigationUrl, isSto
 import { passwordSchema } from "@/lib/validation";
 
 describe("authorization policy", () => {
-  it("keeps banner management off the author role", () => {
-    expect(hasPermission("author", "manageBanners")).toBe(false);
-    expect(hasPermission("admin", "manageBanners")).toBe(true);
-    expect(hasPermission("user", "createBlog")).toBe(false);
+  it("gives admin full plan powers and keeps readers from authoring", () => {
+    expect(hasPermission("admin", "changeUserRole")).toBe(true);
+    expect(hasPermission("admin", "editAnyBlog")).toBe(true);
+    expect(hasPermission("admin", "suspendCommenting")).toBe(true);
+    expect(hasPermission("author", "createBlog")).toBe(true);
+    expect(hasPermission("reader", "createBlog")).toBe(false);
   });
 
   it("gates admin dashboard prefixes", () => {
     expect(dashboardAccess(undefined, "/dashboard")).toBe("login");
-    expect(dashboardAccess("user", "/dashboard")).toBe("ok");
+    expect(dashboardAccess("reader", "/dashboard")).toBe("ok");
     expect(dashboardAccess("author", "/dashboard/admin/users")).toBe("forbidden");
     expect(dashboardAccess("admin", "/dashboard/admin")).toBe("ok");
   });
 
   it("gates authoring routes for readers", () => {
-    expect(dashboardAccess("user", "/dashboard/blogs")).toBe("forbidden");
-    expect(dashboardAccess("user", "/dashboard/blogs/create")).toBe("forbidden");
-    expect(dashboardAccess("user", "/dashboard/analytics")).toBe("forbidden");
+    expect(dashboardAccess("reader", "/dashboard/blogs")).toBe("forbidden");
+    expect(dashboardAccess("reader", "/dashboard/blogs/create")).toBe("forbidden");
+    expect(dashboardAccess("reader", "/dashboard/analytics")).toBe("forbidden");
     expect(dashboardAccess("author", "/dashboard/blogs")).toBe("ok");
-    expect(hasPermission("user", "viewDashboard")).toBe(true);
+    expect(hasPermission("reader", "viewDashboard")).toBe(true);
   });
 
-  it("allows seeded-style superadmin flags at sign-in", () => {
-    expect(
-      canSignIn({ isActive: true, role: "superadmin", isApproved: true })
-    ).toBe(true);
-    expect(
-      canSignIn({ isActive: true, role: "superadmin", isApproved: false })
-    ).toBe(true);
-  });
-
-  it("rejects inactive users and unapproved authors at sign-in", () => {
-    expect(canSignIn({ isActive: false, role: "admin", isApproved: true })).toBe(false);
-    expect(canSignIn({ isActive: true, role: "author", isApproved: false })).toBe(false);
-    expect(canSignIn({ isActive: true, role: "user", isApproved: true })).toBe(true);
+  it("rejects inactive users at sign-in", () => {
+    expect(canSignIn({ isActive: false })).toBe(false);
+    expect(canSignIn({ isActive: true })).toBe(true);
   });
 
   it("drops sessions that are inactive or revoked", () => {
     const user = {
       role: "admin" as const,
       isActive: true,
-      isApproved: true,
       emailVerified: true,
+      commentSuspended: false,
       sessionVersion: 2,
       email: "a@example.com",
       name: "A",
@@ -70,18 +56,16 @@ describe("authorization policy", () => {
     expect(fresh.ok && fresh.role).toBe("admin");
   });
 
-  it("does not let clients publish without approveBlog", () => {
-    expect(resolveCreateStatus("author", "published")).toEqual({ status: "pending", isApproved: false });
-    expect(resolveCreateStatus("admin", "published")).toEqual({ status: "published", isApproved: true });
-    expect(resolveUpdateStatus("author", "published")).toBeNull();
-    expect(resolveUpdateStatus("admin", "published")).toEqual({ status: "published", isApproved: true });
-    expect(resolvePublishStatus("author").isApproved).toBe(false);
-    expect(resolvePublishStatus("superadmin")).toMatchObject({ status: "published", isApproved: true });
+  it("lets authors self-publish", () => {
+    expect(resolveCreateStatus("published")).toBe("published");
+    expect(resolveCreateStatus("draft")).toBe("draft");
+    expect(resolveCreateStatus()).toBe("draft");
+    expect(resolvePublishStatus()).toMatchObject({ status: "published" });
   });
 
-  it("keeps anonymous lists on published and approved posts", () => {
+  it("keeps anonymous lists on published posts", () => {
     expect(buildBlogListFilter(null, null, "draft")).toEqual(publicPostFilter());
-    expect(publicPostFilter()).toEqual({ status: "published", isApproved: true });
+    expect(publicPostFilter()).toEqual({ status: "published" });
   });
 });
 
