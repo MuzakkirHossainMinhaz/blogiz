@@ -310,11 +310,18 @@ export function BlogEditor({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="min-h-12 min-w-12 shrink-0 px-0 self-end"
                 disabled={actionsBusy || !watchedTitle?.trim()}
                 onClick={() => void optimizeField("title")}
+                aria-label={optimizing === "title" ? "Optimizing Title" : "Optimize Title"}
+                title={optimizing === "title" ? "Optimizing Title" : "Optimize Title"}
+                isLoading={optimizing === "title"}
               >
-                <FiZap className="w-4 h-4" />
-                {optimizing === "title" ? "Optimizing…" : "Optimize Title"}
+                {optimizing === "title" ? (
+                  <span className="sr-only">Optimizing Title</span>
+                ) : (
+                  <FiZap className="w-4 h-4" aria-hidden />
+                )}
               </Button>
             </div>
             {titleSuggestion ? (
@@ -361,11 +368,18 @@ export function BlogEditor({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="min-h-9 min-w-9 shrink-0 px-0"
                 disabled={actionsBusy || content.trim().length < 20}
                 onClick={() => void optimizeField("content")}
+                aria-label={optimizing === "content" ? "Optimizing Content" : "Optimize Content"}
+                title={optimizing === "content" ? "Optimizing Content" : "Optimize Content"}
+                isLoading={optimizing === "content"}
               >
-                <FiZap className="w-4 h-4" />
-                {optimizing === "content" ? "Optimizing…" : "Optimize Content"}
+                {optimizing === "content" ? (
+                  <span className="sr-only">Optimizing Content</span>
+                ) : (
+                  <FiZap className="w-4 h-4" aria-hidden />
+                )}
               </Button>
             </div>
             <RichTextEditor value={content} onChange={setContent} placeholder="Write your blog content here…" />
