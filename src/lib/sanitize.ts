@@ -88,63 +88,6 @@ export function sanitizeHtml(html: string): string {
   });
 }
 
-/**
- * Render a Markdown subset to HTML.
- * The source is escaped first, so raw HTML and script cannot survive.
- */
-export function renderMarkdown(markdown: string): string {
-  const escaped = escapeHtml(markdown.replace(/\r\n/g, "\n"));
-  const lines = escaped.split("\n");
-  const html: string[] = [];
-  let inList = false;
-
-  const closeList = () => {
-    if (inList) {
-      html.push("</ul>");
-      inList = false;
-    }
-  };
-
-  for (const line of lines) {
-    const listItem = line.match(/^- (.*)$/);
-    if (listItem) {
-      if (!inList) {
-        html.push("<ul>");
-        inList = true;
-      }
-      html.push(`<li>${inlineMarkdown(listItem[1])}</li>`);
-      continue;
-    }
-
-    closeList();
-    if (line.trim() === "") {
-      continue;
-    }
-
-    const heading = line.match(/^(#{1,3}) (.*)$/);
-    if (heading) {
-      const level = heading[1].length;
-      html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
-      continue;
-    }
-
-    html.push(`<p>${inlineMarkdown(line)}</p>`);
-  }
-
-  closeList();
-  return html.join("");
-}
-
-/**
- * Blog bodies may be Markdown (editor) or HTML (seeds / pasted).
- * Pick the safe renderer for each.
- */
-export function renderContent(source: string): string {
-  if (!source) return "";
-  if (looksLikeHtml(source)) return sanitizeHtml(source);
-  return renderMarkdown(source);
-}
-
 function inlineMarkdown(text: string): string {
   return text
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, href: string) => {
@@ -159,5 +102,132 @@ function inlineMarkdown(text: string): string {
     })
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/__([^_]+)__/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+}
+
+/**
+ * Render a Markdown subset to HTML.
+ * The source is escaped first, so raw HTML and script cannot survive.
+ * Supports headings, paragraphs, unordered/ordered lists, fenced code,
+ * blockquotes, hr, and common inline marks.
+ */
+export function renderMarkdown(markdown: string): string {
+  const escaped = escapeHtml(markdown.replace(/\r\n/g, "\n"));
+  const lines = escaped.split("\n");
+  const html: string[] = [];
+  let listType: "ul" | "ol" | null = null;
+  let inCode = false;
+  let codeLines: string[] = [];
+  let inBlockquote = false;
+
+  const closeList = () => {
+    if (listType) {
+      html.push(`</${listType}>`);
+      listType = null;
+    }
+  };
+
+  const closeBlockquote = () => {
+    if (inBlockquote) {
+      html.push("</blockquote>");
+      inBlockquote = false;
+    }
+  };
+
+  const openList = (type: "ul" | "ol") => {
+    if (listType !== type) {
+      closeList();
+      html.push(`<${type}>`);
+      listType = type;
+    }
+  };
+
+  for (const line of lines) {
+    if (inCode) {
+      if (line.startsWith("```")) {
+        html.push(`<pre><code>${codeLines.join("\n")}</code></pre>`);
+        codeLines = [];
+        inCode = false;
+      } else {
+        codeLines.push(line);
+      }
+      continue;
+    }
+
+    if (line.startsWith("```")) {
+      closeList();
+      closeBlockquote();
+      inCode = true;
+      codeLines = [];
+      continue;
+    }
+
+    const unordered = line.match(/^[-*+] (.*)$/);
+    if (unordered) {
+      closeBlockquote();
+      openList("ul");
+      html.push(`<li>${inlineMarkdown(unordered[1])}</li>`);
+      continue;
+    }
+
+    const ordered = line.match(/^\d+[.)] (.*)$/);
+    if (ordered) {
+      closeBlockquote();
+      openList("ol");
+      html.push(`<li>${inlineMarkdown(ordered[1])}</li>`);
+      continue;
+    }
+
+    closeList();
+
+    if (/^---+$/.test(line.trim()) || /^\*\*\*+$/.test(line.trim())) {
+      closeBlockquote();
+      html.push("<hr />");
+      continue;
+    }
+
+    const quote = line.match(/^&gt;\s?(.*)$/);
+    if (quote) {
+      if (!inBlockquote) {
+        html.push("<blockquote>");
+        inBlockquote = true;
+      }
+      if (quote[1].trim() === "") continue;
+      html.push(`<p>${inlineMarkdown(quote[1])}</p>`);
+      continue;
+    }
+
+    closeBlockquote();
+
+    if (line.trim() === "") {
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,4}) (.*)$/);
+    if (heading) {
+      const level = heading[1].length;
+      html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    html.push(`<p>${inlineMarkdown(line)}</p>`);
+  }
+
+  if (inCode) {
+    html.push(`<pre><code>${codeLines.join("\n")}</code></pre>`);
+  }
+  closeList();
+  closeBlockquote();
+  return html.join("");
+}
+
+/**
+ * Blog bodies may be Markdown (editor) or HTML (seeds / pasted).
+ * Pick the safe renderer for each.
+ */
+export function renderContent(source: string): string {
+  if (!source) return "";
+  if (looksLikeHtml(source)) return sanitizeHtml(source);
+  return renderMarkdown(source);
 }

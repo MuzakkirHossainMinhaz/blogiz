@@ -106,7 +106,7 @@ export default function RichTextEditor({
       )}
 
       <div className="px-3 py-2 bg-neutral-50 border-t border-neutral-300 text-xs text-neutral-500">
-        Supports Markdown: **bold**, *italic*, `code`, [links](url), - lists
+        Supports Markdown: headings, **bold**, *italic*, `code`, fenced code, [links](url), lists, quotes
       </div>
     </div>
   );

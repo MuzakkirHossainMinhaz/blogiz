@@ -92,6 +92,47 @@ describe("input guards", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
+  it("renders headings, lists, links, code fences, and emphasis", () => {
+    const source = [
+      "# Title",
+      "",
+      "## Section",
+      "",
+      "A paragraph with **bold**, *italic*, and `code`.",
+      "",
+      "- first",
+      "- second",
+      "",
+      "1. alpha",
+      "2. beta",
+      "",
+      "[Docs](https://example.com/go)",
+      "",
+      "> quoted line",
+      "",
+      "```",
+      "const x = 1;",
+      "```",
+      "",
+      "---",
+    ].join("\n");
+
+    const html = renderMarkdown(source);
+    expect(html).toContain("<h1>Title</h1>");
+    expect(html).toContain("<h2>Section</h2>");
+    expect(html).toContain("<strong>bold</strong>");
+    expect(html).toContain("<em>italic</em>");
+    expect(html).toContain("<code>code</code>");
+    expect(html).toContain("<ul>");
+    expect(html).toContain("<li>first</li>");
+    expect(html).toContain("<ol>");
+    expect(html).toContain("<li>alpha</li>");
+    expect(html).toContain('href="https://example.com/go"');
+    expect(html).toContain("<blockquote>");
+    expect(html).toContain("<pre><code>const x = 1;</code></pre>");
+    expect(html).toContain("<hr />");
+  });
+
   it("sanitizes stored HTML blog bodies without showing tags as text", () => {
     const html = renderContent(
       "<p>Authors draft and publish.</p><p>Role upgrades should be explicit.</p><script>alert(1)</script>"

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { imageDailyQuota } from "@/lib/ai-provider";
+import { imageDailyQuota, mapHuggingFaceHttpError } from "@/lib/ai-provider";
 import { denied } from "@/lib/authz";
 import { requireAiUser } from "@/lib/ai-guard";
 import { huggingFaceAI } from "@/lib/huggingface";
@@ -17,7 +17,12 @@ function imageBytesFromPayload(imageData: string): Buffer {
 
 async function generate(actorId: string, prompt: string) {
   const quota = imageDailyQuota();
-  if (!quota) return jsonError("Image generation is disabled until a quota is configured", 503);
+  if (!quota) {
+    return jsonError(
+      "Image generation is disabled until HUGGINGFACE_API_KEY and a positive HF_IMAGE_DAILY_QUOTA are set",
+      503
+    );
+  }
 
   const day = new Date().toISOString().slice(0, 10);
   const attempt = await rateLimit(`image:${actorId}:${day}`, quota, 24 * 60 * 60 * 1000);
@@ -50,6 +55,8 @@ export async function POST(request: NextRequest) {
     return await generate(actor.id, finalPrompt);
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
+    const mapped = mapHuggingFaceHttpError(error);
+    if (mapped) return jsonError(mapped.message, mapped.status);
     return serverError("Image generation failed:", error);
   }
 }
@@ -64,6 +71,8 @@ export async function GET(request: NextRequest) {
     return await generate(actor.id, `Blog cover: ${title}`);
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
+    const mapped = mapHuggingFaceHttpError(error);
+    if (mapped) return jsonError(mapped.message, mapped.status);
     return serverError("Blog cover generation failed:", error);
   }
 }
