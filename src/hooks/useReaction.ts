@@ -51,13 +51,22 @@ export function useReaction(blogId: string, initialLikes = 0, initialDislikes = 
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
   const [isLoading, setIsLoading] = useState(false);
+  const [synced, setSynced] = useState({ blogId, initialLikes, initialDislikes });
   const stateRef = useRef({ reaction, likes, dislikes });
-  stateRef.current = { reaction, likes, dislikes };
 
-  useEffect(() => {
+  if (
+    blogId !== synced.blogId ||
+    initialLikes !== synced.initialLikes ||
+    initialDislikes !== synced.initialDislikes
+  ) {
+    setSynced({ blogId, initialLikes, initialDislikes });
     setLikes(initialLikes);
     setDislikes(initialDislikes);
-  }, [blogId, initialLikes, initialDislikes]);
+  }
+
+  useEffect(() => {
+    stateRef.current = { reaction, likes, dislikes };
+  }, [reaction, likes, dislikes]);
 
   useEffect(() => {
     if (!isAuthenticated || !blogId) return;

@@ -2,9 +2,10 @@
 
 import { MOTION_DURATION, MOTION_EASE, usePrefersReducedMotion } from "@/components/motion";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useIsClient } from "@/hooks/useIsClient";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
 
@@ -35,13 +36,9 @@ export function Modal({
   className,
 }: ModalProps) {
   const reduceMotion = usePrefersReducedMotion();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const titleId = useId();
   const descriptionId = useId();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useBodyScrollLock(open);
 
