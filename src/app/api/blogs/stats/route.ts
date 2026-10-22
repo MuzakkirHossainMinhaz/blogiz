@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import { denied, requireUser } from "@/lib/authz";
@@ -12,13 +13,15 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const userId = actor.id;
+    // Aggregations skip Mongoose casting; authorId is ObjectId on Blog.
+    const authorObjectId = new mongoose.Types.ObjectId(userId);
 
     const [totalBlogs, publishedBlogs, draftBlogs, totalLikes] = await Promise.all([
       Blog.countDocuments({ authorId: userId }),
       Blog.countDocuments({ authorId: userId, status: "published" }),
       Blog.countDocuments({ authorId: userId, status: "draft" }),
       Blog.aggregate([
-        { $match: { authorId: actor.id } },
+        { $match: { authorId: authorObjectId } },
         { $group: { _id: null, total: { $sum: "$totalLikes" } } },
       ]),
     ]);
