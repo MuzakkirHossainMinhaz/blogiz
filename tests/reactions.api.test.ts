@@ -287,3 +287,31 @@ describe("reaction count sync", () => {
     expect(stored?.totalDislikes).toBe(1);
   });
 });
+
+describe("GET /api/blogs/stats", () => {
+  it("sums totalLikes across the author's blogs for Overview Total Likes", async () => {
+    const author = await makeUser({ role: "author" });
+    const other = await makeUser({ role: "author" });
+    await makeBlog(author._id, { title: "Liked post", totalLikes: 2, status: "published" });
+    await makeBlog(author._id, { title: "Draft", totalLikes: 1, status: "draft", publishedAt: null });
+    await makeBlog(other._id, { title: "Other author", totalLikes: 99, status: "published" });
+
+    authMock.mockResolvedValue(sessionFor(author));
+    const { GET } = await import("@/app/api/blogs/stats/route");
+    const response = await GET(new NextRequest("http://localhost:3000/api/blogs/stats"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.stats).toMatchObject({
+      totalBlogs: 2,
+      publishedBlogs: 1,
+      draftBlogs: 1,
+      totalLikes: 3,
+    });
+    expect(body.recentBlogs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Liked post", totalLikes: 2 }),
+        expect.objectContaining({ title: "Draft", totalLikes: 1 }),
+      ])
+    );
+  });
+});
