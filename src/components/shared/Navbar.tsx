@@ -156,7 +156,7 @@ export default function Navbar() {
                 <Link
                   href="/dashboard"
                   className="flex min-h-11 min-w-11 items-center justify-center rounded-xl transition-colors hover:bg-primary-50"
-                  aria-label="Open dashboard"
+                  aria-label="Open Dashboard"
                 >
                   <UserAvatar src={user?.avatar} name={user?.name} size="sm" priority />
                 </Link>
@@ -165,7 +165,7 @@ export default function Navbar() {
                 type="button"
                 onClick={toggleMobileMenu}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl transition-colors hover:bg-primary-50"
-                aria-label="Toggle menu"
+                aria-label="Toggle Menu"
                 aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? <FiX className="h-6 w-6 text-ink" /> : <FiMenu className="h-6 w-6 text-ink" />}

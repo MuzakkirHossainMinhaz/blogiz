@@ -97,7 +97,7 @@ function AuthorUpgradeModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Become an author"
+      title="Become An Author"
       description="Tell us why you’d like to draft and publish on Blogiz."
       size="md"
     >
@@ -144,7 +144,7 @@ function AuthorUpgradeModal({
             isLoading={submitting}
             className="w-full sm:w-auto"
           >
-            Request author role
+            Request Author Role
           </Button>
         </div>
       </form>

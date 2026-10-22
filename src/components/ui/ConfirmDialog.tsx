@@ -55,7 +55,7 @@ export function ConfirmDialog({
           <motion.button
             type="button"
             className="absolute inset-0 bg-ink/35 backdrop-blur-[1px]"
-            aria-label="Close dialog"
+            aria-label="Close Dialog"
             onClick={onCancel}
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -273,7 +273,7 @@ export default function AdminUsersPage() {
                           <span className="inline-flex flex-wrap gap-1.5">
                             <StatusChip ok={user.isActive} yes="Active" no="Inactive" />
                             {user.commentSuspended ? (
-                              <StatusChip ok={false} yes="" no="Comments off" />
+                              <StatusChip ok={false} yes="" no="Comments Off" />
                             ) : null}
                           </span>
                         </td>
@@ -384,7 +384,7 @@ function UserActions({
           disabled={busy}
           onClick={() => void onAction(user._id, "suspendCommenting")}
         >
-          Suspend comments
+          Suspend Comments
         </Button>
       )}
       {canSuspendCommenting && user.commentSuspended && (
@@ -394,7 +394,7 @@ function UserActions({
           disabled={busy}
           onClick={() => void onAction(user._id, "unsuspendCommenting")}
         >
-          Restore comments
+          Restore Comments
         </Button>
       )}
       {canResetPassword && (
@@ -408,7 +408,7 @@ function UserActions({
             }
           }}
         >
-          Reset password
+          Reset Password
         </Button>
       )}
       {canChangeRole && (
@@ -428,7 +428,7 @@ function UserActions({
             disabled={busy || roleDraft === user.role}
             onClick={() => void onAction(user._id, "changeRole", roleDraft)}
           >
-            Set role
+            Set Role
           </Button>
         </div>
       )}

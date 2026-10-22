@@ -63,7 +63,7 @@ export function Input({
             className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center text-neutral-400 hover:text-neutral-600 min-w-11 justify-center touch-manipulation"
             disabled={disabled}
             tabIndex={-1}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? "Hide Password" : "Show Password"}
           >
             {showPassword ? <FiEyeOff className="h-5 w-5" /> : <FiEye className="h-5 w-5" />}
           </button>

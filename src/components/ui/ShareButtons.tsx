@@ -57,8 +57,8 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
             "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-300 hover:border-neutral-400",
             sizeClasses[size]
           )}
-          title="Copy link"
-          aria-label="Copy link"
+          title="Copy Link"
+          aria-label="Copy Link"
         >
           {copied ? (
             <FiCheck className={cn(iconSizes[size], "text-green-600")} />
@@ -74,8 +74,8 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
             "bg-sky-500 text-white hover:bg-sky-600 border border-sky-500",
             sizeClasses[size]
           )}
-          title="Share on Twitter"
-          aria-label="Share on Twitter"
+          title="Share On Twitter"
+          aria-label="Share On Twitter"
         >
           <FiTwitter className={cn(iconSizes[size])} />
         </button>
@@ -87,8 +87,8 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
             "bg-blue-600 text-white hover:bg-blue-700 border border-blue-600",
             sizeClasses[size]
           )}
-          title="Share on Facebook"
-          aria-label="Share on Facebook"
+          title="Share On Facebook"
+          aria-label="Share On Facebook"
         >
           <FiFacebook className={cn(iconSizes[size])} />
         </button>
@@ -100,8 +100,8 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
             "bg-blue-700 text-white hover:bg-blue-800 border border-blue-700",
             sizeClasses[size]
           )}
-          title="Share on LinkedIn"
-          aria-label="Share on LinkedIn"
+          title="Share On LinkedIn"
+          aria-label="Share On LinkedIn"
         >
           <FiLinkedin className={cn(iconSizes[size])} />
         </button>
@@ -113,7 +113,7 @@ export function ShareButtons({ title, url, className, size = "md", variant = "de
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center gap-2">
         <FiShare2 className={cn(iconSizes[size], "text-neutral-600")} />
-        <span className="font-medium text-neutral-900">Share this article</span>
+        <span className="font-medium text-neutral-900">Share This Article</span>
       </div>
 
       <div className="flex flex-wrap gap-3">

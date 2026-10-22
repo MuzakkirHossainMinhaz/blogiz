@@ -32,7 +32,7 @@ export function EditorialDocPage({
   description,
   sections,
   updated,
-  navLabel = "On this page",
+  navLabel = "On This Page",
   relatedTitle = "Related",
   relatedBlurb,
   relatedLinks = [],

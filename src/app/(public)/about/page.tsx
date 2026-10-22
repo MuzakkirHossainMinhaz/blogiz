@@ -12,15 +12,15 @@ export const metadata: Metadata = buildPageMetadata({
 
 const pillars = [
   {
-    title: "Write with intention",
+    title: "Write With Intention",
     body: "Authors draft on paper-quiet tools, then publish through review so the public feed stays curated rather than noisy.",
   },
   {
-    title: "Read without clutter",
+    title: "Read Without Clutter",
     body: "Stories arrive as finished pieces — clear titles, calm typography, and room to react with a single like or dislike.",
   },
   {
-    title: "Moderate with care",
+    title: "Moderate With Care",
     body: "Admins review author upgrades and can hide or remove content when needed. The feed stays intentional because someone is accountable for it.",
   },
 ];
@@ -44,7 +44,7 @@ const roles = [
 const sections = [
   {
     id: "why",
-    title: "Why Blogiz exists",
+    title: "Why Blogiz Exists",
     content: (
       <>
         <p>
@@ -60,7 +60,7 @@ const sections = [
   },
   {
     id: "craft",
-    title: "How the craft comes together",
+    title: "How The Craft Comes Together",
     content: (
       <div className="grid gap-8 sm:grid-cols-3 sm:gap-6">
         {pillars.map((pillar) => (
@@ -74,7 +74,7 @@ const sections = [
   },
   {
     id: "roles",
-    title: "Who uses Blogiz",
+    title: "Who Uses Blogiz",
     content: (
       <ul className="divide-y divide-neutral-200 border-y border-neutral-200">
         {roles.map((role) => (
@@ -88,7 +88,7 @@ const sections = [
   },
   {
     id: "start",
-    title: "Getting started",
+    title: "Getting Started",
     content: (
       <>
         <p>
@@ -100,13 +100,13 @@ const sections = [
             href={ROUTES.SUPPORT}
             className="inline-flex items-center justify-center min-h-11 px-5 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors"
           >
-            Visit support
+            Visit Support
           </Link>
           <Link
             href={ROUTES.BLOGS}
             className="inline-flex items-center justify-center min-h-11 px-5 rounded-xl text-sm font-semibold text-ink bg-surface border border-primary-200 hover:border-primary-300 transition-colors"
           >
-            Browse blogs
+            Browse Blogs
           </Link>
         </div>
       </>
@@ -121,7 +121,7 @@ export default function AboutPage() {
       title="An editorial home for multi-author blogs"
       description="Blogiz is built for writers who want a calm place to publish and readers who want stories worth the time — not a feed that shouts."
       sections={sections}
-      relatedTitle="Explore next"
+      relatedTitle="Explore Next"
       relatedBlurb="Jump to help, policies, or the public feed."
       relatedLinks={[
         { label: "Support", href: ROUTES.SUPPORT },

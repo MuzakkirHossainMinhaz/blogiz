@@ -298,7 +298,7 @@ export default function SettingsPage() {
                     onClick={() => avatarInputRef.current?.click()}
                   >
                     <FiUpload className="h-4 w-4" />
-                    {avatarUploading ? "Uploading…" : "Upload photo"}
+                    {avatarUploading ? "Uploading…" : "Upload Photo"}
                   </Button>
                   {avatar ? (
                     <Button type="button" variant="ghost" size="sm" onClick={() => void clearAvatar()}>
@@ -343,7 +343,7 @@ export default function SettingsPage() {
               />
               <div className="flex justify-end pt-1">
                 <Button type="submit" variant="primary" size="sm" isLoading={profileSaving} disabled={profileSaving}>
-                  Save profile
+                  Save Profile
                 </Button>
               </div>
             </div>
@@ -387,7 +387,7 @@ export default function SettingsPage() {
                       isLoading={passwordSaving}
                       disabled={passwordSaving}
                     >
-                      Update password
+                      Update Password
                     </Button>
                   </div>
                 </div>
@@ -418,7 +418,7 @@ export default function SettingsPage() {
                   />
                   <div className="flex justify-end pt-1">
                     <Button type="submit" variant="primary" size="sm" isLoading={emailSaving} disabled={emailSaving}>
-                      Send confirmation
+                      Send Confirmation
                     </Button>
                   </div>
                 </div>
@@ -431,20 +431,20 @@ export default function SettingsPage() {
       {/* Danger zone — full width, quiet */}
       <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-red-800">Delete account</p>
+          <p className="text-sm font-semibold text-red-800">Delete Account</p>
           <p className="mt-0.5 text-sm text-red-700/80">
             Permanently remove your account and related content. This cannot be undone.
           </p>
         </div>
         <Button type="button" variant="danger" size="sm" onClick={openDeleteModal} className="shrink-0">
-          Delete account
+          Delete Account
         </Button>
       </div>
 
       <Modal
         open={deleteOpen}
         onClose={closeDeleteModal}
-        title="Delete account"
+        title="Delete Account"
         description="Enter your password to permanently delete this account."
         size="sm"
       >
@@ -483,7 +483,7 @@ export default function SettingsPage() {
               isLoading={deleteSubmitting}
               className="w-full sm:w-auto"
             >
-              Delete forever
+              Delete Forever
             </Button>
           </div>
         </form>

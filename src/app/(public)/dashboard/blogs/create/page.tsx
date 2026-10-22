@@ -40,7 +40,7 @@ export default function CreateBlogPage() {
         </p>
         <div className="space-y-3">
           <Link href="/dashboard">
-            <Button variant="primary">Go to Dashboard</Button>
+            <Button variant="primary">Go To Dashboard</Button>
           </Link>
           <div className="text-sm text-neutral-500 mt-4">
             Want to become an author?{" "}

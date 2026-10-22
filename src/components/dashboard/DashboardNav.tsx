@@ -51,7 +51,7 @@ export default function DashboardNav({ onToggleSidebar, sidebarOpen }: Dashboard
           type="button"
           onClick={onToggleSidebar}
           className="lg:hidden inline-flex items-center justify-center min-h-11 min-w-11 rounded-xl text-ink hover:bg-primary-50 transition-colors"
-          aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+          aria-label={sidebarOpen ? "Close Menu" : "Open Menu"}
           aria-expanded={sidebarOpen}
         >
           {sidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
@@ -133,7 +133,7 @@ export default function DashboardNav({ onToggleSidebar, sidebarOpen }: Dashboard
                 className="w-full flex items-center gap-2.5 min-h-11 px-3 text-sm text-red-600 hover:bg-red-50"
               >
                 <FiLogOut className="w-4 h-4 shrink-0" />
-                Sign out
+                Sign Out
               </button>
             </div>
           )}

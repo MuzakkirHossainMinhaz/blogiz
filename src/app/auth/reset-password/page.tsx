@@ -42,13 +42,13 @@ export default function ResetPasswordPage() {
   return (
     <Container className="max-w-lg w-full">
       <div className="bg-white py-6 px-4 sm:py-8 sm:px-8 shadow-xl rounded-2xl">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 text-center mb-6">Choose a new password</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 text-center mb-6">Choose A New Password</h1>
         {error && <p className="mb-4 text-sm text-red-700 text-center">{error}</p>}
         {message && <p className="mb-4 text-sm text-green-700 text-center">{message}</p>}
         <form onSubmit={onSubmit} className="space-y-4">
           <Input id="password" label="New password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           <Button type="submit" variant="primary" fullWidth isLoading={isLoading}>
-            Update password
+            Update Password
           </Button>
         </form>
         <p className="mt-6 text-center text-sm">

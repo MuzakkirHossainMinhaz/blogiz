@@ -56,7 +56,7 @@ export function ReactionButtons({
           onClick={() => choose("like")}
           disabled={!canReact || isLoading}
           aria-pressed={reaction === "like"}
-          aria-label={reaction === "like" ? "Remove like" : "Like"}
+          aria-label={reaction === "like" ? "Remove Like" : "Like"}
           className={buttonClass(
             "like",
             "border-emerald-300 bg-emerald-50 text-emerald-700",
@@ -72,7 +72,7 @@ export function ReactionButtons({
           onClick={() => choose("dislike")}
           disabled={!canReact || isLoading}
           aria-pressed={reaction === "dislike"}
-          aria-label={reaction === "dislike" ? "Remove dislike" : "Dislike"}
+          aria-label={reaction === "dislike" ? "Remove Dislike" : "Dislike"}
           className={buttonClass(
             "dislike",
             "border-red-300 bg-red-50 text-red-700",

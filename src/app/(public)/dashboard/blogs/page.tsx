@@ -188,7 +188,7 @@ export default function BlogsPage() {
           <div className="flex-1">
             <Input
               type="search"
-              aria-label="Search blogs"
+              aria-label="Search Blogs"
               placeholder="Search blogs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -199,7 +199,7 @@ export default function BlogsPage() {
           {/* Status Filter */}
           <div className="lg:w-56">
             <Select
-              aria-label="Filter by status"
+              aria-label="Filter By Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "all" | "published" | "draft")}
               icon={<FiFilter className="w-4 h-4" />}
@@ -257,7 +257,7 @@ export default function BlogsPage() {
         <div className="bg-white rounded-lg border border-neutral-200 p-12 text-center">
           <FiFileText className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-neutral-900 mb-2">
-            {searchTerm || statusFilter !== "all" ? "No blogs found" : "No blogs yet"}
+            {searchTerm || statusFilter !== "all" ? "No Blogs Found" : "No Blogs Yet"}
           </h3>
           <p className="text-sm text-neutral-600 mb-4">
             {searchTerm || statusFilter !== "all"
@@ -299,12 +299,12 @@ export default function BlogsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <Link href={`/blogs/${blog._id}`} target="_blank">
-                    <Button variant="ghost" size="sm" aria-label="View post">
+                    <Button variant="ghost" size="sm" aria-label="View Post">
                       <FiEye className="w-4 h-4" />
                     </Button>
                   </Link>
                   <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                    <Button variant="ghost" size="sm" aria-label="Edit post">
+                    <Button variant="ghost" size="sm" aria-label="Edit Post">
                       <FiEdit3 className="w-4 h-4" />
                     </Button>
                   </Link>
@@ -321,7 +321,7 @@ export default function BlogsPage() {
                     size="sm"
                     onClick={() => setPendingAction({ type: "delete", blogId: blog._id })}
                     className="text-red-600 hover:text-red-700"
-                    aria-label="Delete post"
+                    aria-label="Delete Post"
                   >
                     <FiTrash2 className="w-4 h-4" />
                   </Button>
@@ -486,7 +486,7 @@ export default function BlogsPage() {
 
       <ConfirmDialog
         open={pendingAction?.type === "delete"}
-        title="Delete blog post"
+        title="Delete Blog Post"
         message="Are you sure you want to delete this blog? This action cannot be undone."
         confirmLabel="Delete"
         tone="danger"
@@ -495,7 +495,7 @@ export default function BlogsPage() {
       />
       <ConfirmDialog
         open={pendingAction?.type === "toggle"}
-        title={pendingAction?.type === "toggle" && pendingAction.currentStatus === "published" ? "Unpublish post" : "Publish post"}
+        title={pendingAction?.type === "toggle" && pendingAction.currentStatus === "published" ? "Unpublish Post" : "Publish Post"}
         message={
           pendingAction?.type === "toggle" && pendingAction.currentStatus === "published"
             ? "Are you sure you want to unpublish this blog?"

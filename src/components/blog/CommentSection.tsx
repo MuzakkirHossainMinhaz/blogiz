@@ -241,7 +241,7 @@ export function CommentSection({ blogId }: { blogId: string }) {
                     Cancel
                   </Button>
                   <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
-                    Post reply
+                    Post Reply
                   </Button>
                 </div>
               </form>
@@ -276,7 +276,7 @@ export function CommentSection({ blogId }: { blogId: string }) {
           />
           <div className="flex justify-end">
             <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} disabled={isSubmitting}>
-              Post comment
+              Post Comment
             </Button>
           </div>
         </form>

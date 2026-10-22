@@ -4,10 +4,10 @@ import { APP_CONFIG } from "@/config/constants";
 
 export default function BlogLoadingPage() {
   return (
-    <main className="bg-paper" aria-busy="true" aria-label="Loading articles">
+    <main className="bg-paper" aria-busy="true" aria-label="Loading Articles">
       <EditorialPageHero
         eyebrow="Library"
-        title="All articles"
+        title="All Articles"
         description={APP_CONFIG.SITE_DESCRIPTION}
       />
 

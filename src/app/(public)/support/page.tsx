@@ -13,7 +13,7 @@ export const metadata: Metadata = buildPageMetadata({
 const sections = [
   {
     id: "sign-in",
-    title: "Sign in",
+    title: "Sign In",
     content: (
       <p>
         Open{" "}
@@ -30,7 +30,7 @@ const sections = [
   },
   {
     id: "create-account",
-    title: "Create an account",
+    title: "Create An Account",
     content: (
       <p>
         Register as a reader from{" "}
@@ -47,7 +47,7 @@ const sections = [
   },
   {
     id: "become-author",
-    title: "Become an author",
+    title: "Become An Author",
     content: (
       <p>
         Readers can request an upgrade from Dashboard → Settings. An admin reviews the request. Until approval, you keep
@@ -57,7 +57,7 @@ const sections = [
   },
   {
     id: "publish",
-    title: "Drafting and publishing",
+    title: "Drafting And Publishing",
     content: (
       <p>
         Authors write from the dashboard and can save drafts or publish directly. Comments appear when visible; admins
@@ -67,7 +67,7 @@ const sections = [
   },
   {
     id: "reactions",
-    title: "Likes, dislikes, and comments",
+    title: "Likes, Dislikes, And Comments",
     content: (
       <p>
         Signed-in readers leave one reaction per post — like or dislike — and may switch or remove it. Comments belong
@@ -77,7 +77,7 @@ const sections = [
   },
   {
     id: "operators",
-    title: "Running your own instance",
+    title: "Running Your Own Instance",
     content: (
       <p>
         If you operate a Blogiz deployment, environment setup, seeding, and role behavior are documented in the project{" "}
@@ -96,7 +96,7 @@ export default function SupportPage() {
       title="Support"
       description={`Quick answers for signing in, writing, and moderating on ${APP_CONFIG.SITE_NAME}.`}
       sections={sections}
-      relatedTitle="Still stuck?"
+      relatedTitle="Still Stuck?"
       relatedBlurb="Read more about how Blogiz works, or review privacy and terms for your instance."
       relatedLinks={[
         { label: "About Blogiz", href: ROUTES.ABOUT },
