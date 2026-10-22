@@ -387,7 +387,7 @@ export default function DashboardPage() {
 
     return (
       <div className="w-full space-y-6">
-        <DashboardPageHeader title={`Welcome back, ${userName}`} description={welcome} />
+        <DashboardPageHeader title={`Welcome Back, ${userName}`} description={welcome} />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <MetricTile
@@ -496,7 +496,7 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full space-y-6">
-      <DashboardPageHeader title={`Welcome back, ${userName}`} description={welcome} />
+      <DashboardPageHeader title={`Welcome Back, ${userName}`} description={welcome} />
 
       {needsAttention ? (
         <section className="rounded-xl border border-orange-200 bg-orange-50/60 p-4 sm:p-5 space-y-3">

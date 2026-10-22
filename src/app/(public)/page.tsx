@@ -30,7 +30,7 @@ export default async function HomePage() {
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-600 mb-3">Latest</p>
             <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-ink">
-              From the shelf
+              From The Shelf
             </h2>
             <p className="mt-3 text-base sm:text-lg text-accent-500 leading-relaxed">
               {APP_CONFIG.SITE_DESCRIPTION}
@@ -40,13 +40,13 @@ export default async function HomePage() {
             href={ROUTES.BLOGS}
             className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-white px-5 text-sm font-semibold text-ink shadow-soft transition-colors hover:border-primary-300 hover:bg-primary-50/40"
           >
-            View all blogs
+            View All Blogs
           </Link>
         </div>
 
         {blogs.length === 0 ? (
           <div className="py-14 text-center border-y border-neutral-200">
-            <h3 className="font-display text-xl font-semibold text-ink mb-2">No stories yet</h3>
+            <h3 className="font-display text-xl font-semibold text-ink mb-2">No Stories Yet</h3>
             <p className="text-accent-500 max-w-md mx-auto">
               Published posts will appear here. Authors can draft and publish from the dashboard.
             </p>

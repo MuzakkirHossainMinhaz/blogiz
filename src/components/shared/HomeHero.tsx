@@ -61,13 +61,13 @@ export function HomeHero() {
             href={ROUTES.BLOGS}
             className="inline-flex items-center justify-center min-h-12 px-7 rounded-xl text-base font-semibold text-white bg-primary-500 hover:bg-primary-600 shadow-soft transition-colors"
           >
-            Explore blogs
+            Explore Blogs
           </Link>
           <Link
             href="/auth/register"
             className="inline-flex items-center justify-center min-h-12 px-7 rounded-xl text-base font-semibold text-ink bg-white/80 border border-primary-200 hover:bg-white hover:border-primary-300 shadow-soft transition-colors"
           >
-            Get started
+            Get Started
           </Link>
         </FadeIn>
       </div>

@@ -59,7 +59,7 @@ function DefaultErrorFallback({ error, reset }: { error?: Error; reset: () => vo
           <FiAlertTriangle className="w-8 h-8 text-red-600" />
         </div>
 
-        <h1 className="text-2xl font-bold text-neutral-900 mb-4">Oops! Something went wrong</h1>
+        <h1 className="text-2xl font-bold text-neutral-900 mb-4">Oops! Something Went Wrong</h1>
 
         <p className="text-neutral-600 mb-6">
           We&apos;re sorry, but something unexpected happened. Our team has been notified.
@@ -111,7 +111,7 @@ function BlogErrorFallback({ error, reset }: { error?: Error; reset: () => void 
         <FiAlertTriangle className="w-6 h-6 text-amber-600" />
       </div>
 
-      <h3 className="text-lg font-semibold text-neutral-900 mb-2">Unable to load blog</h3>
+      <h3 className="text-lg font-semibold text-neutral-900 mb-2">Unable To Load Blog</h3>
 
       <p className="text-neutral-600 text-sm mb-4">This blog couldn&apos;t be loaded. Please try again later.</p>
 

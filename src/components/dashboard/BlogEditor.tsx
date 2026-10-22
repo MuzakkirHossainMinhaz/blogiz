@@ -314,7 +314,7 @@ export function BlogEditor({
                 onClick={() => void optimizeField("title")}
               >
                 <FiZap className="w-4 h-4" />
-                {optimizing === "title" ? "Optimizing…" : "Optimize title"}
+                {optimizing === "title" ? "Optimizing…" : "Optimize Title"}
               </Button>
             </div>
             {titleSuggestion ? (
@@ -365,7 +365,7 @@ export function BlogEditor({
                 onClick={() => void optimizeField("content")}
               >
                 <FiZap className="w-4 h-4" />
-                {optimizing === "content" ? "Optimizing…" : "Optimize content"}
+                {optimizing === "content" ? "Optimizing…" : "Optimize Content"}
               </Button>
             </div>
             <RichTextEditor value={content} onChange={setContent} placeholder="Write your blog content here…" />

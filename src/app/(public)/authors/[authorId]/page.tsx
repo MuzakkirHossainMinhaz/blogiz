@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: AuthorProfilePageProps): Prom
   const profile = await getPublicAuthorProfile(authorId, { page: 1, limit: 1, skip: 0 });
   if (!profile) {
     return buildPageMetadata({
-      title: "Author not found",
+      title: "Author Not Found",
       description: "This Blogiz author profile could not be found.",
       path: `/authors/${authorId}`,
       noIndex: true,
@@ -116,7 +116,7 @@ export default async function AuthorProfilePage({ params, searchParams }: Author
             </div>
           </header>
 
-          <h2 className="font-display text-xl font-semibold text-ink mb-4">Published posts</h2>
+          <h2 className="font-display text-xl font-semibold text-ink mb-4">Published Posts</h2>
           {profile.blogs.length === 0 ? (
             <p className="text-accent-500">No published posts yet.</p>
           ) : (

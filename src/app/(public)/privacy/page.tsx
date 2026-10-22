@@ -15,7 +15,7 @@ const updated = "September 30, 2026";
 const sections = [
   {
     id: "scope",
-    title: "Who this covers",
+    title: "Who This Covers",
     content: (
       <p>
         Blogiz is software that operators deploy for their own communities. This page describes the kinds of data the
@@ -26,7 +26,7 @@ const sections = [
   },
   {
     id: "account",
-    title: "Account information",
+    title: "Account Information",
     content: (
       <>
         <p>
@@ -43,7 +43,7 @@ const sections = [
   },
   {
     id: "content",
-    title: "Posts, comments, and reactions",
+    title: "Posts, Comments, And Reactions",
     content: (
       <p>
         Published and draft posts, images you upload, comments, likes, and dislikes are stored so the editorial feed and
@@ -60,7 +60,7 @@ const sections = [
   },
   {
     id: "views",
-    title: "Views and addresses",
+    title: "Views And Addresses",
     content: (
       <p>
         Blog view records may include a salted hash of a trusted-proxy client address. Raw IP addresses are not stored
@@ -70,7 +70,7 @@ const sections = [
   },
   {
     id: "mail-uploads",
-    title: "Email, uploads, and rate limits",
+    title: "Email, Uploads, And Rate Limits",
     content: (
       <p>
         If the operator configures SMTP, Blogiz may send verification and password-reset mail. Image uploads may be
@@ -92,7 +92,7 @@ const sections = [
   },
   {
     id: "choices",
-    title: "Your choices",
+    title: "Your Choices",
     content: (
       <p>
         You can update profile details from the dashboard settings. To delete an account or export data, contact your
@@ -134,7 +134,7 @@ export default function PrivacyPage() {
       description={`This notice explains what ${APP_CONFIG.SITE_NAME} stores when you use an instance, and how operators should treat that information.`}
       updated={updated}
       sections={sections}
-      relatedTitle="Also see"
+      relatedTitle="Also See"
       relatedBlurb="Related policies and help for this Blogiz instance."
       relatedLinks={[
         { label: "Terms", href: ROUTES.TERMS },

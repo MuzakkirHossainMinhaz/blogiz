@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: BlogDetailPageProps): Promise
   const blog = await getBlogById(blogId);
   if (!blog) {
     return buildPageMetadata({
-      title: "Post not found",
+      title: "Post Not Found",
       description: "This Blogiz post could not be found.",
       path: `/blogs/${blogId}`,
       noIndex: true,

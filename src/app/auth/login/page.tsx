@@ -156,7 +156,7 @@ export default function LoginPage() {
               fullWidth
               className="rounded-xl cursor-pointer"
             >
-              {isLoading ? "Logging in..." : "Sign In"}
+              {isLoading ? "Logging In..." : "Sign In"}
             </Button>
           </form>
 

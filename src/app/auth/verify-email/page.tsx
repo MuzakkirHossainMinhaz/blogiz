@@ -33,11 +33,11 @@ export default function VerifyEmailPage() {
   return (
     <Container className="max-w-lg w-full">
       <div className="bg-white py-6 px-4 sm:py-8 sm:px-8 shadow-xl rounded-2xl text-center">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 mb-4">Verify email</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 mb-4">Verify Email</h1>
         {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
         {message && <p className="mb-4 text-sm text-green-700">{message}</p>}
         <Button type="button" variant="primary" onClick={onVerify} isLoading={isLoading}>
-          Confirm email
+          Confirm Email
         </Button>
         <p className="mt-6 text-sm">
           <Link href="/auth/login" className="text-primary-600">

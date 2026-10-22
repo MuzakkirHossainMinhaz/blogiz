@@ -36,14 +36,14 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
     <main className="bg-paper">
       <EditorialPageHero
         eyebrow="Library"
-        title="All articles"
+        title="All Articles"
         description={APP_CONFIG.SITE_DESCRIPTION}
       />
 
       <section className="container-custom py-12 sm:py-16 md:py-20">
         {blogs.length === 0 ? (
           <div className="py-14 text-center border-y border-neutral-200">
-            <h3 className="font-display text-xl font-semibold text-ink mb-2">No blogs yet</h3>
+            <h3 className="font-display text-xl font-semibold text-ink mb-2">No Blogs Yet</h3>
             <p className="text-accent-500">Be the first to publish a story on Blogiz.</p>
           </div>
         ) : (

@@ -37,7 +37,7 @@ const sections = [
   },
   {
     id: "content",
-    title: "Your content",
+    title: "Your Content",
     content: (
       <p>
         You retain ownership of the writing and images you submit. By publishing on Blogiz you grant the operator a
@@ -58,7 +58,7 @@ const sections = [
   },
   {
     id: "acceptable-use",
-    title: "Acceptable use",
+    title: "Acceptable Use",
     content: (
       <>
         <p>You agree not to:</p>
@@ -74,7 +74,7 @@ const sections = [
   },
   {
     id: "reactions",
-    title: "Reactions and community features",
+    title: "Reactions And Community Features",
     content: (
       <p>
         Likes and dislikes are limited to one reaction per signed-in user per post. They exist to signal reading
@@ -84,7 +84,7 @@ const sections = [
   },
   {
     id: "availability",
-    title: "Availability and changes",
+    title: "Availability And Changes",
     content: (
       <p>
         Blogiz is provided as-is for the instance you use. Features may change as the software evolves. Operators may
@@ -95,7 +95,7 @@ const sections = [
   },
   {
     id: "liability",
-    title: "Limitation of liability",
+    title: "Limitation Of Liability",
     content: (
       <p>
         To the fullest extent allowed by law, operators and contributors are not liable for indirect, incidental, or
@@ -137,7 +137,7 @@ export default function TermsPage() {
       description={`By using ${APP_CONFIG.SITE_NAME} you agree to these terms and to any additional rules published by the operator of the instance you visit.`}
       updated={updated}
       sections={sections}
-      relatedTitle="Also see"
+      relatedTitle="Also See"
       relatedBlurb="Related policies and help for this Blogiz instance."
       relatedLinks={[
         { label: "Privacy", href: ROUTES.PRIVACY },

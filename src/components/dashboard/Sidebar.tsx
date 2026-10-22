@@ -168,7 +168,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
       {canCreateBlog && (
         <div>
-          <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Quick actions</h3>
+          <h3 className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Quick Actions</h3>
           <div className="mt-3 space-y-1">
             <Link
               href="/dashboard/blogs/create"
