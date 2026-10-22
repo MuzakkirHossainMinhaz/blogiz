@@ -3,8 +3,9 @@
 import { Button } from "@/components/ui/Button";
 import { MOTION_DURATION, MOTION_EASE, usePrefersReducedMotion } from "@/components/motion";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useIsClient } from "@/hooks/useIsClient";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 
 interface ConfirmDialogProps {
@@ -29,11 +30,7 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const reduceMotion = usePrefersReducedMotion();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   useBodyScrollLock(open);
 

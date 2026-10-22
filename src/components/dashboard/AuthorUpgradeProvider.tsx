@@ -45,24 +45,28 @@ function AuthorUpgradeModal({
   const [pending, setPending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadStatus = useCallback(async () => {
-    try {
-      const response = await fetch("/api/user/role-upgrade");
-      const data = await response.json().catch(() => ({}));
-      const hasPending = Array.isArray(data.requests)
-        ? data.requests.some((r: { status: string }) => r.status === "pending")
-        : false;
-      setPending(hasPending);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
+    fetch("/api/user/role-upgrade")
+      .then((response) => response.json().catch(() => ({})))
+      .then((data: { requests?: Array<{ status: string }> }) => {
+        if (cancelled) return;
+        const hasPending = Array.isArray(data.requests)
+          ? data.requests.some((r) => r.status === "pending")
+          : false;
+        setPending(hasPending);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const handleClose = () => {
     setReason("");
-    void loadStatus();
-  }, [open, loadStatus]);
+    onClose();
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -83,9 +87,8 @@ function AuthorUpgradeModal({
         return;
       }
       setPending(true);
-      setReason("");
       toast.success("Request submitted. An admin will review it soon.");
-      onClose();
+      handleClose();
     } catch {
       toast.error("Could not submit request");
     } finally {
@@ -96,7 +99,7 @@ function AuthorUpgradeModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Become An Author"
       description="Tell us why you’d like to draft and publish on Blogiz."
       size="md"
@@ -133,7 +136,7 @@ function AuthorUpgradeModal({
         />
 
         <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} className="w-full sm:w-auto">
+          <Button type="button" variant="outline" size="sm" onClick={handleClose} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button
