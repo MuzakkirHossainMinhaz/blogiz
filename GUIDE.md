@@ -115,6 +115,10 @@ Profile avatars are uploaded from Settings (`kind=avatars` → `blogiz/avatars`)
 
 Replacing or clearing a post thumbnail or avatar deletes the previous Cloudinary asset when possible.
 
+## Author analytics API
+
+`GET /api/blogs/analytics` (authors and admins) returns summary counts for the signed-in author’s own posts, a draft vs published mix, top published posts by likes, and weekly engagement series (views from `BlogView`, likes from `Reaction`, comments from `Comment`) for the last 12 weeks. Aggregation `$match` on `authorId` uses ObjectId casting. Readers receive 403.
+
 ## Rate limits
 
 Auth and AI routes use Redis sliding windows. Missing Redis fails closed with a clear error.
