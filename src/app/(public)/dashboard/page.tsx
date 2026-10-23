@@ -579,11 +579,13 @@ export default function DashboardPage() {
                           Edit
                         </Button>
                       </Link>
-                      <Link href={`/blogs/${blog._id}`} target="_blank">
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </Link>
+                      {blog.status === "published" ? (
+                        <Link href={`/blogs/${blog._id}`} target="_blank">
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -636,11 +638,13 @@ export default function DashboardPage() {
                                 Edit
                               </Button>
                             </Link>
-                            <Link href={`/blogs/${blog._id}`} target="_blank">
-                              <Button variant="ghost" size="sm">
-                                View
-                              </Button>
-                            </Link>
+                            {blog.status === "published" ? (
+                              <Link href={`/blogs/${blog._id}`} target="_blank">
+                                <Button variant="ghost" size="sm">
+                                  View
+                                </Button>
+                              </Link>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
