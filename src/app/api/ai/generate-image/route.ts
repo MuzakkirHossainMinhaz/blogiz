@@ -1,62 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  getAiClient,
   imageGenerationConfigured,
   imageUnavailableMessage,
-  imageDailyQuota,
   mapAiHttpError,
 } from "@/lib/ai-provider";
 import { denied } from "@/lib/authz";
 import { requireAiUser } from "@/lib/ai-guard";
 import { jsonError, serverError } from "@/lib/http";
 import { saveImage } from "@/lib/object-storage";
-import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
+import {
+  buildPollinationsImageUrl,
+  composeCoverPrompt,
+  fetchPollinationsImage,
+  PollinationsError,
+} from "@/lib/pollinations";
+import { RateLimitUnavailable } from "@/lib/rate-limit";
 import { UploadError } from "@/lib/uploads";
 
-function imageBytesFromPayload(imageData: string): Buffer {
-  const base64 = imageData.includes(",")
-    ? imageData.slice(imageData.indexOf(",") + 1)
-    : imageData;
-  return Buffer.from(base64, "base64");
-}
-
-async function generate(actorId: string, prompt: string) {
+async function generate(input: {
+  prompt?: string;
+  title?: string;
+  summary?: string;
+}) {
   if (!imageGenerationConfigured()) {
     return jsonError(imageUnavailableMessage(), 503);
   }
 
-  const quota = imageDailyQuota();
-  if (!quota) return jsonError(imageUnavailableMessage(), 503);
-
-  const day = new Date().toISOString().slice(0, 10);
-  const attempt = await rateLimit(`image:${actorId}:${day}`, quota, 24 * 60 * 60 * 1000);
-  if (!attempt.ok) return jsonError("Daily image generation limit reached", 429);
-
-  const imageData = await getAiClient().generateImage(prompt);
-  if (!imageData) return jsonError("Failed to generate image", 502);
+  const finalPrompt = composeCoverPrompt(input);
+  if (!finalPrompt) return jsonError("Prompt or title is required", 400);
 
   try {
-    const bytes = imageBytesFromPayload(imageData);
+    const pollinationsUrl = buildPollinationsImageUrl({
+      prompt: finalPrompt,
+    });
+    const bytes = await fetchPollinationsImage(pollinationsUrl);
     const stored = await saveImage(bytes, { kind: "covers" });
-    return NextResponse.json({ url: stored.url, prompt });
+    return NextResponse.json({ url: stored.url, prompt: finalPrompt });
   } catch (error) {
     if (error instanceof UploadError) return jsonError(error.message, 400);
+    if (error instanceof PollinationsError) {
+      return jsonError(error.message, error.status === 400 ? 400 : error.status === 429 ? 429 : error.status === 503 ? 503 : 502);
+    }
     throw error;
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const actor = await requireAiUser();
+    const actor = await requireAiUser(request);
     if (denied(actor)) return actor;
 
     const body = await request.json().catch(() => null);
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim().slice(0, 500) : "";
     const title = typeof body?.title === "string" ? body.title.trim().slice(0, 200) : "";
-    const finalPrompt = prompt || (title ? `Blog cover: ${title}` : "");
-    if (!finalPrompt) return jsonError("Prompt or title is required", 400);
+    const summary =
+      typeof body?.description === "string"
+        ? body.description.trim().slice(0, 500)
+        : typeof body?.summary === "string"
+          ? body.summary.trim().slice(0, 500)
+          : "";
 
-    return await generate(actor.id, finalPrompt);
+    return await generate({ prompt: prompt || undefined, title: title || undefined, summary: summary || undefined });
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
     const mapped = mapAiHttpError(error);
@@ -67,12 +71,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const actor = await requireAiUser();
+    const actor = await requireAiUser(request);
     if (denied(actor)) return actor;
 
     const title = new URL(request.url).searchParams.get("title")?.trim().slice(0, 200) || "";
     if (!title) return jsonError("Title is required", 400);
-    return await generate(actor.id, `Blog cover: ${title}`);
+    return await generate({ title });
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
     const mapped = mapAiHttpError(error);

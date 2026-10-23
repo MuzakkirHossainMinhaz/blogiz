@@ -1,26 +1,31 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  huggingFaceConfigured,
-  imageDailyQuota,
+  geminiConfigured,
   imageGenerationConfigured,
   imageUnavailableMessage,
   mapAiHttpError,
-  mapHuggingFaceHttpError,
-  resolveAiProvider,
   textAiConfigured,
   textAiUnavailableMessage,
 } from "@/lib/ai-provider";
-import { HuggingFaceError } from "@/lib/huggingface";
-import { OllamaError } from "@/lib/ollama";
+import { GeminiError } from "@/lib/gemini";
+import { PollinationsError } from "@/lib/pollinations";
+import {
+  AI_RATE_LIMIT_MESSAGE,
+  parseAiRateLimitConfig,
+} from "@/lib/ai-rate-limit";
+import {
+  buildPollinationsImageUrl,
+  composeCoverPrompt,
+} from "@/lib/pollinations";
 
 describe("ai provider config", () => {
   const keys = [
-    "AI_PROVIDER",
-    "HUGGINGFACE_API_KEY",
-    "HF_TOKEN",
-    "HF_IMAGE_DAILY_QUOTA",
-    "OLLAMA_BASE_URL",
-    "OLLAMA_TEXT_MODEL",
+    "GEMINI_API_KEY",
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+    "AI_RATE_LIMIT_MAX_REQUESTS",
+    "AI_RATE_LIMIT_WINDOW_SECONDS",
   ] as const;
 
   const previous: Record<string, string | undefined> = {};
@@ -39,66 +44,116 @@ describe("ai provider config", () => {
     }
   }
 
-  it("defaults to ollama and treats text AI as configured without a cloud key", () => {
+  it("requires GEMINI_API_KEY for text AI", () => {
     snapshotEnv();
-    delete process.env.AI_PROVIDER;
-    delete process.env.HUGGINGFACE_API_KEY;
-    delete process.env.HF_TOKEN;
-    expect(resolveAiProvider()).toBe("ollama");
-    expect(textAiConfigured()).toBe(true);
-    expect(imageGenerationConfigured()).toBe(false);
-    expect(imageUnavailableMessage()).toMatch(/Ollama/i);
-  });
-
-  it("can turn AI off explicitly", () => {
-    snapshotEnv();
-    process.env.AI_PROVIDER = "off";
-    expect(resolveAiProvider()).toBe("off");
+    delete process.env.GEMINI_API_KEY;
+    expect(geminiConfigured()).toBe(false);
     expect(textAiConfigured()).toBe(false);
-    expect(textAiUnavailableMessage()).toMatch(/turned off/i);
-  });
+    expect(textAiUnavailableMessage()).toMatch(/GEMINI_API_KEY/i);
 
-  it("requires a Hugging Face key when AI_PROVIDER=huggingface", () => {
-    snapshotEnv();
-    process.env.AI_PROVIDER = "huggingface";
-    delete process.env.HUGGINGFACE_API_KEY;
-    delete process.env.HF_TOKEN;
-    expect(textAiConfigured()).toBe(false);
-
-    process.env.HF_TOKEN = "hf_test_token";
-    expect(huggingFaceConfigured()).toBe(true);
+    process.env.GEMINI_API_KEY = "test-key";
+    expect(geminiConfigured()).toBe(true);
     expect(textAiConfigured()).toBe(true);
   });
 
-  it("enables image generation only for huggingface with a positive quota", () => {
+  it("enables image generation when Cloudinary is configured", () => {
     snapshotEnv();
-    process.env.AI_PROVIDER = "huggingface";
-    process.env.HUGGINGFACE_API_KEY = "hf_test";
-    delete process.env.HF_IMAGE_DAILY_QUOTA;
-    expect(imageDailyQuota()).toBeNull();
+    delete process.env.CLOUDINARY_CLOUD_NAME;
+    delete process.env.CLOUDINARY_API_KEY;
+    delete process.env.CLOUDINARY_API_SECRET;
     expect(imageGenerationConfigured()).toBe(false);
+    expect(imageUnavailableMessage()).toMatch(/Cloudinary/i);
 
-    process.env.HF_IMAGE_DAILY_QUOTA = "0";
-    expect(imageDailyQuota()).toBeNull();
-
-    process.env.HF_IMAGE_DAILY_QUOTA = "3";
-    expect(imageDailyQuota()).toBe(3);
+    process.env.CLOUDINARY_CLOUD_NAME = "demo";
+    process.env.CLOUDINARY_API_KEY = "key";
+    process.env.CLOUDINARY_API_SECRET = "secret";
     expect(imageGenerationConfigured()).toBe(true);
   });
 
-  it("maps HuggingFaceError and OllamaError statuses to client-safe responses", () => {
-    expect(mapAiHttpError(new HuggingFaceError("bad key", 401))).toEqual({
+  it("maps GeminiError and PollinationsError statuses to client-safe responses", () => {
+    expect(mapAiHttpError(new GeminiError("bad key", 401))).toEqual({
       message: "bad key",
       status: 502,
     });
-    expect(mapAiHttpError(new OllamaError("Cannot reach Ollama", 503))).toEqual({
-      message: "Cannot reach Ollama",
+    expect(mapAiHttpError(new GeminiError("warming up", 503))).toEqual({
+      message: "warming up",
       status: 503,
     });
-    expect(mapHuggingFaceHttpError(new HuggingFaceError("slow down", 429))).toEqual({
+    expect(mapAiHttpError(new PollinationsError("slow down", 429))).toEqual({
       message: "slow down",
       status: 429,
     });
     expect(mapAiHttpError(new Error("unrelated"))).toBeNull();
+  });
+});
+
+describe("AI rate limit config", () => {
+  const keys = ["AI_RATE_LIMIT_MAX_REQUESTS", "AI_RATE_LIMIT_WINDOW_SECONDS"] as const;
+  const previous: Record<string, string | undefined> = {};
+
+  afterEach(() => {
+    for (const key of keys) {
+      const value = previous[key];
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
+  function snapshotEnv() {
+    for (const key of keys) {
+      previous[key] = process.env[key];
+    }
+  }
+
+  it("defaults to 3 requests per 60 seconds", () => {
+    snapshotEnv();
+    delete process.env.AI_RATE_LIMIT_MAX_REQUESTS;
+    delete process.env.AI_RATE_LIMIT_WINDOW_SECONDS;
+    expect(parseAiRateLimitConfig()).toEqual({
+      maxRequests: 3,
+      windowSeconds: 60,
+      windowMs: 60_000,
+    });
+    expect(AI_RATE_LIMIT_MESSAGE).toMatch(/Try again in a minute/i);
+  });
+
+  it("parses valid overrides", () => {
+    snapshotEnv();
+    process.env.AI_RATE_LIMIT_MAX_REQUESTS = "5";
+    process.env.AI_RATE_LIMIT_WINDOW_SECONDS = "120";
+    expect(parseAiRateLimitConfig()).toEqual({
+      maxRequests: 5,
+      windowSeconds: 120,
+      windowMs: 120_000,
+    });
+  });
+
+  it("rejects invalid values as misconfiguration", () => {
+    snapshotEnv();
+    process.env.AI_RATE_LIMIT_MAX_REQUESTS = "0";
+    expect(parseAiRateLimitConfig()).toBeNull();
+
+    process.env.AI_RATE_LIMIT_MAX_REQUESTS = "3";
+    process.env.AI_RATE_LIMIT_WINDOW_SECONDS = "-1";
+    expect(parseAiRateLimitConfig()).toBeNull();
+
+    process.env.AI_RATE_LIMIT_WINDOW_SECONDS = "abc";
+    expect(parseAiRateLimitConfig()).toBeNull();
+  });
+});
+
+describe("pollinations helpers", () => {
+  it("composes prompts from title/summary or explicit prompt", () => {
+    expect(composeCoverPrompt({ prompt: "Neon city skyline" })).toBe("Neon city skyline");
+    expect(composeCoverPrompt({ title: "Hello World" })).toMatch(/Hello World/);
+    expect(composeCoverPrompt({})).toBe("");
+  });
+
+  it("builds a Pollinations URL with dimensions and seed", () => {
+    const url = buildPollinationsImageUrl({ title: "Test Cover" });
+    expect(url.startsWith("https://pollinations.ai/p/")).toBe(true);
+    expect(url).toMatch(/width=1200/);
+    expect(url).toMatch(/height=630/);
+    expect(url).toMatch(/seed=\d+/);
   });
 });

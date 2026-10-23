@@ -109,6 +109,7 @@ export function BlogEditor({
   };
 
   const optimizeField = async (field: "title" | "content") => {
+    if (optimizing) return;
     setOptimizing(field);
     try {
       const currentTitle = getValues("title");
@@ -129,7 +130,13 @@ export function BlogEditor({
             : typeof result.message === "string"
               ? result.message
               : null;
-        toast.error(detail || "Optimization failed");
+        if (response.status === 429) {
+          toast.error(detail || "Too many AI requests. Try again in a minute.");
+        } else if (response.status === 503) {
+          toast.error(detail || "Writing assistant is unavailable. Check GEMINI_API_KEY.");
+        } else {
+          toast.error(detail || "Optimization failed");
+        }
         return;
       }
       const optimized = typeof result.optimized === "string" ? result.optimized.trim() : "";

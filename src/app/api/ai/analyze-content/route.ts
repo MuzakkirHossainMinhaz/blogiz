@@ -13,7 +13,7 @@ import { BLOG_CONTENT_MAX } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const actor = await requireAiUser();
+    const actor = await requireAiUser(request);
     if (denied(actor)) return actor;
     if (!textAiConfigured()) return jsonError(textAiUnavailableMessage(), 503);
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const actor = await requireAiUser();
+    const actor = await requireAiUser(request);
     if (denied(actor)) return actor;
     if (!textAiConfigured()) return jsonError(textAiUnavailableMessage(), 503);
 
