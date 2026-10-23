@@ -3,7 +3,13 @@ import { spawnSync } from "child_process";
 import { describe, expect, it } from "vitest";
 import { dashboardAccess, hasPermission } from "@/lib/permissions";
 import { parsePageLimit, escapeRegex } from "@/lib/pagination";
-import { buildBlogListFilter, publicPostFilter, resolveCreateStatus, resolvePublishStatus } from "@/lib/public-posts";
+import {
+  buildBlogListFilter,
+  canViewPost,
+  publicPostFilter,
+  resolveCreateStatus,
+  resolvePublishStatus,
+} from "@/lib/public-posts";
 import { renderContent, renderMarkdown } from "@/lib/sanitize";
 import { canSignIn, evaluateSession } from "@/lib/session-policy";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT } from "@/lib/uploads";
@@ -66,6 +72,28 @@ describe("authorization policy", () => {
   it("keeps anonymous lists on published posts", () => {
     expect(buildBlogListFilter(null, null, "draft")).toEqual(publicPostFilter());
     expect(publicPostFilter()).toEqual({ status: "published" });
+  });
+
+  it("lets owners view drafts when authorId is populated (edit GET path)", () => {
+    const ownerId = "6adae7e65f150a86c8d8dc87";
+    const viewer = { id: ownerId, role: "author" as const };
+    const populatedDraft = {
+      status: "draft",
+      createdBy: ownerId,
+      authorId: { _id: ownerId, name: "Tester", profile: { fullName: "Tester" } },
+    };
+    expect(canViewPost(populatedDraft, viewer)).toBe(true);
+    expect(canViewPost(populatedDraft, null)).toBe(false);
+    expect(canViewPost(populatedDraft, { id: "aaaaaaaaaaaaaaaaaaaaaaaa", role: "author" })).toBe(false);
+    expect(canViewPost({ status: "published", createdBy: ownerId, authorId: populatedDraft.authorId }, null)).toBe(
+      true
+    );
+    expect(
+      canViewPost(
+        { status: "draft", createdBy: ownerId, authorId: ownerId },
+        viewer
+      )
+    ).toBe(true);
   });
 });
 

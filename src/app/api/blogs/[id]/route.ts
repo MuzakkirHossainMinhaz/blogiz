@@ -14,14 +14,15 @@ import { PUBLIC_AUTHOR_FIELDS, canViewPost, isBlogStatus } from "@/lib/public-po
 import { deleteStoredImage } from "@/lib/object-storage";
 import { UploadError } from "@/lib/uploads";
 import { isStoredImageUrl } from "@/lib/urls";
+import { authorProfileId } from "@/lib/utils";
 import { blogWriteSchema } from "@/lib/validation";
 
 function invalidId() {
   return jsonError("Invalid blog ID", 400);
 }
 
-function ownerId(blog: { authorId: { toString(): string }; createdBy: { toString(): string } }) {
-  return blog.authorId.toString();
+function ownerId(blog: { authorId: unknown; createdBy?: unknown }) {
+  return authorProfileId(blog.authorId) ?? authorProfileId(blog.createdBy) ?? "";
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

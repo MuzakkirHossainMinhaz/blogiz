@@ -1,4 +1,5 @@
 import { hasPermission, type UserRole } from "@/lib/permissions";
+import { authorProfileId } from "@/lib/utils";
 
 export const PUBLIC_POST_FILTER = { status: "published" as const };
 
@@ -30,13 +31,14 @@ export function publicPostFilter(extra: Record<string, unknown> = {}) {
 }
 
 export function canViewPost(
-  blog: { status: string; createdBy: { toString(): string }; authorId?: { toString(): string } },
+  blog: { status: string; createdBy?: unknown; authorId?: unknown },
   viewer?: PostViewer | null
 ): boolean {
   if (blog.status === "published") return true;
   if (!viewer) return false;
-  const ownerId = (blog.authorId ?? blog.createdBy).toString();
-  if (ownerId === viewer.id) return true;
+  // authorId is often populated on GET; resolve ObjectId from raw or populated refs.
+  const ownerId = authorProfileId(blog.authorId) ?? authorProfileId(blog.createdBy);
+  if (ownerId && ownerId === viewer.id) return true;
   return hasPermission(viewer.role, "editAnyBlog");
 }
 

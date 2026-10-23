@@ -137,6 +137,56 @@ describe("blog authorization", () => {
     expect(hidden.status).toBe(404);
   });
 
+  it("returns the author's own draft (and published post) for edit", async () => {
+    const author = await makeUser({ role: "author" });
+    const other = await makeUser({ role: "author" });
+    const draft = await Blog.create({
+      title: "My draft",
+      description: "work in progress",
+      content: "draft body for editing",
+      authorName: "Tester",
+      authorId: author._id,
+      createdBy: author._id,
+      status: "draft",
+    });
+    const published = await Blog.create({
+      title: "My published",
+      description: "live",
+      content: "published body",
+      authorName: "Tester",
+      authorId: author._id,
+      createdBy: author._id,
+      status: "published",
+      publishedAt: new Date(),
+    });
+
+    const { GET: getOne } = await import("@/app/api/blogs/[id]/route");
+
+    authMock.mockResolvedValue(sessionFor(author));
+    const ownDraft = await getOne(new NextRequest("http://localhost:3000/api/blogs/" + draft._id), {
+      params: Promise.resolve({ id: draft._id.toString() }),
+    });
+    const ownDraftBody = await ownDraft.json();
+    expect(ownDraft.status).toBe(200);
+    expect(ownDraftBody.blog.title).toBe("My draft");
+    expect(ownDraftBody.blog.status).toBe("draft");
+    expect(ownDraftBody.blog.content).toBe("draft body for editing");
+
+    const ownPublished = await getOne(new NextRequest("http://localhost:3000/api/blogs/" + published._id), {
+      params: Promise.resolve({ id: published._id.toString() }),
+    });
+    const ownPublishedBody = await ownPublished.json();
+    expect(ownPublished.status).toBe(200);
+    expect(ownPublishedBody.blog.title).toBe("My published");
+    expect(ownPublishedBody.blog.status).toBe("published");
+
+    authMock.mockResolvedValue(sessionFor(other));
+    const foreignDraft = await getOne(new NextRequest("http://localhost:3000/api/blogs/" + draft._id), {
+      params: Promise.resolve({ id: draft._id.toString() }),
+    });
+    expect(foreignDraft.status).toBe(404);
+  });
+
   it("lets authors self-publish", async () => {
     const reader = await makeUser({ role: "reader" });
     const author = await makeUser({ role: "author" });

@@ -72,16 +72,21 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function authorProfileId(authorId: unknown): string | null {
-  if (typeof authorId === "string" && /^[a-fA-F0-9]{24}$/.test(authorId)) return authorId;
-  if (!authorId || typeof authorId !== "object" || !("_id" in authorId)) return null;
-  const id = (authorId as { _id?: unknown })._id;
-  if (typeof id === "string" && /^[a-fA-F0-9]{24}$/.test(id)) return id;
-  if (id && typeof id === "object" && "toString" in id) {
-    const value = String(id);
-    return /^[a-fA-F0-9]{24}$/.test(value) ? value : null;
+function asObjectIdString(value: unknown): string | null {
+  if (typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value)) return value;
+  if (value && typeof value === "object" && "toString" in value) {
+    const text = String(value);
+    return /^[a-fA-F0-9]{24}$/.test(text) ? text : null;
   }
   return null;
+}
+
+/** ObjectId string from a raw id, string, or populated user ref. */
+export function authorProfileId(authorId: unknown): string | null {
+  const direct = asObjectIdString(authorId);
+  if (direct) return direct;
+  if (!authorId || typeof authorId !== "object" || !("_id" in authorId)) return null;
+  return asObjectIdString((authorId as { _id?: unknown })._id);
 }
 
 /** Avatar URL from a populated author ref, if present. */
