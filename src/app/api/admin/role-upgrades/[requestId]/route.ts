@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { invalidateSessionUserCache } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import RoleUpgradeRequest from "@/models/RoleUpgradeRequest";
@@ -50,6 +51,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         role: "author",
         $inc: { sessionVersion: 1 },
       });
+      await invalidateSessionUserCache(upgradeRequest.userId.toString());
       await ModerationAction.create({
         actorId: actor.id,
         subjectUserId: upgradeRequest.userId,

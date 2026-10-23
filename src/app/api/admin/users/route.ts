@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { invalidateSessionUserCache } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import ModerationAction from "@/models/ModerationAction";
@@ -188,10 +189,13 @@ export async function PUT(request: NextRequest) {
         reason: typeof body?.reason === "string" ? body.reason : undefined,
       });
       await User.findByIdAndDelete(userId);
+      await invalidateSessionUserCache(userId);
       return NextResponse.json({ message: "User deleted successfully" });
     }
 
     await user.save();
+    // Bust session snapshot on sessionVersion bumps and comment-suspend toggles.
+    await invalidateSessionUserCache(userId);
 
     if (moderationAction) {
       await ModerationAction.create({

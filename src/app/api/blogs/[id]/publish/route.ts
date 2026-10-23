@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { invalidateBlogCaches } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import { denied, requireUser } from "@/lib/authz";
@@ -37,6 +38,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
       { returnDocument: "after" }
     );
+
+    await invalidateBlogCaches({
+      blogId: id,
+      authorId: existingBlog.authorId.toString(),
+    });
 
     return NextResponse.json({
       message: next.message,

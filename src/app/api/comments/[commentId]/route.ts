@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { invalidateCommentCaches } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import Comment from "@/models/Comment";
 import Blog from "@/models/Blog";
@@ -8,6 +9,11 @@ import { denied, requireUser } from "@/lib/authz";
 import { syncCommentCount } from "@/lib/engagement";
 import { jsonError, serverError } from "@/lib/http";
 import { canPerformAction, hasPermission } from "@/lib/permissions";
+
+async function blogAuthorId(blogId: { toString(): string }): Promise<string | undefined> {
+  const blog = await Blog.findById(blogId).select("authorId").lean();
+  return blog?.authorId?.toString();
+}
 
 async function canModerateComment(
   actor: { id: string; role: Parameters<typeof hasPermission>[0] },
@@ -44,6 +50,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       comment.isVisible = action === "unhide";
       await comment.save();
       await syncCommentCount(comment.blogId);
+      const authorId = await blogAuthorId(comment.blogId);
+      await invalidateCommentCaches(comment.blogId.toString(), authorId);
 
       if (action === "hide" && hasPermission(actor.role, "deleteAnyComment")) {
         await ModerationAction.create({
@@ -74,6 +82,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       { returnDocument: "after" }
     ).populate("userId", "profile.fullName profile.avatar name");
 
+    const authorId = await blogAuthorId(comment.blogId);
+    await invalidateCommentCaches(comment.blogId.toString(), authorId);
+
     return NextResponse.json({
       message: "Comment updated successfully",
       comment: updatedComment,
@@ -99,8 +110,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!allowed) return jsonError("You don't have permission to delete this comment", 403);
 
     const blogId = comment.blogId;
+    const authorId = await blogAuthorId(blogId);
     await Comment.deleteMany({ $or: [{ _id: commentId }, { parentId: commentId }] });
     await syncCommentCount(blogId);
+    await invalidateCommentCaches(blogId.toString(), authorId);
 
     if (hasPermission(actor.role, "deleteAnyComment") && comment.userId.toString() !== actor.id) {
       await ModerationAction.create({

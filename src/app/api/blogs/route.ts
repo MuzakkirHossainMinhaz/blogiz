@@ -1,3 +1,4 @@
+import { invalidateBlogCaches } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import { denied, requirePermission, requireUser } from "@/lib/authz";
 import { jsonError, serverError } from "@/lib/http";
@@ -107,6 +108,12 @@ export async function POST(request: NextRequest) {
       totalComments: 0,
       totalViews: 0,
     });
+
+    if (finalStatus === "published") {
+      await invalidateBlogCaches({ blogId: blog._id.toString(), authorId: actor.id });
+    } else {
+      await invalidateBlogCaches({ authorId: actor.id });
+    }
 
     return NextResponse.json(
       {

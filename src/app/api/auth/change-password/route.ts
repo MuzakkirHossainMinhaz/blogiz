@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import { invalidateSessionUserCache } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { denied, requireUser } from "@/lib/authz";
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
     user.password = await bcrypt.hash(parsed.data, 12);
     user.sessionVersion = (user.sessionVersion ?? 0) + 1;
     await user.save();
+    await invalidateSessionUserCache(actor.id);
 
     return NextResponse.json({ message: "Password updated" });
   } catch (error) {

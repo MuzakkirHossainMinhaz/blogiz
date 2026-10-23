@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { invalidateBlogCaches } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import Reaction from "@/models/Reaction";
@@ -121,6 +122,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       runValidators: true,
     });
 
+    await invalidateBlogCaches({ blogId: id, authorId: ownerId(existingBlog) });
+
     return NextResponse.json({
       message: "Blog updated successfully",
       blog: updatedBlog,
@@ -153,7 +156,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       await deleteStoredImage(existingBlog.thumbnail);
     }
 
-    const isAdminDelete = canPerformAction(actor.role, "deleteAnyBlog") && ownerId(existingBlog) !== actor.id;
+    const authorId = ownerId(existingBlog);
+    const isAdminDelete = canPerformAction(actor.role, "deleteAnyBlog") && authorId !== actor.id;
 
     await withOptionalTransaction(async (session) => {
       await Reaction.deleteMany({ blogId: id }, { session: session ?? undefined });
@@ -173,6 +177,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         );
       }
     });
+
+    await invalidateBlogCaches({ blogId: id, authorId });
 
     return NextResponse.json({
       message: "Blog and associated reactions deleted successfully",
