@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { invalidateSessionUserCache } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { denied, requireUser } from "@/lib/authz";
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
     user.emailVerificationExpires = token.expires;
     user.sessionVersion = (user.sessionVersion ?? 0) + 1;
     await user.save();
+    await invalidateSessionUserCache(actor.id);
 
     await sendAccountEmail(
       email,

@@ -1,14 +1,17 @@
 import NextAuth, { CredentialsSignin, type Session, type User } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { sessionUserCacheKey } from "@/lib/cache-invalidation";
 import { requireAuthSecret, requireAuthUrl } from "@/lib/env";
 import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
-import { canSignIn, evaluateSession } from "@/lib/session-policy";
+import { cacheDel, cacheGetJson, cacheSetJson } from "@/lib/redis-cache";
+import { canSignIn, evaluateSession, type SessionUserRecord } from "@/lib/session-policy";
 
 const authSecret = requireAuthSecret();
 requireAuthUrl();
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60;
+const SESSION_USER_CACHE_TTL_SECONDS = 30;
 
 /** Surfaces Redis / rate-limit outages instead of a fake bad-password message. */
 class RateLimitSigninError extends CredentialsSignin {
@@ -17,6 +20,54 @@ class RateLimitSigninError extends CredentialsSignin {
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = "invalid_credentials";
+}
+
+type CachedSessionUser = SessionUserRecord & {
+  email: string;
+  name: string;
+  avatar: string;
+};
+
+async function fetchSessionUserFromMongo(userId: string): Promise<CachedSessionUser | null> {
+  const { connectDB } = await import("./mongodb");
+  const User = (await import("@/models/User")).default;
+  await connectDB();
+  const dbUser = await User.findById(userId).select(
+    "role isActive emailVerified commentSuspended sessionVersion email name profile.avatar"
+  );
+  if (!dbUser) return null;
+
+  return {
+    role: dbUser.role,
+    isActive: dbUser.isActive,
+    emailVerified: dbUser.emailVerified,
+    commentSuspended: Boolean(dbUser.commentSuspended),
+    sessionVersion: dbUser.sessionVersion ?? 0,
+    email: dbUser.email,
+    name: dbUser.name,
+    avatar: dbUser.profile?.avatar || "",
+  };
+}
+
+async function loadSessionUser(
+  userId: string,
+  tokenVersion: number | undefined
+): Promise<CachedSessionUser | null> {
+  const key = sessionUserCacheKey(userId);
+  const cached = await cacheGetJson<CachedSessionUser>(key);
+
+  // On cache hit still require sessionVersion match; mismatch → reload Mongo.
+  if (cached) {
+    if (typeof tokenVersion !== "number" || cached.sessionVersion === tokenVersion) {
+      return cached;
+    }
+    await cacheDel(key);
+  }
+
+  const snapshot = await fetchSessionUserFromMongo(userId);
+  if (!snapshot) return null;
+  await cacheSetJson(key, snapshot, SESSION_USER_CACHE_TTL_SECONDS);
+  return snapshot;
 }
 
 const authConfig = {
@@ -103,27 +154,10 @@ const authConfig = {
       }
 
       try {
-        const { connectDB } = await import("./mongodb");
-        const User = (await import("@/models/User")).default;
-        await connectDB();
-        const dbUser = await User.findById(token.id).select(
-          "role isActive emailVerified commentSuspended sessionVersion email name profile.avatar"
-        );
-        const decision = evaluateSession(
-          dbUser
-            ? {
-                role: dbUser.role,
-                isActive: dbUser.isActive,
-                emailVerified: dbUser.emailVerified,
-                commentSuspended: dbUser.commentSuspended,
-                sessionVersion: dbUser.sessionVersion ?? 0,
-                email: dbUser.email,
-                name: dbUser.name,
-                avatar: dbUser.profile?.avatar || "",
-              }
-            : null,
-          typeof token.sessionVersion === "number" ? token.sessionVersion : undefined
-        );
+        const tokenVersion =
+          typeof token.sessionVersion === "number" ? token.sessionVersion : undefined;
+        const dbUser = await loadSessionUser(String(token.id), tokenVersion);
+        const decision = evaluateSession(dbUser, tokenVersion);
 
         if (!decision.ok) {
           return { ...token, invalid: true };

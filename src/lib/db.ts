@@ -6,6 +6,11 @@
 import BlogModel from "@/models/Blog";
 import User from "@/models/User";
 import { Blog } from "@/types";
+import {
+  authorProfileCacheKey,
+  blogDetailCacheKey,
+  blogsListCacheKey,
+} from "./cache-invalidation";
 import { connectDB } from "./mongodb";
 import { type PageQuery } from "./pagination";
 import {
@@ -17,6 +22,7 @@ import {
   publicPostFilter,
   type PostViewer,
 } from "./public-posts";
+import { cacheGetJson, cacheSetJson, defaultCacheTtlSeconds } from "./redis-cache";
 import mongoose from "mongoose";
 
 export const PUBLIC_PROFILE_PAGE_LIMIT = 10;
@@ -62,19 +68,26 @@ export interface PublicAuthorProfile {
   };
 }
 
+type BlogsPageResult = {
+  blogs: Blog[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+};
+
 export async function getBlogs(limit = 12): Promise<Blog[]> {
   const { blogs } = await getBlogsPage({ page: 1, limit, skip: 0 });
   return blogs;
 }
 
-export async function getBlogsPage(paging: PageQuery): Promise<{
-  blogs: Blog[];
-  pagination: { page: number; limit: number; total: number; pages: number };
-}> {
-  await connectDB();
+export async function getBlogsPage(paging: PageQuery): Promise<BlogsPageResult> {
   const safeLimit = Math.min(Math.max(Math.trunc(paging.limit) || 1, 1), 50);
   const safePage = Math.max(Math.trunc(paging.page) || 1, 1);
   const skip = Math.max(Math.trunc(paging.skip) || (safePage - 1) * safeLimit, 0);
+  const cacheKey = blogsListCacheKey(safePage, safeLimit);
+
+  const cached = await cacheGetJson<BlogsPageResult>(cacheKey);
+  if (cached) return cached;
+
+  await connectDB();
   const filter = publicPostFilter();
 
   const [blogs, total] = await Promise.all([
@@ -88,7 +101,7 @@ export async function getBlogsPage(paging: PageQuery): Promise<{
     BlogModel.countDocuments(filter),
   ]);
 
-  return {
+  const result: BlogsPageResult = {
     blogs: JSON.parse(JSON.stringify(blogs)),
     pagination: {
       page: safePage,
@@ -97,14 +110,28 @@ export async function getBlogsPage(paging: PageQuery): Promise<{
       pages: Math.max(1, Math.ceil(total / safeLimit)),
     },
   };
+
+  await cacheSetJson(cacheKey, result, defaultCacheTtlSeconds());
+  return result;
 }
 
 export async function getBlogById(id: string, viewer?: PostViewer | null): Promise<Blog | null> {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+  // Only published payloads are cached (never drafts).
+  const cached = await cacheGetJson<Blog>(blogDetailCacheKey(id));
+  if (cached?.status === "published") return cached;
+
   await connectDB();
   const blog = await BlogModel.findById(id).populate("authorId", PUBLIC_AUTHOR_FIELDS).lean();
   if (!blog || !canViewPost(blog, viewer)) return null;
-  return JSON.parse(JSON.stringify(blog));
+  const payload = JSON.parse(JSON.stringify(blog)) as Blog;
+
+  if (payload.status === "published") {
+    await cacheSetJson(blogDetailCacheKey(id), payload, defaultCacheTtlSeconds());
+  }
+
+  return payload;
 }
 
 export async function getPublicAuthorProfile(
@@ -112,6 +139,15 @@ export async function getPublicAuthorProfile(
   paging: PageQuery = { page: 1, limit: PUBLIC_PROFILE_PAGE_LIMIT, skip: 0 }
 ): Promise<PublicAuthorProfile | null> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+
+  const safeLimit = Math.min(Math.max(Math.trunc(paging.limit) || 1, 1), 50);
+  const safePage = Math.max(Math.trunc(paging.page) || 1, 1);
+  const skip = Math.max(Math.trunc(paging.skip) || (safePage - 1) * safeLimit, 0);
+  const key = authorProfileCacheKey(userId, safePage, safeLimit);
+
+  const cached = await cacheGetJson<PublicAuthorProfile>(key);
+  if (cached) return cached;
+
   await connectDB();
 
   const user = await User.findById(userId).select(PUBLIC_PROFILE_FIELDS).lean();
@@ -122,8 +158,8 @@ export async function getPublicAuthorProfile(
     BlogModel.find(filter)
       .select(PUBLIC_PROFILE_BLOG_FIELDS)
       .sort({ publishedAt: -1 })
-      .skip(paging.skip)
-      .limit(paging.limit)
+      .skip(skip)
+      .limit(safeLimit)
       .lean(),
     BlogModel.countDocuments(filter),
   ]);
@@ -131,7 +167,7 @@ export async function getPublicAuthorProfile(
   const published = JSON.parse(JSON.stringify(blogs)) as PublicAuthorBlog[];
   const profile = user.profile;
 
-  return {
+  const result: PublicAuthorProfile = {
     id: user._id.toString(),
     name: user.name,
     role: user.role,
@@ -162,10 +198,13 @@ export async function getPublicAuthorProfile(
       totalDislikes: blog.totalDislikes ?? 0,
     })),
     pagination: {
-      page: paging.page,
-      limit: paging.limit,
+      page: safePage,
+      limit: safeLimit,
       total,
-      pages: Math.ceil(total / paging.limit),
+      pages: Math.ceil(total / safeLimit),
     },
   };
+
+  await cacheSetJson(key, result, defaultCacheTtlSeconds());
+  return result;
 }

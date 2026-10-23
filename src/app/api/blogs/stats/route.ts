@@ -1,18 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { authorStatsCacheKey } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import { denied, requireUser } from "@/lib/authz";
 import { serverError } from "@/lib/http";
+import { cacheGetJson, cacheSetJson } from "@/lib/redis-cache";
 
-export async function GET(request: NextRequest) {
+const STATS_TTL_SECONDS = 90;
+
+type StatsPayload = {
+  stats: {
+    totalBlogs: number;
+    publishedBlogs: number;
+    draftBlogs: number;
+    totalLikes: number;
+  };
+  mostLikedBlogs: unknown[];
+  recentBlogs: unknown[];
+};
+
+export async function GET(_request: NextRequest) {
   try {
     const actor = await requireUser();
     if (denied(actor)) return actor;
 
+    const userId = actor.id;
+    const key = authorStatsCacheKey(userId);
+    const cached = await cacheGetJson<StatsPayload>(key);
+    if (cached) return NextResponse.json(cached);
+
     await connectDB();
 
-    const userId = actor.id;
     // Aggregations skip Mongoose casting; authorId is ObjectId on Blog.
     const authorObjectId = new mongoose.Types.ObjectId(userId);
 
@@ -38,7 +57,7 @@ export async function GET(request: NextRequest) {
       .select("title status publishedAt totalLikes")
       .lean();
 
-    return NextResponse.json({
+    const payload: StatsPayload = {
       stats: {
         totalBlogs,
         publishedBlogs,
@@ -47,7 +66,10 @@ export async function GET(request: NextRequest) {
       },
       mostLikedBlogs,
       recentBlogs,
-    });
+    };
+
+    await cacheSetJson(key, payload, STATS_TTL_SECONDS);
+    return NextResponse.json(payload);
   } catch (error) {
     return serverError("Error fetching blog stats:", error);
   }

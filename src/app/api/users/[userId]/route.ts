@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { invalidateAuthorProfileCaches, invalidateBlogCaches } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import { RECENT_AUTHOR_BLOGS, getPublicAuthorProfile } from "@/lib/db";
 import { denied, requireUser } from "@/lib/authz";
@@ -144,6 +145,8 @@ export async function PUT(
       { returnDocument: "after", runValidators: true }
     ).select("-password");
 
+    await invalidateAuthorProfileCaches(userId);
+
     return NextResponse.json({
       message: "Profile updated successfully",
       user: updatedUser,
@@ -186,6 +189,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       RoleUpgradeRequest.deleteMany({ userId }),
     ]);
     await User.findByIdAndDelete(userId);
+    await invalidateBlogCaches({ authorId: userId });
 
     return NextResponse.json({ message: "Account deleted" });
   } catch (error) {

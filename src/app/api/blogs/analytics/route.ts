@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { authorAnalyticsCacheKey } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import BlogView from "@/models/BlogView";
@@ -7,8 +8,10 @@ import Comment from "@/models/Comment";
 import Reaction from "@/models/Reaction";
 import { denied, requirePermission } from "@/lib/authz";
 import { serverError } from "@/lib/http";
+import { cacheGetJson, cacheSetJson } from "@/lib/redis-cache";
 
 const WEEK_COUNT = 12;
+const ANALYTICS_TTL_SECONDS = 90;
 
 function startOfUtcWeek(date: Date): Date {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -53,9 +56,13 @@ export async function GET(_request: NextRequest) {
     const actor = await requirePermission("createBlog");
     if (denied(actor)) return actor;
 
+    const userId = actor.id;
+    const cacheKey = authorAnalyticsCacheKey(userId);
+    const cached = await cacheGetJson<Record<string, unknown>>(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     await connectDB();
 
-    const userId = actor.id;
     // Aggregations skip Mongoose casting; authorId is ObjectId on Blog.
     const authorObjectId = new mongoose.Types.ObjectId(userId);
 
@@ -160,7 +167,7 @@ export async function GET(_request: NextRequest) {
       totalDislikes: 0,
     };
 
-    return NextResponse.json({
+    const payload = {
       stats: {
         totalBlogs,
         publishedBlogs,
@@ -183,7 +190,10 @@ export async function GET(_request: NextRequest) {
         totalComments: post.totalComments ?? 0,
         publishedAt: post.publishedAt ?? null,
       })),
-    });
+    };
+
+    await cacheSetJson(cacheKey, payload, ANALYTICS_TTL_SECONDS);
+    return NextResponse.json(payload);
   } catch (error) {
     return serverError("Error fetching blog analytics:", error);
   }

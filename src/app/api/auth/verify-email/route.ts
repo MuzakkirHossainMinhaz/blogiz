@@ -1,3 +1,4 @@
+import { invalidateSessionUserCache } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { jsonError, serverError } from "@/lib/http";
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     user.emailVerificationExpires = undefined;
     user.sessionVersion = (user.sessionVersion ?? 0) + 1;
     await user.save();
+    await invalidateSessionUserCache(user._id.toString());
 
     return NextResponse.json({ message: "Email verified" });
   } catch (error) {

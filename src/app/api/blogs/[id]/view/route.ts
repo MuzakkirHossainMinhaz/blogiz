@@ -8,9 +8,15 @@ import { auth } from "@/lib/auth";
 import { jsonError, serverError } from "@/lib/http";
 import { readTrustedClientAddress, hashIdentifier } from "@/lib/request-utils";
 import { publicPostFilter } from "@/lib/public-posts";
+import { cacheSetNx } from "@/lib/redis-cache";
 
 const COOKIE = "blogiz_sid";
 const HOUR_MS = 60 * 60 * 1000;
+const HOUR_SECONDS = 60 * 60;
+
+function viewDedupeKey(blogId: string, identity: string): string {
+  return `blogiz:viewdedupe:${blogId}:${identity}`;
+}
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -37,20 +43,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const oneHourAgo = new Date(Date.now() - HOUR_MS);
     let shouldTrackView = true;
 
-    if (userId) {
-      const recentView = await BlogView.findOne({
-        blogId: id,
-        userId,
-        viewedAt: { $gte: oneHourAgo },
-      }).select("_id");
-      if (recentView) shouldTrackView = false;
-    } else if (!mintedSession) {
-      const recentView = await BlogView.findOne({
-        blogId: id,
-        sessionId,
-        viewedAt: { $gte: oneHourAgo },
-      }).select("_id");
-      if (recentView) shouldTrackView = false;
+    const dedupeIdentity = userId || (!mintedSession ? sessionId : undefined);
+    if (dedupeIdentity) {
+      // Redis SET NX: true = first view this hour; false = already seen; null = Redis down → Mongo.
+      const nx = await cacheSetNx(viewDedupeKey(id, dedupeIdentity), HOUR_SECONDS);
+      if (nx === false) {
+        shouldTrackView = false;
+      } else if (nx === null) {
+        if (userId) {
+          const recentView = await BlogView.findOne({
+            blogId: id,
+            userId,
+            viewedAt: { $gte: oneHourAgo },
+          }).select("_id");
+          if (recentView) shouldTrackView = false;
+        } else {
+          const recentView = await BlogView.findOne({
+            blogId: id,
+            sessionId,
+            viewedAt: { $gte: oneHourAgo },
+          }).select("_id");
+          if (recentView) shouldTrackView = false;
+        }
+      }
     }
 
     if (shouldTrackView) {

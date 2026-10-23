@@ -9,7 +9,7 @@ Copy [`.env.example`](.env.example) to `.env.local` and fill only the values you
 Run these before `npm run dev` or the checks:
 
 - **MongoDB.** `MONGODB_URI` is required. The app does not fall back to localhost.
-- **Redis.** `REDIS_URL` is required the first time someone registers, signs in, requests a password reset, or calls an AI route. If it is missing or Redis is down, those routes fail with a clear error (login shows that rate limiting is unavailable instead of a fake bad-password message).
+- **Redis.** `REDIS_URL` is required the first time someone registers, signs in, requests a password reset, or calls an AI route. If it is missing or Redis is down, those routes fail with a clear error (login shows that rate limiting is unavailable instead of a fake bad-password message). The same Redis also backs optional fail-open caches (public blog list/detail, author profiles, public comments, author stats/analytics, short session user snapshots, view dedupe). Those caches fall through to Mongo when Redis is down—public pages keep working.
 - **Cloudinary.** `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are required to upload or delete an image. The API secret stays on the server. Seed data uses Cloudinary-shaped HTTPS URLs for the configured cloud name (or `demo` when unset) so public cards can render.
 - **Gemini (AI Studio).** Create a free API key at [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. Blogiz uses `gemini-2.5-flash` for Optimize Title/Content, analyze-content, and crafting cover image prompts.
 - **Pollinations for covers.** No Pollinations API key. Gemini writes the final image prompt; the server fetches Pollinations bytes and uploads to Cloudinary (`CLOUDINARY_*` required).
@@ -50,6 +50,7 @@ The public marketing site uses the shared Navbar and Footer. The dashboard is a 
 | `CLOUDINARY_API_KEY`    | For uploads and deletes                | Cloudinary API key.                                                                                                                                                                                |
 | `CLOUDINARY_API_SECRET` | For uploads and deletes                | Cloudinary API secret.                                                                                                                                                                             |
 | `REDIS_URL`             | For rate-limited routes                | Redis connection URL, for example `redis://127.0.0.1:6379`.                                                                                                                                        |
+| `REDIS_CACHE_TTL_SECONDS` | Optional (default `45`)              | TTL for fail-open public content caches (blog list/detail, author profile, public comments). Auth/AI rate limits stay fail-closed. Session user snapshots use a fixed 30s TTL.                      |
 
 ## Roles and dashboard routes
 
@@ -124,9 +125,23 @@ Replacing or clearing a post thumbnail or avatar deletes the previous Cloudinary
 
 `GET /api/blogs/analytics` (authors and admins) returns summary counts for the signed-in author’s own posts, a draft vs published mix, top published posts by likes, and weekly engagement series (views from `BlogView`, likes from `Reaction`, comments from `Comment`) for the last 12 weeks. Aggregation `$match` on `authorId` uses ObjectId casting. Readers receive 403.
 
-## Rate limits
+## Rate limits and Redis caching
 
-Auth and AI routes use Redis sliding windows. Missing Redis fails closed with a clear error.
+Auth and AI routes use Redis sliding windows. Missing Redis fails closed with a clear error. Content caches fail open (Mongo remains authoritative).
+
+| Use | Keys (prefix) | Fail mode | Notes |
+| --- | --- | --- | --- |
+| Auth rate limits (login / register / password reset) | `blogiz:login:…`, `blogiz:register:…`, `blogiz:reset:…` | **Fail closed** | 503 / clear login error when Redis is down |
+| AI rate limits | `blogiz:ai-…` via `AI_RATE_LIMIT_*` | **Fail closed** | Same as auth |
+| Reaction counts / per-user reaction | `blogiz:reaction:…` | Fail open | Mongo is source of truth |
+| View dedupe (1 hour) | `blogiz:viewdedupe:{blogId}:{userId\|sessionId}` | Fail open | `SET NX EX 3600`; on Redis miss, keep Mongo `BlogView` dedupe |
+| Public blog list / detail | `blogiz:cache:blogs:list:…`, `blogiz:cache:blog:{id}` | Fail open | Published payloads only; TTL `REDIS_CACHE_TTL_SECONDS` (default 45) |
+| Public author profile | `blogiz:cache:author:{id}:p{page}:l{limit}` | Fail open | Invalidated on profile update and author publish/edit/delete |
+| Public comments (visible only) | `blogiz:cache:comments:{blogId}:…` | Fail open | Never cached when moderators see hidden comments |
+| Author stats / analytics | `blogiz:cache:stats:{userId}`, `blogiz:cache:analytics:{userId}` | Fail open | ~90s TTL; invalidated on that author’s blog/comment mutations |
+| Session user snapshot | `blogiz:cache:user:{id}:sess` | Fail open | 30s TTL; busted on `sessionVersion` bumps / suspend / verify |
+
+Invalidate on publish, unpublish, edit, delete, profile updates, comment create/hide/delete, and any `sessionVersion` bump. Never cache drafts, moderator-hidden comment lists, or admin lists without identity in the key.
 
 ## Checks
 
@@ -136,7 +151,7 @@ npm run lint
 npm test
 ```
 
-Vitest covers authz, reactions, seed pipeline, rate limits, and security helpers.
+Vitest covers authz, reactions, seed pipeline, rate limits, redis-cache / view-dedupe helpers, and security helpers.
 
 ## Related docs
 
