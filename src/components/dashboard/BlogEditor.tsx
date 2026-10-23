@@ -85,6 +85,7 @@ export function BlogEditor({
   });
 
   const watchedTitle = useWatch({ control, name: "title" });
+  const watchedDescription = useWatch({ control, name: "description" });
   const watchedAuthorName = useWatch({ control, name: "authorName" });
   const watchedPublishedAt = useWatch({ control, name: "publishedAt" });
   const watchedThumbnail = useWatch({ control, name: "thumbnail" });
@@ -430,6 +431,8 @@ export function BlogEditor({
             <FeaturedCoverField
               value={watchedThumbnail || ""}
               title={watchedTitle || ""}
+              description={watchedDescription || ""}
+              content={content}
               onChange={(url) => setValue("thumbnail", url, { shouldValidate: true, shouldDirty: true })}
               error={errors.thumbnail?.message}
               disabled={actionsBusy}

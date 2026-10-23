@@ -28,7 +28,7 @@ The writing experience should feel author-led. AI is an on-demand helper for thu
 | Database      | MongoDB with Mongoose (server-side only)                               |
 | Auth          | Session-based email/password (e.g. Auth.js / NextAuth)                 |
 | Media         | Cloud image hosting for avatars and blog thumbnails (e.g. Cloudinary)  |
-| AI            | Gemini (`gemini-2.5-flash`) for text; Pollinations → Cloudinary for covers; Redis env rate limits |
+| AI            | Gemini (`gemini-2.5-flash`) for text + cover prompt craft; Pollinations → Cloudinary for covers; Redis env rate limits |
 | Rate limiting | Redis (auth and AI routes)                                             |
 | UI            | Tailwind CSS + component layer; accessible light theme                 |
 
@@ -118,10 +118,10 @@ Counters (likes, dislikes, comments, views) are denormalized on the blog documen
 ### AI: thumbnail generation
 
 - Trigger: explicit **Generate thumbnail** action.
-- Input: current title and/or prompt (optional description/summary when sent).
-- Pipeline: Pollinations URL → fetch bytes → Cloudinary cover URL (no Pollinations API key).
-- Output: image URL stored on the blog (and in media storage); author can regenerate or replace with an upload.
-- Server-side only; env-driven Redis AI rate limits apply (`AI_RATE_LIMIT_*`).
+- Input: title (required), optional description/content excerpt; optional creative-direction prompt (not the final image string).
+- Pipeline: Gemini crafts a vivid image prompt → Pollinations URL → fetch bytes → Cloudinary cover URL (no Pollinations API key).
+- Output: image URL plus the Gemini-crafted `prompt`; author can regenerate or replace with an upload.
+- Server-side only; env-driven Redis AI rate limits apply (`AI_RATE_LIMIT_*`); one hit per Generate.
 
 ### AI: title & content optimization
 
