@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { huggingFaceConfigured, mapHuggingFaceHttpError } from "@/lib/ai-provider";
+import {
+  getAiClient,
+  mapAiHttpError,
+  textAiConfigured,
+  textAiUnavailableMessage,
+} from "@/lib/ai-provider";
 import { denied, requirePermission } from "@/lib/authz";
-import { huggingFaceAI } from "@/lib/huggingface";
 import { jsonError, serverError } from "@/lib/http";
 import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
 import { BLOG_CONTENT_MAX } from "@/lib/validation";
@@ -14,11 +18,8 @@ export async function POST(request: NextRequest) {
     const actor = await requirePermission("createBlog", { verified: true });
     if (denied(actor)) return actor;
 
-    if (!huggingFaceConfigured()) {
-      return jsonError(
-        "Writing assistant is unavailable. Set HUGGINGFACE_API_KEY (or HF_TOKEN) to enable it.",
-        503
-      );
+    if (!textAiConfigured()) {
+      return jsonError(textAiUnavailableMessage(), 503);
     }
 
     try {
@@ -42,13 +43,13 @@ export async function POST(request: NextRequest) {
       return jsonError(field === "title" ? "Title is required" : "Content is required", 400);
     }
 
-    const optimized = await huggingFaceAI.improveWriting(source);
+    const optimized = await getAiClient().improveWriting(source);
     if (!optimized) return jsonError("Writing assistant returned an empty suggestion", 502);
 
     return NextResponse.json({ optimized });
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
-    const mapped = mapHuggingFaceHttpError(error);
+    const mapped = mapAiHttpError(error);
     if (mapped) return jsonError(mapped.message, mapped.status);
     return serverError("Writing optimization failed:", error);
   }
