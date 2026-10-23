@@ -86,6 +86,47 @@ function requireClient(): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
 }
 
+/** Max length for Pollinations URL prompts after Gemini craft. */
+export const COVER_IMAGE_PROMPT_MAX = 800;
+
+export const COVER_IMAGE_PROMPT_SYSTEM = [
+  "You write one vivid English image-generation prompt for a 1200×630 blog thumbnail.",
+  "Include subject, composition, style, mood, and lighting.",
+  "Do not include any text, logos, watermarks, or typography in the image.",
+  "Return plain prompt text only—no quotes, labels, markdown, or commentary.",
+].join(" ");
+
+export type CraftCoverImagePromptInput = {
+  title: string;
+  description?: string;
+  content?: string;
+  /** Author creative direction — enrich; never use as the final Pollinations string as-is. */
+  direction?: string;
+};
+
+/** Build the user message Gemini sees when crafting a cover image prompt. */
+export function buildCoverImagePromptUserMessage(input: CraftCoverImagePromptInput): string {
+  const title = input.title.trim();
+  const lines = [`Title: ${title}`];
+  const description = input.description?.trim();
+  if (description) lines.push(`Description: ${description.slice(0, 500)}`);
+  const content = input.content?.trim();
+  if (content) lines.push(`Content excerpt: ${content.slice(0, 2000)}`);
+  const direction = input.direction?.trim();
+  if (direction) {
+    lines.push(
+      `Creative direction from the author (treat as guidance to enrich, not the final prompt): ${direction.slice(0, 500)}`
+    );
+  }
+  return lines.join("\n");
+}
+
+export function clampCoverImagePrompt(text: string): string {
+  const cleaned = stripWrappingQuotes(text).replace(/\s+/g, " ").trim();
+  if (cleaned.length <= COVER_IMAGE_PROMPT_MAX) return cleaned;
+  return cleaned.slice(0, COVER_IMAGE_PROMPT_MAX).trim();
+}
+
 async function generateText(
   system: string,
   user: string,
@@ -207,6 +248,28 @@ class GeminiAI {
     } catch {
       return { sentiment: "neutral", score: 0.5 };
     }
+  }
+
+  /**
+   * Craft a rich Pollinations image prompt from post context.
+   * Custom `direction` is creative guidance only — never the final URL prompt.
+   */
+  async craftCoverImagePrompt(input: CraftCoverImagePromptInput): Promise<string> {
+    const title = input.title?.trim() || "";
+    if (!title) {
+      throw new GeminiError("Title is required to craft a cover prompt", 400);
+    }
+
+    const crafted = await generateText(
+      COVER_IMAGE_PROMPT_SYSTEM,
+      buildCoverImagePromptUserMessage({ ...input, title }),
+      { maxTokens: 320, temperature: 0.7 }
+    );
+    const clamped = clampCoverImagePrompt(crafted);
+    if (!clamped) {
+      throw new GeminiError("Cover prompt craft returned an empty suggestion", 502);
+    }
+    return clamped;
   }
 }
 

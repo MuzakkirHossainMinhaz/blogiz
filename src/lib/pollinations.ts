@@ -1,6 +1,7 @@
 /**
  * Pollinations.ai image helper.
  * Builds a public generation URL (no API key), then fetches image bytes for Cloudinary upload.
+ * Callers must pass a Gemini-crafted final prompt — never a raw title.
  */
 
 export class PollinationsError extends Error {
@@ -13,42 +14,18 @@ export class PollinationsError extends Error {
   }
 }
 
-export type PollinationsImageInput = {
-  title?: string;
-  summary?: string;
-  prompt?: string;
-};
-
-/** Compose a cover prompt from explicit prompt and/or title/summary. */
-export function composeCoverPrompt(input: PollinationsImageInput): string {
-  const explicit = input.prompt?.trim();
-  if (explicit) return explicit.slice(0, 500);
-
-  const title = input.title?.trim() || "";
-  const summary = input.summary?.trim() || "";
-  if (!title && !summary) return "";
-
-  const parts = [
-    title ? `Blog cover about "${title}"` : "Professional blog cover",
-    summary ? summary.slice(0, 200) : "",
-    "modern, clean design, high quality, no text overlay",
-  ].filter(Boolean);
-
-  return parts.join(". ").slice(0, 500);
-}
-
 /**
- * Pollinations image URL.
- * Format locked by migration plan: https://pollinations.ai/p/{prompt}?width=1200&height=630&seed=…
+ * Pollinations image URL from a final crafted prompt string.
+ * Format: https://pollinations.ai/p/{prompt}?width=1200&height=630&seed=…
  */
-export function buildPollinationsImageUrl(input: PollinationsImageInput): string {
-  const prompt = composeCoverPrompt(input);
-  if (!prompt) {
-    throw new PollinationsError("Prompt or title is required", 400);
+export function buildPollinationsImageUrl(prompt: string): string {
+  const crafted = prompt.trim();
+  if (!crafted) {
+    throw new PollinationsError("Image prompt is required", 400);
   }
 
   const seed = Math.floor(Math.random() * 1_000_000_000);
-  const encoded = encodeURIComponent(prompt);
+  const encoded = encodeURIComponent(crafted);
   return `https://pollinations.ai/p/${encoded}?width=1200&height=630&seed=${seed}`;
 }
 

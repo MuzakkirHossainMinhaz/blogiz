@@ -11,8 +11,8 @@ Run these before `npm run dev` or the checks:
 - **MongoDB.** `MONGODB_URI` is required. The app does not fall back to localhost.
 - **Redis.** `REDIS_URL` is required the first time someone registers, signs in, requests a password reset, or calls an AI route. If it is missing or Redis is down, those routes fail with a clear error (login shows that rate limiting is unavailable instead of a fake bad-password message).
 - **Cloudinary.** `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are required to upload or delete an image. The API secret stays on the server. Seed data uses Cloudinary-shaped HTTPS URLs for the configured cloud name (or `demo` when unset) so public cards can render.
-- **Gemini (AI Studio) for text AI.** Create a free API key at [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. Blogiz uses `gemini-2.5-flash` for Optimize Title/Content and analyze-content.
-- **Pollinations for covers.** No Pollinations API key. The server builds an image URL, fetches bytes, and uploads to Cloudinary (`CLOUDINARY_*` required).
+- **Gemini (AI Studio).** Create a free API key at [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. Blogiz uses `gemini-2.5-flash` for Optimize Title/Content, analyze-content, and crafting cover image prompts.
+- **Pollinations for covers.** No Pollinations API key. Gemini writes the final image prompt; the server fetches Pollinations bytes and uploads to Cloudinary (`CLOUDINARY_*` required).
 
 A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET` and `AUTH_URL`. It does not call Redis or Cloudinary while pages are prerendered.
 
@@ -36,7 +36,7 @@ The public marketing site uses the shared Navbar and Footer. The dashboard is a 
 | `ADMIN_PASSWORD`        | For `npm run seed`                     | Password for that account (min 10 chars, letter + number). The command does not print it.                                                                                                          |
 | `SEED_FORCE`            | Optional                               | Set to `1` with `npm run seed -- --force` only on a disposable database when `NODE_ENV=production`.                                                                                                |
 | `HEALTH_CHECK_SECRET`   | Only to use `/api/health`              | Shared secret. Send it as `x-health-token`. The route returns 404 until this is set and the header matches.                                                                                        |
-| `GEMINI_API_KEY`                | For text AI (`/api/ai/optimize`, analyze) | Google AI Studio key. Enables Gemini `gemini-2.5-flash` for title/content polish and analysis. Create at https://aistudio.google.com/apikey. |
+| `GEMINI_API_KEY`                | For text AI and cover prompt craft        | Google AI Studio key. Enables Gemini `gemini-2.5-flash` for title/content polish, analysis, and crafting Pollinations cover prompts. Create at https://aistudio.google.com/apikey. |
 | `AI_RATE_LIMIT_MAX_REQUESTS`    | Optional (default `3`)                    | Max AI requests per client IP (or per user when no trusted IP) inside the window. Invalid values make AI routes return 503.                  |
 | `AI_RATE_LIMIT_WINDOW_SECONDS`  | Optional (default `60`)                   | Sliding-window length in seconds for `AI_RATE_LIMIT_MAX_REQUESTS`.                                                                           |
 | `TRUSTED_PROXY_HEADER`          | Optional                                  | The one proxy header trusted for a client address, for example `x-real-ip`. Hashed with `AUTH_SECRET`; used for register, views, and AI limits. When unset, AI limits fall back to the signed-in user id. |
@@ -110,7 +110,7 @@ Public pages set title, description, Open Graph, canonical URL (from `AUTH_URL`)
 
 Bytes go to Cloudinary under the `blogiz` folder (`blogiz/avatars`, `blogiz/covers`, or `blogiz` for general uploads). The database stores the HTTPS `secure_url` for this cloud only. Blog thumbnail fields reject any other URL. If Cloudinary env vars are missing, the upload returns 400.
 
-`POST /api/ai/generate-image` builds a Pollinations image URL from `prompt` and/or `title` (optional `description` / `summary`), fetches the bytes, stores them on Cloudinary (`kind: covers`), and returns `{ url, prompt }`. Needs a verified signed-in user, Redis (AI rate limit), and Cloudinary. No Pollinations API key. Failures return a specific error instead of a generic 500.
+`POST /api/ai/generate-image` requires `title` (plus optional `description` / `summary`, `content` excerpt, and `prompt` as creative direction). Gemini crafts a vivid 1200×630 image prompt (style, mood, lighting; no text/logos); Pollinations draws it; Cloudinary stores the cover (`kind: covers`). Returns `{ url, prompt }` where `prompt` is the Gemini-crafted string—never a raw title. Needs `GEMINI_API_KEY`, Cloudinary, a verified signed-in user, and Redis (one AI rate-limit hit per Generate). Failures return a specific error instead of a generic 500.
 
 `POST /api/ai/optimize` polishes title or content (voice-preserving) for authors via Gemini `gemini-2.5-flash`; returns `{ optimized }` for the editor to apply. Requires `GEMINI_API_KEY` and Redis. Missing key, Redis, and provider errors surface as clear JSON `{ error, message }` responses. AI routes share `AI_RATE_LIMIT_MAX_REQUESTS` × `AI_RATE_LIMIT_WINDOW_SECONDS` (default 3 / 60s); a 429 message asks the client to try again in a minute.
 

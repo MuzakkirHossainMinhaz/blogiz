@@ -21,15 +21,18 @@ function cloudinaryConfigured(): boolean {
 }
 
 /**
- * Cover AI uses Pollinations (no key) then stores bytes on Cloudinary.
- * Enabled whenever Cloudinary is configured.
+ * Cover AI: Gemini crafts the image prompt, Pollinations generates (no key), Cloudinary stores.
+ * Requires GEMINI_API_KEY and Cloudinary.
  */
 export function imageGenerationConfigured(): boolean {
-  return cloudinaryConfigured();
+  return geminiConfigured() && cloudinaryConfigured();
 }
 
 export function imageUnavailableMessage(): string {
-  return "Image generation needs Cloudinary. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET, or upload a cover.";
+  if (!geminiConfigured()) {
+    return "Cover generation needs GEMINI_API_KEY (Google AI Studio) to craft the image prompt, plus Cloudinary to store the result—or upload a cover.";
+  }
+  return "Cover generation needs Cloudinary. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET, or upload a cover.";
 }
 
 type TextAiClient = {

@@ -11,6 +11,8 @@ import { FiImage, FiLoader, FiTrash2, FiUpload, FiZap } from "react-icons/fi";
 type FeaturedCoverFieldProps = {
   value: string;
   title: string;
+  description?: string;
+  content?: string;
   onChange: (url: string) => void;
   error?: string;
   disabled?: boolean;
@@ -29,7 +31,7 @@ function mapGenerateError(status: number, payload?: { error?: unknown; message?:
   if (status === 429) return message || "Too many AI requests. Try again in a minute.";
   if (status === 503) return message || "Image generation is not configured yet.";
   if (status === 502) {
-    return message || "Cover generation failed. Check Cloudinary settings and try again.";
+    return message || "Cover generation failed. Check Gemini and Cloudinary settings and try again.";
   }
   return message || "Failed to generate cover.";
 }
@@ -37,6 +39,8 @@ function mapGenerateError(status: number, payload?: { error?: unknown; message?:
 export function FeaturedCoverField({
   value,
   title,
+  description = "",
+  content = "",
   onChange,
   error,
   disabled = false,
@@ -47,7 +51,7 @@ export function FeaturedCoverField({
   const [busy, setBusy] = useState<"upload" | "generate" | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const canGenerate = customPrompt.trim().length >= 3 || title.trim().length >= 3;
+  const canGenerate = title.trim().length >= 3;
   const displayError = error || localError;
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,9 +91,20 @@ export function FeaturedCoverField({
     setBusy("generate");
     setLocalError(null);
 
-    const body = customPrompt.trim()
-      ? { prompt: customPrompt.trim().slice(0, 500) }
-      : { title: title.trim().slice(0, 200) };
+    const body: {
+      title: string;
+      description?: string;
+      content?: string;
+      prompt?: string;
+    } = {
+      title: title.trim().slice(0, 200),
+    };
+    const desc = description.trim();
+    if (desc) body.description = desc.slice(0, 500);
+    const excerpt = content.trim();
+    if (excerpt) body.content = excerpt.slice(0, 2000);
+    const direction = customPrompt.trim();
+    if (direction.length >= 3) body.prompt = direction.slice(0, 500);
 
     try {
       const response = await fetch("/api/ai/generate-image", {
@@ -159,7 +174,7 @@ export function FeaturedCoverField({
           <div className="absolute inset-0 flex items-center justify-center bg-surface/70 backdrop-blur-[1px]">
             <div className="flex items-center gap-2 text-sm font-medium text-ink">
               <FiLoader className="w-4 h-4 animate-spin" />
-              {busy === "generate" ? "Generating…" : "Uploading…"}
+              {busy === "generate" ? "Crafting Prompt…" : "Uploading…"}
             </div>
           </div>
         ) : null}
@@ -200,12 +215,12 @@ export function FeaturedCoverField({
 
       <Textarea
         id="cover-prompt"
-        label="AI prompt (optional)"
+        label="Creative Direction (Optional)"
         rows={6}
         placeholder={
           title.trim()
-            ? `Uses title: ${title.trim().slice(0, 40)}${title.trim().length > 40 ? "…" : ""}`
-            : "Describe the cover, or add a title first"
+            ? `Gemini uses your title${description.trim() ? ", description" : ""}${content.trim() ? ", and content" : ""}. Add style or mood notes here…`
+            : "Add a title first, then optional style or mood notes"
         }
         value={customPrompt}
         onChange={(event) => setCustomPrompt(event.target.value)}
@@ -215,7 +230,7 @@ export function FeaturedCoverField({
 
       {displayError ? <p className={fieldErrorClassName}>{displayError}</p> : null}
       <p className="text-xs text-accent-400 shrink-0">
-        JPEG, PNG, or WebP up to 5MB. Generate uses Pollinations (no key) and stores the cover on Cloudinary. AI requests are rate limited.
+        JPEG, PNG, or WebP up to 5MB. Generate: Gemini crafts the image prompt, Pollinations draws it, Cloudinary stores it. One AI rate-limit hit per click.
       </p>
     </div>
   );
