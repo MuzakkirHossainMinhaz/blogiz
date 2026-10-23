@@ -28,7 +28,9 @@ function mapGenerateError(status: number, payload?: { error?: unknown; message?:
   if (status === 403) return message || "Verify your email before generating covers.";
   if (status === 429) return message || "Daily image generation limit reached. Try again tomorrow.";
   if (status === 503) return message || "Image generation is not configured yet.";
-  if (status === 502) return message || "Cover generation failed. Check Hugging Face credentials and try again.";
+  if (status === 502) {
+    return message || "Cover generation failed. Check AI provider settings and try again.";
+  }
   return message || "Failed to generate cover.";
 }
 
@@ -213,7 +215,7 @@ export function FeaturedCoverField({
 
       {displayError ? <p className={fieldErrorClassName}>{displayError}</p> : null}
       <p className="text-xs text-accent-400 shrink-0">
-        JPEG, PNG, or WebP up to 5MB. Generate uses your daily AI image quota.
+        JPEG, PNG, or WebP up to 5MB. Cover AI needs Hugging Face (paid); with local Ollama, upload a cover instead.
       </p>
     </div>
   );

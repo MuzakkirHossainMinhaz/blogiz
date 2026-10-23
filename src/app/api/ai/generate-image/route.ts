@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { imageDailyQuota, mapHuggingFaceHttpError } from "@/lib/ai-provider";
+import {
+  getAiClient,
+  imageGenerationConfigured,
+  imageUnavailableMessage,
+  imageDailyQuota,
+  mapAiHttpError,
+} from "@/lib/ai-provider";
 import { denied } from "@/lib/authz";
 import { requireAiUser } from "@/lib/ai-guard";
-import { huggingFaceAI } from "@/lib/huggingface";
 import { jsonError, serverError } from "@/lib/http";
 import { saveImage } from "@/lib/object-storage";
 import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
@@ -16,19 +21,18 @@ function imageBytesFromPayload(imageData: string): Buffer {
 }
 
 async function generate(actorId: string, prompt: string) {
-  const quota = imageDailyQuota();
-  if (!quota) {
-    return jsonError(
-      "Image generation is disabled until HUGGINGFACE_API_KEY and a positive HF_IMAGE_DAILY_QUOTA are set",
-      503
-    );
+  if (!imageGenerationConfigured()) {
+    return jsonError(imageUnavailableMessage(), 503);
   }
+
+  const quota = imageDailyQuota();
+  if (!quota) return jsonError(imageUnavailableMessage(), 503);
 
   const day = new Date().toISOString().slice(0, 10);
   const attempt = await rateLimit(`image:${actorId}:${day}`, quota, 24 * 60 * 60 * 1000);
   if (!attempt.ok) return jsonError("Daily image generation limit reached", 429);
 
-  const imageData = await huggingFaceAI.generateImage(prompt);
+  const imageData = await getAiClient().generateImage(prompt);
   if (!imageData) return jsonError("Failed to generate image", 502);
 
   try {
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     return await generate(actor.id, finalPrompt);
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
-    const mapped = mapHuggingFaceHttpError(error);
+    const mapped = mapAiHttpError(error);
     if (mapped) return jsonError(mapped.message, mapped.status);
     return serverError("Image generation failed:", error);
   }
@@ -71,7 +75,7 @@ export async function GET(request: NextRequest) {
     return await generate(actor.id, `Blog cover: ${title}`);
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
-    const mapped = mapHuggingFaceHttpError(error);
+    const mapped = mapAiHttpError(error);
     if (mapped) return jsonError(mapped.message, mapped.status);
     return serverError("Blog cover generation failed:", error);
   }

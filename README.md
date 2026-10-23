@@ -4,7 +4,7 @@ Blogiz is a multi-role blogging platform. Readers discover and engage with publi
 
 Signed-in people can comment and leave one like or dislike on a published post. Authors manage their own drafts and posts, and can engage on others’ writing. Admins moderate accounts, posts, and comments. Each author has a public profile at `/authors/[authorId]`, linked from the byline. Images go to Cloudinary. Sign-in, registration, password reset, and AI routes are rate limited with Redis.
 
-AI is assistive and opt-in (covers, title/content polish)—not a silent rewrite of the author’s voice. Those routes stay off until `HUGGINGFACE_API_KEY` (or `HF_TOKEN`) is set; cover generation also needs a positive `HF_IMAGE_DAILY_QUOTA`. Redis is required for AI rate limits. Provider failures return specific messages rather than a blank generic error.
+AI is assistive and opt-in (title/content polish, optional covers)—not a silent rewrite of the author’s voice. The recommended free path is local **Ollama** (`AI_PROVIDER=ollama`, default). Install Ollama, pull a small chat model, and point `OLLAMA_BASE_URL` at `http://127.0.0.1:11434`. Hugging Face Inference Providers remain optional and **paid** (`AI_PROVIDER=huggingface` plus `HUGGINGFACE_API_KEY` / `HF_TOKEN`); cover AI needs that path and a positive `HF_IMAGE_DAILY_QUOTA`. With Ollama, upload covers manually—Ollama has no clean free text-to-image path here. Redis is required for AI rate limits. Provider failures return specific messages (Ollama down, model missing, wrong URL) rather than a blank generic error.
 
 Roles match [PLAN.md](PLAN.md) and [DATABASE.md](DATABASE.md): exactly three — `admin` | `author` | `reader`. Blogs use a draft / publish lifecycle. See [GUIDE.md](GUIDE.md) for operations.
 
