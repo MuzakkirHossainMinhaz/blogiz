@@ -574,18 +574,18 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                        <Button variant="ghost" size="sm">
-                          Edit
-                        </Button>
-                      </Link>
                       {blog.status === "published" ? (
                         <Link href={`/blogs/${blog._id}`} target="_blank">
-                          <Button variant="ghost" size="sm">
-                            View
+                          <Button variant="ghost" size="sm" aria-label="View Post" title="View Post">
+                            <FiEye className="w-4 h-4" />
                           </Button>
                         </Link>
                       ) : null}
+                      <Link href={`/dashboard/blogs/edit/${blog._id}`}>
+                        <Button variant="ghost" size="sm" aria-label="Edit Post" title="Edit Post">
+                          <FiEdit3 className="w-4 h-4" />
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -633,18 +633,18 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 lg:px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                              <Button variant="ghost" size="sm">
-                                Edit
-                              </Button>
-                            </Link>
                             {blog.status === "published" ? (
                               <Link href={`/blogs/${blog._id}`} target="_blank">
-                                <Button variant="ghost" size="sm">
-                                  View
+                                <Button variant="ghost" size="sm" aria-label="View Post" title="View Post">
+                                  <FiEye className="w-4 h-4" />
                                 </Button>
                               </Link>
                             ) : null}
+                            <Link href={`/dashboard/blogs/edit/${blog._id}`}>
+                              <Button variant="ghost" size="sm" aria-label="Edit Post" title="Edit Post">
+                                <FiEdit3 className="w-4 h-4" />
+                              </Button>
+                            </Link>
                           </div>
                         </td>
                       </tr>
