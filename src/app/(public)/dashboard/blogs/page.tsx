@@ -17,7 +17,9 @@ import {
   FiGrid,
   FiList,
   FiCalendar,
-  FiHeart
+  FiHeart,
+  FiUploadCloud,
+  FiDownloadCloud,
 } from "react-icons/fi";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
@@ -147,10 +149,14 @@ export default function BlogsPage() {
       published: "bg-green-100 text-green-800 border-green-200",
       draft: "bg-yellow-100 text-yellow-800 border-yellow-200",
     };
-    
+    const label =
+      status === "published" || status === "draft"
+        ? status.charAt(0).toUpperCase() + status.slice(1)
+        : "Draft";
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium border ${variants[status as keyof typeof variants] || variants.draft}`}>
-        {status}
+        {label}
       </span>
     );
   };
@@ -298,13 +304,15 @@ export default function BlogsPage() {
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <Link href={`/blogs/${blog._id}`} target="_blank">
-                    <Button variant="ghost" size="sm" aria-label="View Post">
-                      <FiEye className="w-4 h-4" />
-                    </Button>
-                  </Link>
+                  {blog.status === "published" ? (
+                    <Link href={`/blogs/${blog._id}`} target="_blank">
+                      <Button variant="ghost" size="sm" aria-label="View Post" title="View Post">
+                        <FiEye className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                  ) : null}
                   <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                    <Button variant="ghost" size="sm" aria-label="Edit Post">
+                    <Button variant="ghost" size="sm" aria-label="Edit Post" title="Edit Post">
                       <FiEdit3 className="w-4 h-4" />
                     </Button>
                   </Link>
@@ -313,8 +321,14 @@ export default function BlogsPage() {
                     size="sm"
                     onClick={() => setPendingAction({ type: "toggle", blogId: blog._id, currentStatus: blog.status })}
                     className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
+                    aria-label={blog.status === "published" ? "Unpublish" : "Publish"}
+                    title={blog.status === "published" ? "Unpublish" : "Publish"}
                   >
-                    {blog.status === "published" ? "Unpublish" : "Publish"}
+                    {blog.status === "published" ? (
+                      <FiDownloadCloud className="w-4 h-4" />
+                    ) : (
+                      <FiUploadCloud className="w-4 h-4" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -322,6 +336,7 @@ export default function BlogsPage() {
                     onClick={() => setPendingAction({ type: "delete", blogId: blog._id })}
                     className="text-red-600 hover:text-red-700"
                     aria-label="Delete Post"
+                    title="Delete Post"
                   >
                     <FiTrash2 className="w-4 h-4" />
                   </Button>
@@ -388,13 +403,15 @@ export default function BlogsPage() {
                       </td>
                       <td className="px-4 lg:px-6 py-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <Link href={`/blogs/${blog._id}`} target="_blank">
-                            <Button variant="ghost" size="sm">
-                              <FiEye className="w-4 h-4" />
-                            </Button>
-                          </Link>
+                          {blog.status === "published" ? (
+                            <Link href={`/blogs/${blog._id}`} target="_blank">
+                              <Button variant="ghost" size="sm" aria-label="View Post" title="View Post">
+                                <FiEye className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                          ) : null}
                           <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" aria-label="Edit Post" title="Edit Post">
                               <FiEdit3 className="w-4 h-4" />
                             </Button>
                           </Link>
@@ -403,14 +420,22 @@ export default function BlogsPage() {
                             size="sm"
                             onClick={() => setPendingAction({ type: "toggle", blogId: blog._id, currentStatus: blog.status })}
                             className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
+                            aria-label={blog.status === "published" ? "Unpublish" : "Publish"}
+                            title={blog.status === "published" ? "Unpublish" : "Publish"}
                           >
-                            {blog.status === "published" ? "Unpublish" : "Publish"}
+                            {blog.status === "published" ? (
+                              <FiDownloadCloud className="w-4 h-4" />
+                            ) : (
+                              <FiUploadCloud className="w-4 h-4" />
+                            )}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setPendingAction({ type: "delete", blogId: blog._id })}
                             className="text-red-600 hover:text-red-700"
+                            aria-label="Delete Post"
+                            title="Delete Post"
                           >
                             <FiTrash2 className="w-4 h-4" />
                           </Button>
@@ -448,13 +473,15 @@ export default function BlogsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Link href={`/blogs/${blog._id}`} target="_blank">
-                      <Button variant="ghost" size="sm">
-                        <FiEye className="w-4 h-4" />
-                      </Button>
-                    </Link>
+                    {blog.status === "published" ? (
+                      <Link href={`/blogs/${blog._id}`} target="_blank">
+                        <Button variant="ghost" size="sm" aria-label="View Post" title="View Post">
+                          <FiEye className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                    ) : null}
                     <Link href={`/dashboard/blogs/edit/${blog._id}`}>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" aria-label="Edit Post" title="Edit Post">
                         <FiEdit3 className="w-4 h-4" />
                       </Button>
                     </Link>
@@ -465,14 +492,22 @@ export default function BlogsPage() {
                       size="sm"
                       onClick={() => setPendingAction({ type: "toggle", blogId: blog._id, currentStatus: blog.status })}
                       className={blog.status === "published" ? "text-yellow-600" : "text-green-600"}
+                      aria-label={blog.status === "published" ? "Unpublish" : "Publish"}
+                      title={blog.status === "published" ? "Unpublish" : "Publish"}
                     >
-                      {blog.status === "published" ? "Unpublish" : "Publish"}
+                      {blog.status === "published" ? (
+                        <FiDownloadCloud className="w-4 h-4" />
+                      ) : (
+                        <FiUploadCloud className="w-4 h-4" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setPendingAction({ type: "delete", blogId: blog._id })}
                       className="text-red-600 hover:text-red-700"
+                      aria-label="Delete Post"
+                      title="Delete Post"
                     >
                       <FiTrash2 className="w-4 h-4" />
                     </Button>
