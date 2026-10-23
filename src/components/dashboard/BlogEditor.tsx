@@ -123,7 +123,13 @@ export function BlogEditor({
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        toast.error(typeof result.error === "string" ? result.error : "Optimization failed");
+        const detail =
+          typeof result.error === "string"
+            ? result.error
+            : typeof result.message === "string"
+              ? result.message
+              : null;
+        toast.error(detail || "Optimization failed");
         return;
       }
       const optimized = typeof result.optimized === "string" ? result.optimized.trim() : "";

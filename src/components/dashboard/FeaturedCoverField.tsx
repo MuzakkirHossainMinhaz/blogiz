@@ -17,10 +17,18 @@ type FeaturedCoverFieldProps = {
   className?: string;
 };
 
-function mapGenerateError(status: number, message?: string): string {
-  if (status === 403) return "Verify your email before generating covers.";
+function mapGenerateError(status: number, payload?: { error?: unknown; message?: unknown }): string {
+  const message =
+    typeof payload?.error === "string"
+      ? payload.error
+      : typeof payload?.message === "string"
+        ? payload.message
+        : undefined;
+
+  if (status === 403) return message || "Verify your email before generating covers.";
   if (status === 429) return message || "Daily image generation limit reached. Try again tomorrow.";
   if (status === 503) return message || "Image generation is not configured yet.";
+  if (status === 502) return message || "Cover generation failed. Check Hugging Face credentials and try again.";
   return message || "Failed to generate cover.";
 }
 
@@ -89,7 +97,7 @@ export function FeaturedCoverField({
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setLocalError(mapGenerateError(response.status, result.error));
+        setLocalError(mapGenerateError(response.status, result));
         return;
       }
       if (!result.url) {

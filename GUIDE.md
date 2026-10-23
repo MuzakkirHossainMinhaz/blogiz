@@ -34,8 +34,11 @@ The public marketing site uses the shared Navbar and Footer. The dashboard is a 
 | `ADMIN_PASSWORD`        | For `npm run seed`                     | Password for that account (min 10 chars, letter + number). The command does not print it.                                                                                                          |
 | `SEED_FORCE`            | Optional                               | Set to `1` with `npm run seed -- --force` only on a disposable database when `NODE_ENV=production`.                                                                                                |
 | `HEALTH_CHECK_SECRET`   | Only to use `/api/health`              | Shared secret. Send it as `x-health-token`. The route returns 404 until this is set and the header matches.                                                                                        |
-| `HUGGINGFACE_API_KEY`   | Optional                               | Enables writing polish and analysis routes.                                                                                                                                                        |
-| `HF_IMAGE_DAILY_QUOTA`  | Optional                               | Positive integer. Image generation stays off until this is set.                                                                                                                                    |
+| `HUGGINGFACE_API_KEY`   | Optional                               | Enables writing polish, analysis, and cover generation via Hugging Face Inference Providers. Token needs Inference Providers permission.                                                           |
+| `HF_TOKEN`              | Optional                               | Alias used only when `HUGGINGFACE_API_KEY` is unset (matches Hugging Face docs).                                                                                                                   |
+| `HF_TEXT_MODEL`         | Optional                               | Chat model for title/content polish. Defaults to `Qwen/Qwen3-4B-Instruct-2507` on the OpenAI-compatible router (`/v1/chat/completions`).                                                            |
+| `HF_IMAGE_MODEL`        | Optional                               | Text-to-image model for covers. Defaults to `black-forest-labs/FLUX.1-schnell`.                                                                                                                    |
+| `HF_IMAGE_DAILY_QUOTA`  | Optional                               | Positive integer. Image generation stays off until this and a Hugging Face key are set.                                                                                                            |
 | `TRUSTED_PROXY_HEADER`  | Optional                               | The one proxy header trusted for a client address, for example `x-real-ip`. The address is hashed with `AUTH_SECRET` and is not stored raw.                                                        |
 | `SMTP_HOST`             | Optional                               | SMTP host. Mail is skipped unless this and `EMAIL_FROM` are both set.                                                                                                                              |
 | `EMAIL_FROM`            | With `SMTP_HOST`                       | From address for verification and password-reset mail.                                                                                                                                             |
@@ -107,9 +110,11 @@ Public pages set title, description, Open Graph, canonical URL (from `AUTH_URL`)
 
 Bytes go to Cloudinary under the `blogiz` folder (`blogiz/avatars`, `blogiz/covers`, or `blogiz` for general uploads). The database stores the HTTPS `secure_url` for this cloud only. Blog thumbnail fields reject any other URL. If Cloudinary env vars are missing, the upload returns 400.
 
-`POST /api/ai/generate-image` creates a cover with Hugging Face, then stores it under `blogiz/covers`. It needs `HUGGINGFACE_API_KEY`, a positive `HF_IMAGE_DAILY_QUOTA`, Redis, a verified signed-in user, and Cloudinary.
+`POST /api/ai/generate-image` creates a cover with Hugging Face, then stores it under `blogiz/covers`. It needs `HUGGINGFACE_API_KEY` (or `HF_TOKEN`), a positive `HF_IMAGE_DAILY_QUOTA`, Redis, a verified signed-in user, and Cloudinary. Failures return a specific error (missing quota, rate limit, bad credentials, provider error) instead of a generic 500.
 
-`POST /api/ai/optimize` polishes title or content (voice-preserving) for authors; returns `{ optimized }` for the editor to apply.
+`POST /api/ai/optimize` polishes title or content (voice-preserving) for authors via chat completions; returns `{ optimized }` for the editor to apply. Missing key/Redis and provider errors surface as clear JSON `{ error, message }` responses.
+
+Blog bodies are Markdown in the editor (preview + public post view share `renderContent`). Tailwind Preflight resets headings/lists, so `.prose` in `globals.css` supplies typography for headings, lists, links, code, quotes, and emphasis.
 
 Profile avatars are uploaded from Settings (`kind=avatars` → `blogiz/avatars`).
 

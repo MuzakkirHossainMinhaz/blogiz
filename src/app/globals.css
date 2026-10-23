@@ -204,9 +204,94 @@ input[type="search"] {
   @apply py-8 sm:py-12 md:py-16 lg:py-20;
 }
 
-/* Long unbroken strings (URLs, tokens) should wrap on narrow viewports */
+/*
+  Markdown / HTML body typography.
+  Tailwind Preflight resets headings and lists; without @tailwindcss/typography
+  we style .prose explicitly so editor preview and public posts render correctly.
+*/
 .prose {
-  @apply break-words;
+  @apply break-words text-base leading-relaxed text-ink;
+}
+
+.prose > :first-child {
+  @apply mt-0;
+}
+
+.prose > :last-child {
+  @apply mb-0;
+}
+
+.prose p {
+  @apply my-4;
+}
+
+.prose h1 {
+  @apply mt-8 mb-4 text-3xl font-semibold tracking-tight text-ink;
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+}
+
+.prose h2 {
+  @apply mt-8 mb-3 text-2xl font-semibold tracking-tight text-ink;
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+}
+
+.prose h3 {
+  @apply mt-6 mb-3 text-xl font-semibold text-ink;
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+}
+
+.prose h4 {
+  @apply mt-5 mb-2 text-lg font-semibold text-ink;
+}
+
+.prose ul {
+  @apply my-4 list-disc space-y-2 pl-6;
+}
+
+.prose ol {
+  @apply my-4 list-decimal space-y-2 pl-6;
+}
+
+.prose li {
+  @apply my-0;
+}
+
+.prose li > p {
+  @apply my-1;
+}
+
+.prose a {
+  @apply font-medium text-primary-600 underline underline-offset-2 hover:text-primary-700;
+}
+
+.prose strong,
+.prose b {
+  @apply font-semibold text-ink;
+}
+
+.prose em,
+.prose i {
+  @apply italic;
+}
+
+.prose code {
+  @apply rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[0.9em] text-ink;
+}
+
+.prose pre {
+  @apply my-4 overflow-x-auto rounded-lg border border-neutral-200 bg-neutral-900 p-4 text-sm leading-relaxed text-neutral-50;
+}
+
+.prose pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+
+.prose blockquote {
+  @apply my-4 border-l-4 border-primary-200 pl-4 text-neutral-600 italic;
+}
+
+.prose hr {
+  @apply my-8 border-0 border-t border-neutral-200;
 }
 
 .prose img,
@@ -215,8 +300,24 @@ input[type="search"] {
   @apply max-w-full;
 }
 
-.prose pre {
-  @apply overflow-x-auto;
+.prose img {
+  @apply my-4 h-auto rounded-lg;
+}
+
+.prose-lg {
+  @apply text-lg leading-relaxed;
+}
+
+.prose-lg h1 {
+  @apply text-4xl;
+}
+
+.prose-lg h2 {
+  @apply text-3xl;
+}
+
+.prose-lg h3 {
+  @apply text-2xl;
 }
 
 @media (prefers-reduced-motion: reduce) {
