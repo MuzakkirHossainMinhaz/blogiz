@@ -1,76 +1,39 @@
-import { huggingFaceAI } from "@/lib/huggingface";
-import { ollamaAI } from "@/lib/ollama";
+import { geminiAI, GeminiError, geminiConfigured } from "@/lib/gemini";
+import { PollinationsError } from "@/lib/pollinations";
 
-export type AiProviderName = "ollama" | "huggingface" | "off";
+export { geminiConfigured };
 
-/**
- * Resolve the active AI backend.
- * Default for this practice project is local Ollama (free). Set AI_PROVIDER=huggingface
- * only when you intentionally want paid Inference Providers.
- */
-export function resolveAiProvider(): AiProviderName {
-  const raw = process.env.AI_PROVIDER?.trim().toLowerCase();
-  if (!raw || raw === "ollama") return "ollama";
-  if (raw === "huggingface" || raw === "hf") return "huggingface";
-  if (raw === "off" || raw === "none" || raw === "disabled") return "off";
-  return "ollama";
-}
-
-export function huggingFaceConfigured(): boolean {
-  return Boolean(
-    process.env.HUGGINGFACE_API_KEY?.trim() || process.env.HF_TOKEN?.trim()
-  );
-}
-
-/** True when text polish / analysis should attempt the configured provider. */
+/** True when text polish / analysis can call Gemini. */
 export function textAiConfigured(): boolean {
-  const provider = resolveAiProvider();
-  if (provider === "off") return false;
-  if (provider === "ollama") return true;
-  return huggingFaceConfigured();
+  return geminiConfigured();
 }
 
 export function textAiUnavailableMessage(): string {
-  const provider = resolveAiProvider();
-  if (provider === "off") {
-    return "Writing assistant is turned off. Set AI_PROVIDER=ollama (recommended, free) or AI_PROVIDER=huggingface.";
-  }
-  if (provider === "huggingface") {
-    return "Writing assistant is unavailable. Set HUGGINGFACE_API_KEY (or HF_TOKEN) to enable Hugging Face, or switch to AI_PROVIDER=ollama for free local AI.";
-  }
-  return "Writing assistant could not reach Ollama. Start Ollama, pull the model in OLLAMA_TEXT_MODEL, and check OLLAMA_BASE_URL.";
+  return "Writing assistant is unavailable. Set GEMINI_API_KEY from Google AI Studio (https://aistudio.google.com/apikey).";
 }
 
-/** Image generation stays off until an operator sets a positive daily quota (HF only). */
-export function imageDailyQuota(): number | null {
-  if (!huggingFaceConfigured()) return null;
-  const raw = process.env.HF_IMAGE_DAILY_QUOTA?.trim();
-  if (!raw || !/^[0-9]+$/.test(raw)) return null;
-  const quota = Number(raw);
-  if (!Number.isSafeInteger(quota) || quota < 1) return null;
-  return quota;
+function cloudinaryConfigured(): boolean {
+  return Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME?.trim() &&
+      process.env.CLOUDINARY_API_KEY?.trim() &&
+      process.env.CLOUDINARY_API_SECRET?.trim()
+  );
 }
 
 /**
- * Cover AI is only available via Hugging Face (paid Inference Providers).
- * Local Ollama has no clean free text-to-image path for Blogiz.
+ * Cover AI uses Pollinations (no key) then stores bytes on Cloudinary.
+ * Enabled whenever Cloudinary is configured.
  */
 export function imageGenerationConfigured(): boolean {
-  return resolveAiProvider() === "huggingface" && imageDailyQuota() !== null;
+  return cloudinaryConfigured();
 }
 
 export function imageUnavailableMessage(): string {
-  if (resolveAiProvider() === "ollama") {
-    return "Cover AI generation is not available with local Ollama. Upload a cover, or set AI_PROVIDER=huggingface with HUGGINGFACE_API_KEY and a positive HF_IMAGE_DAILY_QUOTA (paid credits).";
-  }
-  if (resolveAiProvider() === "off") {
-    return "Image generation is turned off. Set AI_PROVIDER=huggingface with HUGGINGFACE_API_KEY and HF_IMAGE_DAILY_QUOTA, or upload a cover.";
-  }
-  return "Image generation is disabled until HUGGINGFACE_API_KEY and a positive HF_IMAGE_DAILY_QUOTA are set";
+  return "Image generation needs Cloudinary. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET, or upload a cover.";
 }
 
 type TextAiClient = {
-  improveWriting(text: string): Promise<string>;
+  improveWriting(text: string, field?: "title" | "content"): Promise<string>;
   generateTags(content: string): Promise<string[]>;
   generateSEOMetadata(
     title: string,
@@ -81,14 +44,11 @@ type TextAiClient = {
     sentiment: "positive" | "negative" | "neutral";
     score: number;
   }>;
-  generateImage(prompt: string, style?: string): Promise<string>;
 };
 
-/** Active text/image AI client for the configured provider. */
+/** Active text AI client (Gemini). */
 export function getAiClient(): TextAiClient {
-  const provider = resolveAiProvider();
-  if (provider === "huggingface") return huggingFaceAI;
-  return ollamaAI;
+  return geminiAI;
 }
 
 /**
@@ -101,10 +61,12 @@ export function mapAiHttpError(error: unknown): { message: string; status: numbe
   const message = (error as { message?: unknown }).message;
   const status = (error as { status?: unknown }).status;
 
-  if (
-    (name !== "HuggingFaceError" && name !== "OllamaError") ||
-    typeof message !== "string"
-  ) {
+  const isProviderError =
+    error instanceof GeminiError ||
+    error instanceof PollinationsError ||
+    name === "GeminiError" ||
+    name === "PollinationsError";
+  if (!isProviderError || typeof message !== "string") {
     return null;
   }
 
@@ -114,11 +76,4 @@ export function mapAiHttpError(error: unknown): { message: string; status: numbe
   if (code === 503 || code === 529) return { message, status: 503 };
   if (code >= 400 && code < 600) return { message, status: code === 500 ? 502 : code };
   return { message, status: 502 };
-}
-
-/** @deprecated Prefer mapAiHttpError — kept for older call sites/tests. */
-export function mapHuggingFaceHttpError(
-  error: unknown
-): { message: string; status: number } | null {
-  return mapAiHttpError(error);
 }

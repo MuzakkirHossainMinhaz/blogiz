@@ -5,13 +5,11 @@ import {
   textAiConfigured,
   textAiUnavailableMessage,
 } from "@/lib/ai-provider";
+import { enforceAiRateLimit } from "@/lib/ai-rate-limit";
 import { denied, requirePermission } from "@/lib/authz";
 import { jsonError, serverError } from "@/lib/http";
-import { rateLimit, RateLimitUnavailable } from "@/lib/rate-limit";
+import { RateLimitUnavailable } from "@/lib/rate-limit";
 import { BLOG_CONTENT_MAX } from "@/lib/validation";
-
-const WINDOW_MS = 10 * 60 * 1000;
-const LIMIT = 20;
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,13 +20,8 @@ export async function POST(request: NextRequest) {
       return jsonError(textAiUnavailableMessage(), 503);
     }
 
-    try {
-      const attempt = await rateLimit(`ai:optimize:${actor.id}`, LIMIT, WINDOW_MS);
-      if (!attempt.ok) return jsonError("Too many requests", 429);
-    } catch (error) {
-      if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
-      throw error;
-    }
+    const limited = await enforceAiRateLimit(request, actor.id);
+    if (limited) return limited;
 
     const body = await request.json().catch(() => null);
     const field = body?.field === "title" || body?.field === "content" ? body.field : null;
@@ -43,7 +36,7 @@ export async function POST(request: NextRequest) {
       return jsonError(field === "title" ? "Title is required" : "Content is required", 400);
     }
 
-    const optimized = await getAiClient().improveWriting(source);
+    const optimized = await getAiClient().improveWriting(source, field);
     if (!optimized) return jsonError("Writing assistant returned an empty suggestion", 502);
 
     return NextResponse.json({ optimized });

@@ -28,7 +28,7 @@ The writing experience should feel author-led. AI is an on-demand helper for thu
 | Database      | MongoDB with Mongoose (server-side only)                               |
 | Auth          | Session-based email/password (e.g. Auth.js / NextAuth)                 |
 | Media         | Cloud image hosting for avatars and blog thumbnails (e.g. Cloudinary)  |
-| AI            | External image + text APIs, called from server routes with rate limits |
+| AI            | Gemini (`gemini-2.5-flash`) for text; Pollinations → Cloudinary for covers; Redis env rate limits |
 | Rate limiting | Redis (auth and AI routes)                                             |
 | UI            | Tailwind CSS + component layer; accessible light theme                 |
 
@@ -118,16 +118,18 @@ Counters (likes, dislikes, comments, views) are denormalized on the blog documen
 ### AI: thumbnail generation
 
 - Trigger: explicit **Generate thumbnail** action.
-- Input: current title and/or content (whichever is available; prefer both when present).
+- Input: current title and/or prompt (optional description/summary when sent).
+- Pipeline: Pollinations URL → fetch bytes → Cloudinary cover URL (no Pollinations API key).
 - Output: image URL stored on the blog (and in media storage); author can regenerate or replace with an upload.
-- Server-side only; daily quota / rate limits apply.
+- Server-side only; env-driven Redis AI rate limits apply (`AI_RATE_LIMIT_*`).
 
 ### AI: title & content optimization
 
 - Separate buttons: **Optimize title** and **Optimize content** (run independently).
+- Provider: Google Gemini (`gemini-2.5-flash`) with `GEMINI_API_KEY` from AI Studio.
 - Scope: only the chosen field(s); author reviews and accepts before overwrite (or applies into the editor as a suggestion).
 - Behavior: **not a full rewrite**. Preserve the writer’s voice. Allowed changes: spelling, grammar, light clarity, and SEO polish (e.g. keyword phrasing, length for titles) without changing meaning or style.
-- Disabled or degraded gracefully when AI env/config is unset.
+- Disabled or degraded gracefully when `GEMINI_API_KEY` is unset; AI routes share Redis IP/user rate limits from env.
 
 ---
 
