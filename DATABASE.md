@@ -67,7 +67,7 @@ erDiagram
 | Comments / replies                           | Separate `Comment` + `parentId` | Unbounded threads; paginate independently         |
 | Reactions                                    | Separate `Reaction`             | Unique constraint per user/blog; aggregate counts |
 | Role upgrades                                | Separate `RoleUpgradeRequest`   | Admin queue + history                             |
-| Media metadata                               | Optional `MediaAsset`           | Track Cloudinary public IDs for cleanup           |
+| Media metadata                               | Optional `MediaAsset`           | Track local upload keys / external cover URLs     |
 | Moderation history                           | Optional `ModerationAction`     | Audit trail beyond flags on User                  |
 
 ---
@@ -103,8 +103,8 @@ Mongoose model: `User` → collection `users`.
 | ---------------- | ---------- | ------------------------------------------------ |
 | `fullName`       | `String`   | Required, trim                                   |
 | `bio`            | `String`   | Default `""`, max ~500                           |
-| `avatar`         | `String`   | HTTPS URL (Cloudinary or similar); default `""`  |
-| `avatarPublicId` | `String`   | Optional; for media delete/replace               |
+| `avatar`         | `String`   | Local `/api/media/...` path (or empty); default `""` |
+| `avatarPublicId` | `String`   | Optional; local storage key for delete/replace   |
 | `website`        | `String`   | Optional                                         |
 | `socialLinks`    | `Object`   | Optional `twitter`, `linkedin`, `github` strings |
 | `location`       | `String`   | Optional                                         |
@@ -136,8 +136,8 @@ Mongoose model: `Blog` → collection `blogs`.
 | `content`                 | `String`            | Body (Markdown or HTML as app chooses); max ~100000 |
 | `authorId`                | `ObjectId` → `User` | Required; owner                                     |
 | `authorName`              | `String`            | Denormalized display name at publish/edit time      |
-| `thumbnail`               | `String`            | Image URL; optional until set/generated             |
-| `thumbnailPublicId`       | `String`            | Optional cloud public id                            |
+| `thumbnail`               | `String`            | Local `/api/media/...` or Pollinations HTTPS URL (`seed=_id` for AI) |
+| `thumbnailPublicId`       | `String`            | Optional local storage key (unused for Pollinations) |
 | `thumbnailSource`         | `String` enum       | Optional: `upload` \| `ai` \| `none`                |
 | `status`                  | `String` enum       | `draft` \| `published`; default `draft`             |
 | `publishedAt`             | `Date`              | Set when first published; null while draft          |
@@ -247,13 +247,13 @@ On approve: set `User.role = "author"`, mark request `approved`. On reject: keep
 
 Mongoose model: `MediaAsset` → collection `mediaassets`.
 
-Tracks uploaded/generated images so Admin cleanup and avatar/thumbnail replacement can delete orphans from the CDN.
+Tracks uploaded or AI cover URLs so avatar/thumbnail replacement can delete local orphans. AI covers store a Pollinations HTTPS URL (seeded by blog `_id`); there is nothing to delete remotely for those.
 
 | Field                     | Type                | Notes                                   |
 | ------------------------- | ------------------- | --------------------------------------- |
 | `ownerId`                 | `ObjectId` → `User` | Required                                |
-| `url`                     | `String`            | Required HTTPS URL                      |
-| `publicId`                | `String`            | Cloudinary (or provider) public id      |
+| `url`                     | `String`            | Local `/api/media/...` or Pollinations HTTPS |
+| `publicId`                | `String`            | Local key (`kind/filename`); empty/unused for external Pollinations URLs |
 | `kind`                    | `String` enum       | `avatar` \| `blog_thumbnail` \| `other` |
 | `blogId`                  | `ObjectId` → `Blog` | Optional; set for thumbnails            |
 | `source`                  | `String` enum       | `upload` \| `ai`                        |

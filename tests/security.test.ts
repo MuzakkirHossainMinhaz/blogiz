@@ -13,7 +13,14 @@ import {
 import { renderContent, renderMarkdown } from "@/lib/sanitize";
 import { canSignIn, evaluateSession } from "@/lib/session-policy";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT } from "@/lib/uploads";
-import { cloudinaryPublicId, isCloudinaryDeliveryUrl, isSafeNavigationUrl, isStoredImageUrl, safeCallbackUrl } from "@/lib/urls";
+import {
+  isLocalMediaUrl,
+  isPollinationsImageUrl,
+  isSafeNavigationUrl,
+  isStoredImageUrl,
+  localMediaRelativePath,
+  safeCallbackUrl,
+} from "@/lib/urls";
 import { passwordSchema } from "@/lib/validation";
 
 describe("authorization policy", () => {
@@ -183,20 +190,22 @@ describe("input guards", () => {
     expect(sniffImage(Buffer.from("<html></html>"))).toBeNull();
   });
 
-  it("accepts only this app's Cloudinary delivery URLs", () => {
-    const previous = process.env.CLOUDINARY_CLOUD_NAME;
-    process.env.CLOUDINARY_CLOUD_NAME = "blogizdemo";
-    const ok = "https://res.cloudinary.com/blogizdemo/image/upload/v1710000000/blogiz/abc.png";
-    expect(isStoredImageUrl(ok)).toBe(true);
-    expect(cloudinaryPublicId(ok)).toBe("blogiz/abc");
-    expect(isStoredImageUrl("https://res.cloudinary.com/other/image/upload/v1/blogiz/abc.png")).toBe(false);
-    expect(isStoredImageUrl("https://evil.example/blogizdemo/image/upload/v1/a.png")).toBe(false);
-    expect(isStoredImageUrl(`${ok}?x=1`)).toBe(false);
-    expect(isStoredImageUrl("https://res.cloudinary.com/blogizdemo/image/upload/v1/../etc/passwd.png")).toBe(false);
-    expect(isCloudinaryDeliveryUrl("https://res.cloudinary.com/other/image/upload/v1/a.jpg")).toBe(true);
-    expect(isCloudinaryDeliveryUrl("/api/media/aaaaaaaaaaaaaaaaaaaaaaaa")).toBe(false);
-    if (previous === undefined) delete process.env.CLOUDINARY_CLOUD_NAME;
-    else process.env.CLOUDINARY_CLOUD_NAME = previous;
+  it("accepts local media paths and Pollinations HTTPS cover URLs only", () => {
+    const local = "/api/media/covers/11111111-1111-4111-8111-111111111111.png";
+    expect(isLocalMediaUrl(local)).toBe(true);
+    expect(isStoredImageUrl(local)).toBe(true);
+    expect(localMediaRelativePath(local)).toBe("covers/11111111-1111-4111-8111-111111111111.png");
+
+    const pollinations =
+      "https://pollinations.ai/p/Wide%20cinematic%20harbor?width=1200&height=630&seed=507f1f77bcf86cd799439011";
+    expect(isPollinationsImageUrl(pollinations)).toBe(true);
+    expect(isStoredImageUrl(pollinations)).toBe(true);
+    expect(isStoredImageUrl("https://image.pollinations.ai/prompt/test")).toBe(true);
+
+    expect(isStoredImageUrl("https://res.cloudinary.com/blogizdemo/image/upload/v1/blogiz/abc.png")).toBe(false);
+    expect(isStoredImageUrl("https://evil.example/p/abc")).toBe(false);
+    expect(isStoredImageUrl("/api/media/covers/../etc/passwd.png")).toBe(false);
+    expect(isStoredImageUrl("/api/media/covers/not-a-uuid.png")).toBe(false);
   });
 
   it("raises the password policy", () => {

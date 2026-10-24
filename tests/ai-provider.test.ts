@@ -23,9 +23,6 @@ import {
 describe("ai provider config", () => {
   const keys = [
     "GEMINI_API_KEY",
-    "CLOUDINARY_CLOUD_NAME",
-    "CLOUDINARY_API_KEY",
-    "CLOUDINARY_API_SECRET",
     "AI_RATE_LIMIT_MAX_REQUESTS",
     "AI_RATE_LIMIT_WINDOW_SECONDS",
   ] as const;
@@ -58,19 +55,11 @@ describe("ai provider config", () => {
     expect(textAiConfigured()).toBe(true);
   });
 
-  it("enables image generation only when Gemini and Cloudinary are configured", () => {
+  it("enables image generation when Gemini is configured (no Cloudinary)", () => {
     snapshotEnv();
     delete process.env.GEMINI_API_KEY;
-    delete process.env.CLOUDINARY_CLOUD_NAME;
-    delete process.env.CLOUDINARY_API_KEY;
-    delete process.env.CLOUDINARY_API_SECRET;
     expect(imageGenerationConfigured()).toBe(false);
     expect(imageUnavailableMessage()).toMatch(/GEMINI_API_KEY/i);
-
-    process.env.CLOUDINARY_CLOUD_NAME = "demo";
-    process.env.CLOUDINARY_API_KEY = "key";
-    process.env.CLOUDINARY_API_SECRET = "secret";
-    expect(imageGenerationConfigured()).toBe(false);
 
     process.env.GEMINI_API_KEY = "gemini-test";
     expect(imageGenerationConfigured()).toBe(true);
@@ -174,20 +163,21 @@ describe("Gemini cover prompt craft helpers", () => {
 });
 
 describe("pollinations helpers", () => {
-  it("builds a Pollinations URL from a crafted prompt string only", () => {
+  it("builds a Pollinations URL seeded by the blog MongoDB _id", () => {
     const crafted =
       "Wide cinematic blog thumbnail of a harbor at golden hour, soft fog, teal and amber lighting, no text or logos";
-    const url = buildPollinationsImageUrl(crafted);
+    const blogId = "507f1f77bcf86cd799439011";
+    const url = buildPollinationsImageUrl(crafted, blogId);
     expect(url.startsWith("https://pollinations.ai/p/")).toBe(true);
     expect(url).toContain(encodeURIComponent(crafted));
     expect(url).toMatch(/width=1200/);
     expect(url).toMatch(/height=630/);
-    expect(url).toMatch(/seed=\d+/);
-    // Must not be a thin raw-title composition
+    expect(url).toContain(`seed=${encodeURIComponent(blogId)}`);
     expect(decodeURIComponent(url)).not.toMatch(/Blog cover about "/);
   });
 
-  it("rejects empty prompts", () => {
-    expect(() => buildPollinationsImageUrl("   ")).toThrow(PollinationsError);
+  it("rejects empty prompts or missing blogId seed", () => {
+    expect(() => buildPollinationsImageUrl("   ", "abc")).toThrow(PollinationsError);
+    expect(() => buildPollinationsImageUrl("a vivid scene", "   ")).toThrow(PollinationsError);
   });
 });

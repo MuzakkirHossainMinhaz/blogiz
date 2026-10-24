@@ -12,27 +12,16 @@ export function textAiUnavailableMessage(): string {
   return "Writing assistant is unavailable. Set GEMINI_API_KEY from Google AI Studio (https://aistudio.google.com/apikey).";
 }
 
-function cloudinaryConfigured(): boolean {
-  return Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME?.trim() &&
-      process.env.CLOUDINARY_API_KEY?.trim() &&
-      process.env.CLOUDINARY_API_SECRET?.trim()
-  );
-}
-
 /**
- * Cover AI: Gemini crafts the image prompt, Pollinations generates (no key), Cloudinary stores.
- * Requires GEMINI_API_KEY and Cloudinary.
+ * Cover AI: Gemini crafts the image prompt; Pollinations URL is stored in Mongo (no key, no re-upload).
+ * Requires GEMINI_API_KEY only.
  */
 export function imageGenerationConfigured(): boolean {
-  return geminiConfigured() && cloudinaryConfigured();
+  return geminiConfigured();
 }
 
 export function imageUnavailableMessage(): string {
-  if (!geminiConfigured()) {
-    return "Cover generation needs GEMINI_API_KEY (Google AI Studio) to craft the image prompt, plus Cloudinary to store the result—or upload a cover.";
-  }
-  return "Cover generation needs Cloudinary. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET, or upload a cover.";
+  return "Cover generation needs GEMINI_API_KEY (Google AI Studio) to craft the image prompt—or upload a cover.";
 }
 
 type TextAiClient = {

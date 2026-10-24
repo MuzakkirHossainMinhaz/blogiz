@@ -1,37 +1,20 @@
+import { mkdir, unlink, writeFile } from "fs/promises";
+import path from "path";
 import { randomUUID } from "crypto";
-import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { assertInsideUploadRoot, sniffImage, UPLOAD_ROOT, UploadError, type SniffedImage } from "@/lib/uploads";
-import { cloudinaryPublicId, isStoredImageUrl } from "@/lib/urls";
-
-/** Root Cloudinary folder for every Blogiz upload. */
-export const CLOUDINARY_ROOT_FOLDER = "blogiz";
+import { isLocalMediaUrl, isPollinationsImageUrl, localMediaRelativePath, isStoredImageUrl } from "@/lib/urls";
 
 export type StoredImageKind = "avatars" | "banners" | "covers" | "general";
 
-const KIND_SUBFOLDER: Record<StoredImageKind, string> = {
-  avatars: `${CLOUDINARY_ROOT_FOLDER}/avatars`,
-  banners: `${CLOUDINARY_ROOT_FOLDER}/banners`,
-  covers: `${CLOUDINARY_ROOT_FOLDER}/covers`,
-  general: CLOUDINARY_ROOT_FOLDER,
-};
+const KINDS = new Set<StoredImageKind>(["avatars", "banners", "covers", "general"]);
 
-export function requireCloudinaryConfig(): { cloud_name: string; api_key: string; api_secret: string } {
-  const cloud_name = process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "";
-  const api_key = process.env.CLOUDINARY_API_KEY?.trim() ?? "";
-  const api_secret = process.env.CLOUDINARY_API_SECRET?.trim() ?? "";
-  if (!cloud_name || !api_key || !api_secret) {
-    throw new UploadError("CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required");
-  }
-  if (!/^[a-z0-9_-]+$/i.test(cloud_name)) {
-    throw new UploadError("CLOUDINARY_CLOUD_NAME is invalid");
-  }
-  cloudinary.config({ cloud_name, api_key, api_secret, secure: true });
-  return { cloud_name, api_key, api_secret };
+export function isStoredImageKind(value: string): value is StoredImageKind {
+  return KINDS.has(value as StoredImageKind);
 }
 
 /**
- * Server-side Cloudinary upload into the `blogiz` folder (optional subfolder by kind).
- * The client filename is ignored. Magic bytes choose the format.
+ * Persist image bytes under `var/uploads/{kind}/` and return a same-origin
+ * `/api/media/{kind}/{filename}` URL for the database.
  */
 export async function saveImage(
   bytes: Buffer,
@@ -42,50 +25,54 @@ export async function saveImage(
     throw new UploadError("Only JPEG, PNG, and WebP images are allowed");
   }
 
+  const kind = options?.kind ?? "general";
+  if (!isStoredImageKind(kind)) {
+    throw new UploadError("Invalid upload kind");
+  }
+
   const id = randomUUID();
   const filename = `${id}.${sniffed.ext}`;
-  assertInsideUploadRoot(UPLOAD_ROOT, filename);
-  const { cloud_name } = requireCloudinaryConfig();
-  const folder = KIND_SUBFOLDER[options?.kind ?? "general"];
+  const kindRoot = path.join(/*turbopackIgnore: true*/ UPLOAD_ROOT, kind);
+  const target = assertInsideUploadRoot(kindRoot, filename);
 
-  const uploaded = await new Promise<UploadApiResponse>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        public_id: id,
-        resource_type: "image",
-        format: sniffed.ext,
-        unique_filename: false,
-        overwrite: false,
-        use_filename: false,
-      },
-      (error, result) => {
-        if (error || !result?.secure_url) {
-          reject(error instanceof Error ? error : new UploadError("Upload failed"));
-          return;
-        }
-        resolve(result);
-      }
-    );
-    stream.end(bytes);
-  });
+  await mkdir(kindRoot, { recursive: true });
+  await writeFile(target, bytes);
 
-  if (!isStoredImageUrl(uploaded.secure_url, cloud_name)) {
+  const url = `/api/media/${kind}/${filename}`;
+  if (!isStoredImageUrl(url)) {
     throw new UploadError("Upload failed");
   }
 
-  return { url: uploaded.secure_url, contentType: sniffed.mime };
+  return { url, contentType: sniffed.mime };
 }
 
-/** Deletes a previously stored image. Missing objects are ignored. */
+/**
+ * Delete a previously stored local upload. Pollinations (and other external)
+ * URLs are ignored — nothing to clean up on this server.
+ */
 export async function deleteStoredImage(url: string | null | undefined): Promise<void> {
   if (!url?.trim()) return;
-  const publicId = cloudinaryPublicId(url);
-  if (!publicId) return;
+  if (isPollinationsImageUrl(url) || !isLocalMediaUrl(url)) return;
 
-  requireCloudinaryConfig();
-  const result = await cloudinary.uploader.destroy(publicId, { resource_type: "image", invalidate: true });
-  if (result.result !== "ok" && result.result !== "not found") {
+  const relative = localMediaRelativePath(url);
+  if (!relative) return;
+
+  const [kind, filename] = relative.split("/");
+  if (!kind || !filename || !isStoredImageKind(kind)) return;
+
+  const kindRoot = path.join(/*turbopackIgnore: true*/ UPLOAD_ROOT, kind);
+  let target: string;
+  try {
+    target = assertInsideUploadRoot(kindRoot, filename);
+  } catch {
+    return;
+  }
+
+  try {
+    await unlink(target);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") return;
     throw new UploadError("Could not delete the stored image");
   }
 }

@@ -37,7 +37,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# uploaded objects are stored in the database, not on disk
+# local image uploads (avatars / manual covers)
 /var/uploads
 
 # Local Next agent stubs

@@ -9,12 +9,12 @@ Copy [`.env.example`](.env.example) to `.env.local` and fill only the values you
 Run these before `npm run dev` or the checks:
 
 - **MongoDB.** `MONGODB_URI` is required. The app does not fall back to localhost.
-- **Redis.** `REDIS_URL` is required the first time someone registers, signs in, requests a password reset, or calls an AI route. If it is missing or Redis is down, those routes fail with a clear error (login shows that rate limiting is unavailable instead of a fake bad-password message). The same Redis also backs optional fail-open caches (public blog list/detail, author profiles, public comments, author stats/analytics, short session user snapshots, view dedupe). Those caches fall through to Mongo when Redis is down—public pages keep working.
-- **Cloudinary.** `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are required to upload or delete an image. The API secret stays on the server. Seed data uses Cloudinary-shaped HTTPS URLs for the configured cloud name (or `demo` when unset) so public cards can render.
+- **Redis.** `REDIS_URL` is required the first time someone registers, signs in, requests a password reset, or calls an AI route. If it is missing or Redis is down, those routes fail with a clear error (login shows that rate limiting is unavailable instead of a fake bad-password message). The same Redis also backs optional fail-open caches (public blog list/detail, author profiles, public comments, author stats/analytics, short session user snapshots, view dedupe). Those caches fall through to Mongo when Redis is down—public pages keep working. AI routes also read `AI_RATE_LIMIT_MAX_REQUESTS` / `AI_RATE_LIMIT_WINDOW_SECONDS` (defaults 3 / 60).
 - **Gemini (AI Studio).** Create a free API key at [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. Blogiz uses `gemini-2.5-flash` for Optimize Title/Content, analyze-content, and crafting cover image prompts.
-- **Pollinations for covers.** No Pollinations API key. Gemini writes the final image prompt; the server fetches Pollinations bytes and uploads to Cloudinary (`CLOUDINARY_*` required).
+- **Pollinations for covers.** No Pollinations API key and no Cloudinary. Gemini writes the final image prompt; the app stores a Pollinations HTTPS URL on the blog with `seed={blog._id}` so the image stays stable per post.
+- **Local uploads.** Manual avatars/covers are written under `var/uploads/` and served at `/api/media/{kind}/{filename}`.
 
-A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET` and `AUTH_URL`. It does not call Redis or Cloudinary while pages are prerendered.
+A local production build also needs a reachable `MONGODB_URI` plus `AUTH_SECRET` and `AUTH_URL`. It does not call Redis or Gemini while pages are prerendered.
 
 ## Theme and fonts
 
@@ -46,9 +46,6 @@ The public marketing site uses the shared Navbar and Footer. The dashboard is a 
 | `SMTP_USER`             | Optional                               | SMTP username when the server requires auth.                                                                                                                                                       |
 | `SMTP_PASS`             | With `SMTP_USER`                       | SMTP password.                                                                                                                                                                                     |
 | `NEXT_PUBLIC_API_URL`   | Optional                               | API base used by the browser. Defaults to `/api`.                                                                                                                                                  |
-| `CLOUDINARY_CLOUD_NAME` | For uploads, `next/image`, and deletes | Cloudinary cloud name. `next/image` may load only `res.cloudinary.com/<this cloud>/…`.                                                                                                             |
-| `CLOUDINARY_API_KEY`    | For uploads and deletes                | Cloudinary API key.                                                                                                                                                                                |
-| `CLOUDINARY_API_SECRET` | For uploads and deletes                | Cloudinary API secret.                                                                                                                                                                             |
 | `REDIS_URL`             | For rate-limited routes                | Redis connection URL, for example `redis://127.0.0.1:6379`.                                                                                                                                        |
 | `REDIS_CACHE_TTL_SECONDS` | Optional (default `45`)              | TTL for fail-open public content caches (blog list/detail, author profile, public comments). Auth/AI rate limits stay fail-closed. Session user snapshots use a fixed 30s TTL.                      |
 
@@ -109,17 +106,17 @@ Public pages set title, description, Open Graph, canonical URL (from `AUTH_URL`)
 
 `POST /api/upload` stores a JPEG, PNG, or WebP for a verified signed-in user. The server ignores the client filename, checks magic bytes, and rejects anything over 5 MB.
 
-Bytes go to Cloudinary under the `blogiz` folder (`blogiz/avatars`, `blogiz/covers`, or `blogiz` for general uploads). The database stores the HTTPS `secure_url` for this cloud only. Blog thumbnail fields reject any other URL. If Cloudinary env vars are missing, the upload returns 400.
+Bytes are written under `var/uploads/{kind}/` (`avatars`, `covers`, `banners`, or `general`). The database stores a same-origin `/api/media/{kind}/{filename}` path. Blog thumbnail fields also accept Pollinations HTTPS URLs from AI generate.
 
-`POST /api/ai/generate-image` requires `title` (plus optional `description` / `summary`, `content` excerpt, and `prompt` as creative direction). Gemini crafts a vivid 1200×630 image prompt (style, mood, lighting; no text/logos); Pollinations draws it; Cloudinary stores the cover (`kind: covers`). Returns `{ url, prompt }` where `prompt` is the Gemini-crafted string—never a raw title. Needs `GEMINI_API_KEY`, Cloudinary, a verified signed-in user, and Redis (one AI rate-limit hit per Generate). Failures return a specific error instead of a generic 500.
+`POST /api/ai/generate-image` requires `blogId` (MongoDB `_id`) and `title` (plus optional `description` / `summary`, `content` excerpt, and `prompt` as creative direction). On create, the editor save-then-generates a draft first when no id exists yet; without `blogId` the route returns 400. Gemini crafts a vivid 1200×630 image prompt (style, mood, lighting; no text/logos); the response URL is `https://pollinations.ai/p/{encoded_prompt}?width=1200&height=630&seed={blogId}` and is saved **directly** on the blog thumbnail field (no fetch/re-upload). Returns `{ url, prompt }` where `prompt` is the Gemini-crafted string—never a raw title. Needs `GEMINI_API_KEY`, a verified signed-in owner (or admin), and Redis (one AI rate-limit hit per Generate). Failures return a specific error instead of a generic 500.
 
 `POST /api/ai/optimize` polishes title or content (voice-preserving) for authors via Gemini `gemini-2.5-flash`; returns `{ optimized }` for the editor to apply. Requires `GEMINI_API_KEY` and Redis. Missing key, Redis, and provider errors surface as clear JSON `{ error, message }` responses. AI routes share `AI_RATE_LIMIT_MAX_REQUESTS` × `AI_RATE_LIMIT_WINDOW_SECONDS` (default 3 / 60s); a 429 message asks the client to try again in a minute.
 
 Blog bodies are Markdown in the editor (preview + public post view share `renderContent`). Tailwind Preflight resets headings/lists, so `.prose` in `globals.css` supplies typography for headings, lists, links, code, quotes, and emphasis.
 
-Profile avatars are uploaded from Settings (`kind=avatars` → `blogiz/avatars`).
+Profile avatars are uploaded from Settings (`kind=avatars` → `/api/media/avatars/...`).
 
-Replacing or clearing a post thumbnail or avatar deletes the previous Cloudinary asset when possible.
+Replacing or clearing a local upload deletes the previous file on disk when possible. Pollinations cover URLs are external and are not deleted remotely.
 
 ## Author analytics API
 

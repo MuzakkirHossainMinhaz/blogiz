@@ -1,44 +1,45 @@
-const CLOUD_NAME = /^[a-z0-9_-]+$/i;
+const LOCAL_MEDIA_RE =
+  /^\/api\/media\/(avatars|banners|covers|general)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$/i;
 
-export function configuredCloudName(): string {
-  return process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "";
+const POLLINATIONS_HOSTS = new Set(["pollinations.ai", "image.pollinations.ai", "gen.pollinations.ai"]);
+
+/** Same-origin local upload served by `/api/media/...`. */
+export function isLocalMediaUrl(value: string): boolean {
+  return LOCAL_MEDIA_RE.test(value.trim());
 }
 
 /**
- * HTTPS image delivered by Cloudinary. Does not check which cloud it belongs to.
- * Write paths use isStoredImageUrl, which requires this app's cloud name.
+ * Relative path under the upload root for a local media URL (`kind/filename`),
+ * or null when the value is not a local media path.
  */
-export function isCloudinaryDeliveryUrl(value: string): boolean {
-  return cloudinaryPublicId(value, "*") !== null;
+export function localMediaRelativePath(value: string): string | null {
+  const trimmed = value.trim();
+  if (!isLocalMediaUrl(trimmed)) return null;
+  return trimmed.replace(/^\/api\/media\//, "");
 }
 
-/** This app's Cloudinary secure URL only. */
-export function isStoredImageUrl(value: string, cloudName = configuredCloudName()): boolean {
-  if (!cloudName || !CLOUD_NAME.test(cloudName)) return false;
-  return cloudinaryPublicId(value, cloudName) !== null;
-}
-
-/**
- * Public id (folder + name, no extension) for a secure URL we issued.
- * Pass "*" to accept any Cloudinary cloud name.
- */
-export function cloudinaryPublicId(value: string, cloudName = configuredCloudName()): string | null {
-  const cloud = cloudName === "*" ? "[a-z0-9_-]+" : cloudName;
-  if (!cloud || (cloudName !== "*" && !CLOUD_NAME.test(cloudName))) return null;
-
+/** HTTPS Pollinations generation or CDN delivery URL. */
+export function isPollinationsImageUrl(value: string): boolean {
   let url: URL;
   try {
     url = new URL(value.trim());
   } catch {
-    return null;
+    return false;
   }
-  if (url.protocol !== "https:" || url.hostname !== "res.cloudinary.com") return null;
-  if (url.username || url.password || url.search || url.hash) return null;
+  if (url.protocol !== "https:" || url.username || url.password) return false;
+  if (!POLLINATIONS_HOSTS.has(url.hostname)) return false;
+  if (url.hostname === "pollinations.ai") {
+    return url.pathname.startsWith("/p/") && url.pathname.length > 3;
+  }
+  return url.pathname.length > 1;
+}
 
-  const match = url.pathname.match(new RegExp(`^/${cloud}/image/upload/v\\d+/(.+)\\.(jpg|jpeg|png|webp)$`, "i"));
-  const publicId = match?.[1];
-  if (!publicId || publicId.includes("..") || publicId.includes("\\") || publicId.startsWith("/")) return null;
-  return publicId;
+/**
+ * Image URL this app may store and render: local `/api/media/...` uploads
+ * or Pollinations HTTPS cover URLs.
+ */
+export function isStoredImageUrl(value: string): boolean {
+  return isLocalMediaUrl(value) || isPollinationsImageUrl(value);
 }
 
 /**

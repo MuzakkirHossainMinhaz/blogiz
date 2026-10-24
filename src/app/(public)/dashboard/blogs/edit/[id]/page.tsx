@@ -94,6 +94,7 @@ export default function EditBlogPage() {
     <BlogEditor
       key={params.id}
       mode="edit"
+      blogId={params.id}
       initialValues={{
         title: blog.title,
         description: blog.description,

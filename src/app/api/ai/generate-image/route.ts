@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import {
   imageGenerationConfigured,
   imageUnavailableMessage,
@@ -8,18 +9,38 @@ import { denied } from "@/lib/authz";
 import { requireAiUser } from "@/lib/ai-guard";
 import { geminiAI } from "@/lib/gemini";
 import { jsonError, serverError } from "@/lib/http";
-import { saveImage } from "@/lib/object-storage";
-import {
-  buildPollinationsImageUrl,
-  fetchPollinationsImage,
-  PollinationsError,
-} from "@/lib/pollinations";
+import { connectDB } from "@/lib/mongodb";
+import { canPerformAction, type UserRole } from "@/lib/permissions";
+import { buildPollinationsImageUrl, PollinationsError } from "@/lib/pollinations";
 import { RateLimitUnavailable } from "@/lib/rate-limit";
-import { UploadError } from "@/lib/uploads";
+import { authorProfileId } from "@/lib/utils";
+import Blog from "@/models/Blog";
 
 const CONTENT_EXCERPT_MAX = 2000;
 
+function ownerId(blog: { authorId: unknown; createdBy?: unknown }) {
+  return authorProfileId(blog.authorId) ?? authorProfileId(blog.createdBy) ?? "";
+}
+
+async function assertBlogAccess(blogId: string, actorId: string, actorRole: UserRole) {
+  if (!mongoose.Types.ObjectId.isValid(blogId)) {
+    return jsonError("blogId is required", 400);
+  }
+
+  await connectDB();
+  const blog = await Blog.findById(blogId);
+  if (!blog) return jsonError("Blog not found", 404);
+
+  const canEdit =
+    canPerformAction(actorRole, "editOwnBlog", ownerId(blog), actorId) ||
+    canPerformAction(actorRole, "editAnyBlog");
+  if (!canEdit) return jsonError("Forbidden", 403);
+
+  return blog;
+}
+
 async function generate(input: {
+  blogId: string;
   direction?: string;
   title: string;
   description?: string;
@@ -40,12 +61,10 @@ async function generate(input: {
       direction: input.direction,
     });
 
-    const pollinationsUrl = buildPollinationsImageUrl(crafted);
-    const bytes = await fetchPollinationsImage(pollinationsUrl);
-    const stored = await saveImage(bytes, { kind: "covers" });
-    return NextResponse.json({ url: stored.url, prompt: crafted });
+    // Persist the Pollinations URL string only — no fetch/re-upload. Seed = Mongo `_id`.
+    const pollinationsUrl = buildPollinationsImageUrl(crafted, input.blogId);
+    return NextResponse.json({ url: pollinationsUrl, prompt: crafted });
   } catch (error) {
-    if (error instanceof UploadError) return jsonError(error.message, 400);
     if (error instanceof PollinationsError) {
       return jsonError(
         error.message,
@@ -62,6 +81,12 @@ export async function POST(request: NextRequest) {
     if (denied(actor)) return actor;
 
     const body = await request.json().catch(() => null);
+    const blogId = typeof body?.blogId === "string" ? body.blogId.trim() : "";
+    if (!blogId) return jsonError("blogId is required", 400);
+
+    const access = await assertBlogAccess(blogId, actor.id, actor.role);
+    if (access instanceof NextResponse) return access;
+
     const direction =
       typeof body?.prompt === "string" ? body.prompt.trim().slice(0, 500) : "";
     const title = typeof body?.title === "string" ? body.title.trim().slice(0, 200) : "";
@@ -77,6 +102,7 @@ export async function POST(request: NextRequest) {
     if (!title) return jsonError("Title is required", 400);
 
     return await generate({
+      blogId,
       title,
       description: description || undefined,
       content: content || undefined,
@@ -95,9 +121,16 @@ export async function GET(request: NextRequest) {
     const actor = await requireAiUser(request);
     if (denied(actor)) return actor;
 
-    const title = new URL(request.url).searchParams.get("title")?.trim().slice(0, 200) || "";
+    const params = new URL(request.url).searchParams;
+    const blogId = params.get("blogId")?.trim() || "";
+    if (!blogId) return jsonError("blogId is required", 400);
+
+    const access = await assertBlogAccess(blogId, actor.id, actor.role);
+    if (access instanceof NextResponse) return access;
+
+    const title = params.get("title")?.trim().slice(0, 200) || "";
     if (!title) return jsonError("Title is required", 400);
-    return await generate({ title });
+    return await generate({ blogId, title });
   } catch (error) {
     if (error instanceof RateLimitUnavailable) return jsonError(error.message, 503);
     const mapped = mapAiHttpError(error);

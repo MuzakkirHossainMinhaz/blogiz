@@ -2,9 +2,9 @@
 
 Blogiz is a multi-role blogging platform. Readers discover and engage with published posts; authors draft and publish writing with optional AI assistance; admins govern users, content, and trust.
 
-Signed-in people can comment and leave one like or dislike on a published post. Authors manage their own drafts and posts, and can engage on others’ writing. Admins moderate accounts, posts, and comments. Each author has a public profile at `/authors/[authorId]`, linked from the byline. Images go to Cloudinary. Sign-in, registration, password reset, and AI routes are rate limited with Redis (fail closed). Redis also backs short fail-open caches for public reads, view dedupe, author stats/analytics, and a 30s session user snapshot—see the Redis table in [GUIDE.md](GUIDE.md).
+Signed-in people can comment and leave one like or dislike on a published post. Authors manage their own drafts and posts, and can engage on others’ writing. Admins moderate accounts, posts, and comments. Each author has a public profile at `/authors/[authorId]`, linked from the byline. Manual uploads are stored locally (`/api/media/...`); AI covers are Pollinations HTTPS URL strings in Mongo. Sign-in, registration, password reset, and AI routes are rate limited with Redis (fail closed). Redis also backs short fail-open caches for public reads, view dedupe, author stats/analytics, and a 30s session user snapshot—see the Redis table in [GUIDE.md](GUIDE.md).
 
-AI is assistive and opt-in (title/content polish, optional covers)—not a silent rewrite of the author’s voice. Text polish and analysis use **Google Gemini** (`gemini-2.5-flash`) via `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey). Cover generation: Gemini crafts a vivid image prompt from the post (title, description, content, optional creative direction), **Pollinations.ai** draws it (no API key), then Cloudinary stores the result. Redis enforces AI rate limits from `AI_RATE_LIMIT_MAX_REQUESTS` × `AI_RATE_LIMIT_WINDOW_SECONDS` (defaults 3 / 60 seconds, IP-hashed when `TRUSTED_PROXY_HEADER` is set). Provider failures return specific messages rather than a blank generic error.
+AI is assistive and opt-in (title/content polish, optional covers)—not a silent rewrite of the author’s voice. Text polish and analysis use **Google Gemini** (`gemini-2.5-flash`) via `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey). Cover generation: Gemini crafts a vivid image prompt from the post; the app stores a **Pollinations.ai** URL directly on the blog (no API key, no re-upload), with `seed={blog._id}` so the image stays stable per post. Redis enforces AI rate limits from `AI_RATE_LIMIT_MAX_REQUESTS` × `AI_RATE_LIMIT_WINDOW_SECONDS` (defaults 3 / 60 seconds, IP-hashed when `TRUSTED_PROXY_HEADER` is set). Provider failures return specific messages rather than a blank generic error.
 
 Roles match [PLAN.md](PLAN.md) and [DATABASE.md](DATABASE.md): exactly three — `admin` | `author` | `reader`. Blogs use a draft / publish lifecycle. See [GUIDE.md](GUIDE.md) for operations.
 
@@ -15,8 +15,9 @@ Roles match [PLAN.md](PLAN.md) and [DATABASE.md](DATABASE.md): exactly three —
 - Fraunces (display) and Plus Jakarta Sans (UI) via `next/font`
 - MongoDB with Mongoose
 - Auth.js (`next-auth` 5 beta) with email and password sessions
-- Cloudinary for images
+- Local `/api/media` uploads for avatars and manual covers; Pollinations URL strings for AI covers
 - Redis for sliding-window rate limits (fail closed) and fail-open content caches
+- Google Gemini (`gemini-2.5-flash`) for text polish and cover-prompt craft
 - Framer Motion for enter/stagger motion (respects reduced motion)
 
 ## Quick start

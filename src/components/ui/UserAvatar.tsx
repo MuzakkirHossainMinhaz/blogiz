@@ -23,7 +23,7 @@ type UserAvatarProps = {
 };
 
 /**
- * Shows this app's Cloudinary avatar when available.
+ * Shows a stored avatar (`/api/media/...` upload) when available.
  * Otherwise tries `/author.png`. If that fails, shows the first letter of the name.
  */
 export function UserAvatar({ src, name, size = "md", className, priority = false }: UserAvatarProps) {
@@ -70,7 +70,7 @@ export function UserAvatar({ src, name, size = "md", className, priority = false
           "h-full w-full object-center",
           isIcon ? "object-contain" : "object-cover"
         )}
-        unoptimized={!remote}
+        unoptimized={!remote || Boolean(remote?.startsWith("/api/media/"))}
         priority={priority}
         onError={() => setFailed(true)}
       />

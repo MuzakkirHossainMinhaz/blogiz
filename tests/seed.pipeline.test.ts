@@ -48,7 +48,6 @@ describe("full database seed", () => {
       MONGODB_URI: mongo.getUri(),
       ADMIN_EMAIL: adminEmail,
       ADMIN_PASSWORD: adminPassword,
-      CLOUDINARY_CLOUD_NAME: "demo",
     });
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
