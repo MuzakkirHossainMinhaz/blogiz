@@ -73,9 +73,9 @@ const sections = [
     title: "Email, Uploads, And Rate Limits",
     content: (
       <p>
-        If the operator configures SMTP, Blogiz may send verification and password-reset mail. Image uploads may be
-        hosted with Cloudinary when those credentials are set. Redis is used for rate limiting on sensitive routes such
-        as sign-in.
+        If the operator configures SMTP, Blogiz may send verification and password-reset mail. Uploaded images are stored
+        on the application server; AI-generated covers are Pollinations HTTPS URLs saved on the blog document. Redis is
+        used for rate limiting on sensitive routes such as sign-in.
       </p>
     ),
   },

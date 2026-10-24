@@ -1,5 +1,5 @@
 /** Static seed fixtures (emails/passwords for non-admin users are set in the seeder).
- * Avatars/thumbnails stay empty so the UI uses local fallbacks until real Cloudinary uploads exist.
+ * Avatars/thumbnails stay empty so the UI uses local fallbacks until real uploads or Pollinations covers exist.
  */
 export function buildSeedUsers(adminEmail) {
   return {

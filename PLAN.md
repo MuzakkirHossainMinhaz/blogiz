@@ -27,12 +27,12 @@ The writing experience should feel author-led. AI is an on-demand helper for thu
 | Language      | TypeScript                                                             |
 | Database      | MongoDB with Mongoose (server-side only)                               |
 | Auth          | Session-based email/password (e.g. Auth.js / NextAuth)                 |
-| Media         | Cloud image hosting for avatars and blog thumbnails (e.g. Cloudinary)  |
-| AI            | Gemini (`gemini-2.5-flash`) for text + cover prompt craft; Pollinations → Cloudinary for covers; Redis env rate limits |
+| Media         | Local `/api/media` uploads for avatars/manual covers; Pollinations HTTPS URL strings for AI covers |
+| AI            | Gemini (`gemini-2.5-flash`) for text + cover prompt craft; Pollinations URL + `_id` seed in Mongo; Redis env rate limits |
 | Rate limiting | Redis (auth and AI routes)                                             |
 | UI            | Tailwind CSS + component layer; accessible light theme                 |
 
-Server routes and server components own all MongoDB access. Secrets (DB URI, auth secret, AI keys, cloud media credentials) stay in environment configuration.
+Server routes and server components own all MongoDB access. Secrets (DB URI, auth secret, Gemini API key, Redis URL) stay in environment configuration.
 
 Schema details live in [DATABASE.md](DATABASE.md).
 
@@ -74,7 +74,7 @@ Authorization is enforced in API handlers and server actions, not only in the UI
 
 - Edit basic profile fields (display name, bio, optional links/location as product allows).
 - Change password (current password + new password, with strength rules).
-- Upload or replace profile picture / avatar; previous media can be cleaned up in cloud storage when replaced.
+- Upload or replace profile picture / avatar; previous local uploads are deleted from disk when replaced.
 
 ### Reader
 
@@ -119,8 +119,9 @@ Counters (likes, dislikes, comments, views) are denormalized on the blog documen
 
 - Trigger: explicit **Generate thumbnail** action.
 - Input: title (required), optional description/content excerpt; optional creative-direction prompt (not the final image string).
-- Pipeline: Gemini crafts a vivid image prompt → Pollinations URL → fetch bytes → Cloudinary cover URL (no Pollinations API key).
-- Output: image URL plus the Gemini-crafted `prompt`; author can regenerate or replace with an upload.
+- Pipeline: Gemini crafts a vivid image prompt → Pollinations URL with `seed={blog._id}` stored directly on the blog (no Pollinations API key, no Cloudinary).
+- `blogId` is required (edit flow, or save-then-generate on create) so the seed stays stable.
+- Output: Pollinations HTTPS URL plus the Gemini-crafted `prompt`; author can regenerate or replace with an upload.
 - Server-side only; env-driven Redis AI rate limits apply (`AI_RATE_LIMIT_*`); one hit per Generate.
 
 ### AI: title & content optimization

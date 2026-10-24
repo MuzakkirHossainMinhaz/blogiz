@@ -1,16 +1,17 @@
 /**
- * Seed image helpers. Blog/banner URLs must match isStoredImageUrl for API writes;
- * direct Mongo inserts still use Cloudinary-shaped HTTPS URLs so next/image and public
- * components accept them when CLOUDINARY_CLOUD_NAME matches.
+ * Seed image helpers. Blog/banner URLs must match isStoredImageUrl for API writes.
+ * AI covers use Pollinations HTTPS URLs seeded by the MongoDB blog `_id`.
  */
 
-export function seedCloudName() {
-  const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim();
-  if (cloud && /^[a-z0-9_-]+$/i.test(cloud)) return cloud;
-  return "demo";
-}
-
-export function seedImageUrl(publicId, version = 1710000000, ext = "jpg") {
-  const cloud = seedCloudName();
-  return `https://res.cloudinary.com/${cloud}/image/upload/v${version}/${publicId}.${ext}`;
+/**
+ * Stable Pollinations cover URL for a seeded post.
+ * Format: https://pollinations.ai/p/{prompt}?width=1200&height=630&seed={blogId}
+ */
+export function seedPollinationsUrl(prompt, blogId) {
+  const crafted = String(prompt || "editorial blog cover").trim() || "editorial blog cover";
+  const seed = String(blogId || "").trim();
+  if (!seed) {
+    throw new Error("seedPollinationsUrl requires a blogId seed");
+  }
+  return `https://pollinations.ai/p/${encodeURIComponent(crafted)}?width=1200&height=630&seed=${encodeURIComponent(seed)}`;
 }

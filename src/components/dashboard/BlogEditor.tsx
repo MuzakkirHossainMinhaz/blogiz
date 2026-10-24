@@ -40,6 +40,10 @@ export type BlogEditorValues = z.infer<typeof blogSchema>;
 
 export type BlogEditorProps = {
   mode: "create" | "edit";
+  /** Existing MongoDB blog `_id` (edit, or create after save-then-generate). */
+  blogId?: string;
+  /** Fired when a draft is created so cover generation can seed Pollinations. */
+  onBlogIdResolved?: (id: string) => void;
   initialValues?: Partial<BlogEditorValues>;
   cancelHref?: string;
   onSubmit: (data: BlogEditorValues) => Promise<void>;
@@ -47,6 +51,8 @@ export type BlogEditorProps = {
 
 export function BlogEditor({
   mode,
+  blogId,
+  onBlogIdResolved,
   initialValues,
   cancelHref = "/dashboard/blogs",
   onSubmit,
@@ -107,6 +113,53 @@ export function BlogEditor({
     }
     toast.error("Set your name in Settings before saving a post.");
     return false;
+  };
+
+  /** Save a draft first when generating a cover before the post has an `_id`. */
+  const ensureBlogIdForCover = async (): Promise<string> => {
+    if (blogId?.trim()) return blogId.trim();
+    if (!ensureAuthorName()) {
+      throw new Error("Set your name in Settings before generating a cover.");
+    }
+    const isValid = await trigger();
+    if (!isValid) {
+      throw new Error("Fill required fields, then generate a cover.");
+    }
+    const current = getValues();
+    const response = await fetch("/api/blogs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: current.title,
+        description: current.description,
+        content: current.content || content,
+        authorName: profileName || current.authorName,
+        thumbnail: current.thumbnail || undefined,
+        status: "draft",
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(
+        typeof result.error === "string"
+          ? result.error
+          : typeof result.message === "string"
+            ? result.message
+            : "Could not save draft before generating a cover."
+      );
+    }
+    const id =
+      typeof result.blog?._id === "string"
+        ? result.blog._id
+        : result.blog?._id != null
+          ? String(result.blog._id)
+          : "";
+    if (!id) {
+      throw new Error("Draft saved but no blog id was returned.");
+    }
+    onBlogIdResolved?.(id);
+    toast.success("Draft saved — generating cover…");
+    return id;
   };
 
   const optimizeField = async (field: "title" | "content") => {
@@ -246,6 +299,7 @@ export function BlogEditor({
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 768px"
+                  unoptimized={watchedThumbnail.startsWith("/api/media/")}
                 />
               </div>
             ) : null}
@@ -433,6 +487,8 @@ export function BlogEditor({
               title={watchedTitle || ""}
               description={watchedDescription || ""}
               content={content}
+              blogId={blogId}
+              ensureBlogId={blogId ? undefined : ensureBlogIdForCover}
               onChange={(url) => setValue("thumbnail", url, { shouldValidate: true, shouldDirty: true })}
               error={errors.thumbnail?.message}
               disabled={actionsBusy}

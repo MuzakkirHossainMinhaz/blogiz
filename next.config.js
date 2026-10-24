@@ -1,21 +1,27 @@
 /** @type {import('next').NextConfig} */
 
-function storagePattern() {
-  const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim();
-  if (!cloud || !/^[a-z0-9_-]+$/i.test(cloud)) return [];
-  return [
-    {
-      protocol: "https",
-      hostname: "res.cloudinary.com",
-      pathname: `/${cloud}/**`,
-    },
-  ];
-}
+const pollinationsPatterns = [
+  {
+    protocol: "https",
+    hostname: "pollinations.ai",
+    pathname: "/p/**",
+  },
+  {
+    protocol: "https",
+    hostname: "image.pollinations.ai",
+    pathname: "/**",
+  },
+  {
+    protocol: "https",
+    hostname: "gen.pollinations.ai",
+    pathname: "/**",
+  },
+];
 
 const nextConfig = {
-  serverExternalPackages: ["cloudinary", "ioredis", "sliding-window-rate-limiter"],
+  serverExternalPackages: ["ioredis", "sliding-window-rate-limiter"],
   images: {
-    remotePatterns: storagePattern(),
+    remotePatterns: pollinationsPatterns,
   },
   async redirects() {
     return [

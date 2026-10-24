@@ -1,6 +1,11 @@
+const POLLINATIONS_IMG_SOURCES = [
+  "https://pollinations.ai",
+  "https://image.pollinations.ai",
+  "https://gen.pollinations.ai",
+].join(" ");
+
 export function contentSecurityPolicy(nonce: string): string {
-  const storageHost = storageHostSource();
-  const imgSrc = ["'self'", "data:", "blob:", storageHost].filter(Boolean).join(" ");
+  const imgSrc = ["'self'", "data:", "blob:", POLLINATIONS_IMG_SOURCES].join(" ");
   const isDev = process.env.NODE_ENV !== "production";
   // React reconstruction / Turbopack HMR need eval in development only.
   const scriptSrc = ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", isDev ? "'unsafe-eval'" : null]
@@ -21,12 +26,6 @@ export function contentSecurityPolicy(nonce: string): string {
     "frame-ancestors 'none'",
     "upgrade-insecure-requests",
   ].join("; ");
-}
-
-function storageHostSource(): string {
-  const cloud = process.env.CLOUDINARY_CLOUD_NAME?.trim();
-  if (!cloud || !/^[a-z0-9_-]+$/i.test(cloud)) return "";
-  return "https://res.cloudinary.com";
 }
 
 export function applySecurityHeaders(headers: Headers, csp: string) {
