@@ -1,11 +1,14 @@
-"use client";
-
 import { FadeIn } from "@/components/motion";
 import { APP_CONFIG, ROUTES } from "@/config/constants";
 import Image from "next/image";
 import Link from "next/link";
 
-/** Brand hero for the public home page. */
+/**
+ * Brand hero for the public home page.
+ * Stays a Server Component so the CTA copy is rendered with the HTML
+ * and passed into FadeIn, instead of being compiled into a client chunk
+ * that can hydrate with an older label.
+ */
 export function HomeHero() {
   return (
     <section className="relative overflow-hidden">

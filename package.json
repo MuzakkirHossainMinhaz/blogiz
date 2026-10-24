@@ -22,8 +22,8 @@
     "ioredis": "^6.0.0",
     "mongoose": "^9.10.2",
     "next": "^16.3.6",
-    "next-auth": "^5.0.0-beta.32",
-    "nodemailer": "^7.0.6",
+    "next-auth": "^1.12.1",
+    "nodemailer": "^10.2.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",
@@ -45,12 +45,12 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "daisyui": "^5.7.47",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.6",
+    "eslint-config-next": "^14.2.35",
     "mongodb-memory-server": "^10.2.3",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.5"
   },
   "browserslist": "> 1%"
 }
