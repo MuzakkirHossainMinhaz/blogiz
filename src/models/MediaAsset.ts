@@ -5,7 +5,9 @@ export type MediaSource = "upload" | "ai";
 
 export interface IMediaAsset extends Document {
   ownerId: mongoose.Types.ObjectId;
+  /** Local `/api/media/...` path or external HTTPS (e.g. Pollinations cover). */
   url: string;
+  /** Local storage key (`kind/filename`) for uploads; omit/empty for external URLs. */
   publicId: string;
   kind: MediaKind;
   blogId?: mongoose.Types.ObjectId | null;

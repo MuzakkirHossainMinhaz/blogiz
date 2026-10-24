@@ -16,8 +16,8 @@ type BlogCoverImageProps = {
 };
 
 /**
- * Uses this app's Cloudinary URLs only. On missing/invalid/failed images,
- * shows a branded indigo placeholder (avoids broken alt-text boxes).
+ * Uses stored cover URLs (local `/api/media/...` or Pollinations HTTPS).
+ * On missing/invalid/failed images, shows a branded indigo placeholder.
  */
 export function BlogCoverImage({
   src,
@@ -59,6 +59,7 @@ export function BlogCoverImage({
       className={className}
       sizes={sizes}
       priority={priority}
+      unoptimized={remote.startsWith("/api/media/")}
       onError={() => setFailed(true)}
     />
   );

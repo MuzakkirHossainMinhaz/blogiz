@@ -6,7 +6,7 @@ import { useSessionStatus } from "@/hooks/useSessionStatus";
 import { hasPermission, UserRole } from "@/lib/permissions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FiLock } from "react-icons/fi";
 
 export default function CreateBlogPage() {
@@ -14,6 +14,7 @@ export default function CreateBlogPage() {
   const { session, isInitialLoading } = useSessionStatus();
   const userRole = (session?.user?.role as UserRole) || "reader";
   const canCreateBlog = hasPermission(userRole, "createBlog");
+  const [blogId, setBlogId] = useState<string | undefined>();
 
   useEffect(() => {
     if (isInitialLoading) return;
@@ -54,18 +55,24 @@ export default function CreateBlogPage() {
   }
 
   const handleSubmit = async (data: BlogEditorValues) => {
-    const response = await fetch("/api/blogs", {
-      method: "POST",
+    const payload = {
+      title: data.title,
+      description: data.description,
+      content: data.content,
+      authorName: data.authorName,
+      thumbnail: data.thumbnail || undefined,
+      status: data.status,
+      publishedAt: data.status === "published" ? data.publishedAt || new Date().toISOString() : undefined,
+    };
+
+    const response = await fetch(blogId ? `/api/blogs/${blogId}` : "/api/blogs", {
+      method: blogId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: data.title,
-        description: data.description,
-        content: data.content,
-        authorName: data.authorName,
-        thumbnail: data.thumbnail || undefined,
-        status: data.status,
-        publishedAt: data.status === "published" ? data.publishedAt || new Date().toISOString() : undefined,
-      }),
+      body: JSON.stringify(
+        blogId
+          ? { ...payload, thumbnail: data.thumbnail ?? "" }
+          : payload
+      ),
     });
 
     if (!response.ok) {
@@ -77,5 +84,12 @@ export default function CreateBlogPage() {
     router.refresh();
   };
 
-  return <BlogEditor mode="create" onSubmit={handleSubmit} />;
+  return (
+    <BlogEditor
+      mode={blogId ? "edit" : "create"}
+      blogId={blogId}
+      onBlogIdResolved={setBlogId}
+      onSubmit={handleSubmit}
+    />
+  );
 }

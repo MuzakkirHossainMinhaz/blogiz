@@ -13,6 +13,10 @@ type FeaturedCoverFieldProps = {
   title: string;
   description?: string;
   content?: string;
+  /** MongoDB blog `_id` — required as Pollinations seed (edit, or after save-then-generate). */
+  blogId?: string;
+  /** Create flow: save a draft and return its `_id` before generating. */
+  ensureBlogId?: () => Promise<string>;
   onChange: (url: string) => void;
   error?: string;
   disabled?: boolean;
@@ -27,11 +31,12 @@ function mapGenerateError(status: number, payload?: { error?: unknown; message?:
         ? payload.message
         : undefined;
 
+  if (status === 400) return message || "Save the draft first, then generate a cover.";
   if (status === 403) return message || "Verify your email before generating covers.";
   if (status === 429) return message || "Too many AI requests. Try again in a minute.";
   if (status === 503) return message || "Image generation is not configured yet.";
   if (status === 502) {
-    return message || "Cover generation failed. Check Gemini and Cloudinary settings and try again.";
+    return message || "Cover generation failed. Check GEMINI_API_KEY and try again.";
   }
   return message || "Failed to generate cover.";
 }
@@ -41,6 +46,8 @@ export function FeaturedCoverField({
   title,
   description = "",
   content = "",
+  blogId,
+  ensureBlogId,
   onChange,
   error,
   disabled = false,
@@ -91,22 +98,37 @@ export function FeaturedCoverField({
     setBusy("generate");
     setLocalError(null);
 
-    const body: {
-      title: string;
-      description?: string;
-      content?: string;
-      prompt?: string;
-    } = {
-      title: title.trim().slice(0, 200),
-    };
-    const desc = description.trim();
-    if (desc) body.description = desc.slice(0, 500);
-    const excerpt = content.trim();
-    if (excerpt) body.content = excerpt.slice(0, 2000);
-    const direction = customPrompt.trim();
-    if (direction.length >= 3) body.prompt = direction.slice(0, 500);
-
     try {
+      let resolvedBlogId = blogId?.trim() || "";
+      if (!resolvedBlogId) {
+        if (!ensureBlogId) {
+          setLocalError("Save the draft first so the cover can use a stable seed.");
+          return;
+        }
+        resolvedBlogId = (await ensureBlogId()).trim();
+      }
+      if (!resolvedBlogId) {
+        setLocalError("blogId is required");
+        return;
+      }
+
+      const body: {
+        blogId: string;
+        title: string;
+        description?: string;
+        content?: string;
+        prompt?: string;
+      } = {
+        blogId: resolvedBlogId,
+        title: title.trim().slice(0, 200),
+      };
+      const desc = description.trim();
+      if (desc) body.description = desc.slice(0, 500);
+      const excerpt = content.trim();
+      if (excerpt) body.content = excerpt.slice(0, 2000);
+      const direction = customPrompt.trim();
+      if (direction.length >= 3) body.prompt = direction.slice(0, 500);
+
       const response = await fetch("/api/ai/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,8 +144,8 @@ export function FeaturedCoverField({
         return;
       }
       onChange(result.url);
-    } catch {
-      setLocalError("Failed to generate cover");
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : "Failed to generate cover");
     } finally {
       setBusy(null);
     }
@@ -163,6 +185,7 @@ export function FeaturedCoverField({
             fill
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 360px"
+            unoptimized={value.startsWith("/api/media/")}
           />
         ) : (
           <div className="flex flex-col items-center gap-2 px-4 text-center text-accent-400">
@@ -188,9 +211,10 @@ export function FeaturedCoverField({
           disabled={disabled || Boolean(busy)}
           onClick={() => fileRef.current?.click()}
           className="w-full"
+          isLoading={busy === "upload"}
         >
-          <FiUpload className="w-4 h-4" />
-          Upload
+          {busy === "upload" ? null : <FiUpload className="w-4 h-4" />}
+          {busy === "upload" ? "Uploading…" : "Upload"}
         </Button>
         <Button
           type="button"
@@ -199,9 +223,10 @@ export function FeaturedCoverField({
           disabled={disabled || Boolean(busy) || !canGenerate}
           onClick={() => void handleGenerate()}
           className="w-full"
+          isLoading={busy === "generate"}
         >
-          <FiZap className="w-4 h-4" />
-          Generate
+          {busy === "generate" ? null : <FiZap className="w-4 h-4" />}
+          {busy === "generate" ? "Generating…" : "Generate"}
         </Button>
       </div>
 
@@ -230,7 +255,8 @@ export function FeaturedCoverField({
 
       {displayError ? <p className={fieldErrorClassName}>{displayError}</p> : null}
       <p className="text-xs text-accent-400 shrink-0">
-        JPEG, PNG, or WebP up to 5MB. Generate: Gemini crafts the image prompt, Pollinations draws it, Cloudinary stores it. One AI rate-limit hit per click.
+        JPEG, PNG, or WebP up to 5MB. Generate: Gemini crafts the prompt; the Pollinations URL (seeded by this post&apos;s
+        id) is saved on the blog. One AI rate-limit hit per click.
       </p>
     </div>
   );
