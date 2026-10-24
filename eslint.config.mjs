@@ -1,5 +1,4 @@
 import { createRequire } from "node:module";
-import { fixupConfigRules } from "@eslint/compat";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 
@@ -7,7 +6,7 @@ const require = createRequire(import.meta.url);
 const espree = require("espree");
 
 export default defineConfig([
-  ...fixupConfigRules(nextVitals),
+  ...nextVitals,
   {
     files: ["**/*.{js,cjs}"],
     languageOptions: {
